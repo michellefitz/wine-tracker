@@ -8,12 +8,49 @@ import type { LabelReading } from "@/lib/types";
 
 type Stage = "capture" | "reading" | "form";
 
+type Artwork = { dataUrl: string; label: string };
+
 export default function AddWineFlow() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [stage, setStage] = useState<Stage>("capture");
   const [photo, setPhoto] = useState<string | null>(null);
   const [reading, setReading] = useState<LabelReading | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  // A cleaner product shot, if one can be found and verified against the photo.
+  const [artwork, setArtwork] = useState<Artwork | null>(null);
+  const [lookingUp, setLookingUp] = useState(false);
+  const [useArtwork, setUseArtwork] = useState(true);
+
+  /** Runs after the label is read, in the background — it must never block saving. */
+  async function lookUpArtwork(dataUrl: string, result: LabelReading) {
+    if (!result.name && !result.producer) return;
+    setLookingUp(true);
+    try {
+      const response = await fetch("/api/artwork", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dataUrl,
+          producer: result.producer,
+          name: result.name,
+        }),
+      });
+      if (response.ok) {
+        const payload = (await response.json()) as {
+          found: boolean;
+          dataUrl?: string;
+          label?: string;
+        };
+        if (payload.found && payload.dataUrl) {
+          setArtwork({ dataUrl: payload.dataUrl, label: payload.label ?? "Product shot" });
+        }
+      }
+    } catch {
+      // No product shot is a normal outcome, not an error worth surfacing.
+    }
+    setLookingUp(false);
+  }
 
   async function onPhotoChosen(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -50,6 +87,7 @@ export default function AddWineFlow() {
           if (result.confidence === "low") {
             setNotice("The label was hard to read — worth checking these details.");
           }
+          void lookUpArtwork(dataUrl, result);
         } else {
           setNotice(result.note ?? "That didn't look like a wine label. Fill it in by hand.");
         }
@@ -72,7 +110,7 @@ export default function AddWineFlow() {
         onChange={onPhotoChosen}
       />
 
-      {photo && (
+      {photo && !artwork && (
         <div className="flex items-end gap-5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -93,12 +131,60 @@ export default function AddWineFlow() {
               onClick={() => {
                 setPhoto(null);
                 setReading(null);
+                setArtwork(null);
               }}
               className="link-quiet"
             >
               Remove
             </button>
+            {lookingUp && <span className="eyebrow">Looking for a product shot…</span>}
           </div>
+        </div>
+      )}
+
+      {photo && artwork && (
+        <div>
+          <p className="eyebrow mb-3">Which picture?</p>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { id: "artwork", src: artwork.dataUrl, caption: "Product shot", on: useArtwork },
+              { id: "mine", src: photo, caption: "Your photo", on: !useArtwork },
+            ].map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => setUseArtwork(option.id === "artwork")}
+                className="text-left"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={option.src}
+                  alt={option.caption}
+                  className={`aspect-4/5 w-full bg-tint object-contain transition ${
+                    option.on ? "ring-1 ring-ink" : "opacity-55"
+                  }`}
+                />
+                <span
+                  className={`mt-2 block text-[0.6875rem] font-medium uppercase tracking-[0.14em] ${
+                    option.on ? "text-ink" : "text-muted"
+                  }`}
+                >
+                  {option.caption}
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-3 text-[0.8125rem] leading-relaxed text-muted">
+            Matched to “{artwork.label}” from Open Food Facts. If that isn&apos;t your
+            bottle, keep your own photo.
+          </p>
+          <button
+            type="button"
+            onClick={() => fileInput.current?.click()}
+            className="link-quiet mt-3"
+          >
+            Retake
+          </button>
         </div>
       )}
 
@@ -142,7 +228,13 @@ export default function AddWineFlow() {
         </p>
       )}
 
-      {stage === "form" && <WineForm mode="create" reading={reading} photoDataUrl={photo} />}
+      {stage === "form" && (
+        <WineForm
+          mode="create"
+          reading={reading}
+          photoDataUrl={artwork && useArtwork ? artwork.dataUrl : photo}
+        />
+      )}
 
       {stage !== "form" && (
         <p className="text-center">
