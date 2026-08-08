@@ -1,5 +1,4 @@
 import Link from "next/link";
-import LockButton from "@/components/LockButton";
 import WineList from "@/components/WineList";
 import { listWines } from "@/lib/wines";
 import type { Wine } from "@/lib/types";
@@ -18,27 +17,15 @@ export default async function HomePage() {
       "Couldn't reach the database. Check DATABASE_URL, and that you've run `npm run db:init`.";
   }
 
-  const liked = wines.filter((wine) => wine.score > 0).length;
-
   return (
     <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-32 pt-[max(1.75rem,env(safe-area-inset-top))]">
       <header className="mb-6">
-        <div className="flex items-start justify-between gap-4">
-          <h1 className="serif-display text-[2.5rem] leading-[0.95] tracking-[-0.02em] text-ink">
-            Cellar
-            <br />
-            Notes
-          </h1>
-          <LockButton />
-        </div>
-
+        {/* Scales with the viewport so it stays on one line down to a 320px phone. */}
+        <h1 className="serif-display whitespace-nowrap text-[clamp(1.75rem,11vw,2.5rem)]
+          leading-none tracking-[-0.02em] text-ink">
+          Cellar Notes
+        </h1>
         <hr className="rule mt-5" />
-
-        <p className="eyebrow mt-2.5">
-          {wines.length === 0
-            ? "Nothing logged yet"
-            : `${wines.length} bottle${wines.length === 1 ? "" : "s"} · ${liked} liked`}
-        </p>
       </header>
 
       {loadError ? (
