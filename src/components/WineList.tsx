@@ -7,7 +7,7 @@ import type { Wine } from "@/lib/types";
 type Filter = "all" | "liked" | "disliked";
 
 const FILTERS: { id: Filter; label: string }[] = [
-  { id: "all", label: "Everything" },
+  { id: "all", label: "All" },
   { id: "liked", label: "Liked" },
   { id: "disliked", label: "Didn't like" },
 ];
@@ -46,13 +46,13 @@ export default function WineList({ wines }: { wines: Wine[] }) {
 
   if (wines.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-line bg-surface/50 p-8 text-center">
-        <p className="font-[family-name:var(--font-display)] text-xl text-ink">
+      <div className="border-t border-rule py-20 text-center">
+        <p className="mx-auto max-w-xs font-display text-2xl leading-snug text-ink">
           Start with the last bottle you opened.
         </p>
-        <p className="mx-auto mt-2 max-w-xs text-sm text-muted">
-          Snap the label, say whether you liked it, and it&apos;s in the log. The shelf in
-          the supermarket gets a lot easier after a dozen of these.
+        <p className="mx-auto mt-3 max-w-xs text-[0.9375rem] leading-relaxed text-muted">
+          Photograph the label, say whether you liked it, and it&apos;s in the log. The
+          shelf gets much easier after a dozen of these.
         </p>
       </div>
     );
@@ -60,21 +60,27 @@ export default function WineList({ wines }: { wines: Wine[] }) {
 
   return (
     <div>
-      <div className="mb-4 space-y-3">
+      <div className="mb-6">
         <input
           type="search"
-          className="field"
-          placeholder="Search names, grapes, regions, notes…"
+          className="field text-[0.9375rem]"
+          placeholder="Search name, grape, region, note…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-        <div className="flex gap-2">
+
+        <div className="mt-4 flex gap-5">
           {FILTERS.map((option) => (
             <button
               key={option.id}
               type="button"
               onClick={() => setFilter(option.id)}
-              className={`chip ${filter === option.id ? "chip-on" : ""}`}
+              className={`pb-1 text-[0.6875rem] font-medium uppercase tracking-[0.14em]
+                transition-colors ${
+                  filter === option.id
+                    ? "border-b border-ink text-ink"
+                    : "border-b border-transparent text-muted hover:text-ink-soft"
+                }`}
             >
               {option.label}
             </button>
@@ -83,9 +89,11 @@ export default function WineList({ wines }: { wines: Wine[] }) {
       </div>
 
       {visible.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted">Nothing matches that.</p>
+        <p className="border-t border-rule py-16 text-center text-[0.9375rem] text-muted">
+          Nothing matches that.
+        </p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 sm:gap-x-5">
           {visible.map((wine) => (
             <li key={wine.id}>
               <WineCard wine={wine} />

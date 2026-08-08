@@ -12,15 +12,17 @@ export default async function EditWinePage({ params }: { params: Promise<{ id: s
   if (!wine) notFound();
 
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-2xl px-4 pb-10 pt-[max(1.5rem,env(safe-area-inset-top))]">
-      <header className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="font-[family-name:var(--font-display)] text-2xl text-ink">Edit</h1>
-        <Link
-          href={`/wine/${wine.id}`}
-          className="text-sm text-muted underline underline-offset-4"
-        >
-          Cancel
-        </Link>
+    <main className="mx-auto min-h-dvh w-full max-w-xl px-5 pb-10 pt-[max(1.75rem,env(safe-area-inset-top))]">
+      <header className="mb-8">
+        <div className="flex items-center justify-between gap-4">
+          <p className="eyebrow">Editing</p>
+          <Link href={`/wine/${wine.id}`} className="link-quiet">
+            Cancel
+          </Link>
+        </div>
+        <h1 className="mt-3 font-display text-[2rem] leading-tight tracking-[-0.01em] text-ink">
+          {wine.name}
+        </h1>
       </header>
 
       <WineForm mode="edit" wine={wine} />

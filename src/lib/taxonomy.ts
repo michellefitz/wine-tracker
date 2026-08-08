@@ -6,11 +6,16 @@
  * counting ids across the wines you liked and disliked.
  */
 
+/**
+ * `liked` drives the visual treatment: wines you enjoyed carry the accent
+ * colour, the rest go quiet grey — so a shelf of cards reads at a glance.
+ * `solid` separates the emphatic ends of the scale from the mild ones.
+ */
 export const RATINGS = [
-  { score: 2, id: "loved", label: "Loved it", short: "Loved", emoji: "\u{1F929}" },
-  { score: 1, id: "liked", label: "Liked it", short: "Liked", emoji: "\u{1F642}" },
-  { score: -1, id: "disliked", label: "Didn't like it", short: "Disliked", emoji: "\u{1F615}" },
-  { score: -2, id: "hated", label: "Really disliked it", short: "Hated", emoji: "\u{1F922}" },
+  { score: 2, id: "loved", label: "Loved it", short: "Loved", liked: true, solid: true },
+  { score: 1, id: "liked", label: "Liked it", short: "Liked", liked: true, solid: false },
+  { score: -1, id: "disliked", label: "Didn't like it", short: "Didn't like", liked: false, solid: false },
+  { score: -2, id: "hated", label: "Really disliked it", short: "Disliked", liked: false, solid: true },
 ] as const;
 
 export type RatingScore = (typeof RATINGS)[number]["score"];

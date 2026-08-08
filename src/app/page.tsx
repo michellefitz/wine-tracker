@@ -18,37 +18,45 @@ export default async function HomePage() {
       "Couldn't reach the database. Check DATABASE_URL, and that you've run `npm run db:init`.";
   }
 
+  const liked = wines.filter((wine) => wine.score > 0).length;
+
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-2xl px-4 pb-28 pt-[max(1.5rem,env(safe-area-inset-top))]">
-      <header className="mb-6 flex items-end justify-between gap-4">
-        <div>
-          <h1 className="font-[family-name:var(--font-display)] text-3xl leading-tight text-ink">
-            Cellar Notes
+    <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-32 pt-[max(1.75rem,env(safe-area-inset-top))]">
+      <header className="mb-6">
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="font-display text-[2.5rem] leading-[0.95] tracking-[-0.02em] text-ink">
+            Cellar
+            <br />
+            Notes
           </h1>
-          <p className="mt-1 text-sm text-muted">
-            {wines.length === 0
-              ? "Nothing logged yet."
-              : `${wines.length} bottle${wines.length === 1 ? "" : "s"} logged.`}
-          </p>
+          <LockButton />
         </div>
-        <LockButton />
+
+        <hr className="rule mt-5" />
+
+        <p className="eyebrow mt-2.5">
+          {wines.length === 0
+            ? "Nothing logged yet"
+            : `${wines.length} bottle${wines.length === 1 ? "" : "s"} · ${liked} liked`}
+        </p>
       </header>
 
       {loadError ? (
-        <p className="rounded-xl border border-line bg-surface p-4 text-sm text-wine-soft">
+        <p className="border border-rule bg-card p-5 text-[0.9375rem] text-wine">
           {loadError}
         </p>
       ) : (
         <WineList wines={wines} />
       )}
 
-      <Link
-        href="/add"
-        className="btn-primary fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))]
-          mx-auto max-w-md shadow-lg shadow-black/40"
-      >
-        <span aria-hidden>＋</span> Log a wine
-      </Link>
+      {/* A soft paper fade so the button never sits awkwardly on a photo. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 flex justify-center
+        bg-gradient-to-t from-paper via-paper/90 to-transparent pt-12
+        pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        <Link href="/add" className="btn-ink pointer-events-auto px-8">
+          Log a wine
+        </Link>
+      </div>
     </main>
   );
 }

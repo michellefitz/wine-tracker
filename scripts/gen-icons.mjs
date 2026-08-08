@@ -8,9 +8,9 @@
 import { deflateSync } from "node:zlib";
 import { mkdirSync, writeFileSync } from "node:fs";
 
-const BG = [0x14, 0x10, 0x10];
-const GLASS = [0xe8, 0xdc, 0xd6];
-const WINE = [0xa0, 0x1f, 0x45];
+const BG = [0xfb, 0xfa, 0xf7];
+const GLASS = [0x7a, 0x1b, 0x32];
+const WINE = [0x53, 0x11, 0x22];
 
 /** Is normalised point (x, y) inside the wine glass silhouette? */
 function inGlass(x, y) {

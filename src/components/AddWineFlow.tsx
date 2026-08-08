@@ -62,7 +62,7 @@ export default function AddWineFlow() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-7">
       <input
         ref={fileInput}
         type="file"
@@ -73,20 +73,20 @@ export default function AddWineFlow() {
       />
 
       {photo && (
-        <div className="flex gap-3">
+        <div className="flex items-end gap-5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={photo}
             alt="The label you photographed"
-            className="h-32 w-24 rounded-xl border border-line object-cover"
+            className="aspect-4/5 w-28 shrink-0 bg-tint object-cover"
           />
-          <div className="flex flex-col justify-center gap-2">
+          <div className="flex flex-col items-start gap-2 pb-1">
             <button
               type="button"
               onClick={() => fileInput.current?.click()}
-              className="text-sm text-muted underline underline-offset-4"
+              className="link-quiet"
             >
-              Retake photo
+              Retake
             </button>
             <button
               type="button"
@@ -94,59 +94,59 @@ export default function AddWineFlow() {
                 setPhoto(null);
                 setReading(null);
               }}
-              className="text-left text-sm text-muted underline underline-offset-4"
+              className="link-quiet"
             >
-              Remove photo
+              Remove
             </button>
           </div>
         </div>
       )}
 
       {stage === "capture" && (
-        <div className="space-y-3 rounded-2xl border border-line bg-surface p-5 text-center">
-          <p className="font-[family-name:var(--font-display)] text-xl text-ink">
-            Photograph the label
+        <div className="border-t border-rule pt-10 text-center">
+          <p className="mx-auto max-w-xs font-display text-[1.75rem] leading-snug text-ink">
+            Photograph the label.
           </p>
-          <p className="text-sm text-muted">
-            The producer, vintage and region get filled in for you. You can fix anything
-            that comes back wrong.
+          <p className="mx-auto mt-3 max-w-xs text-[0.9375rem] leading-relaxed text-muted">
+            The producer, vintage and region get filled in for you. Anything that comes
+            back wrong is yours to fix.
           </p>
           <button
             type="button"
-            className="btn-primary w-full"
+            className="btn-ink mt-7 w-full max-w-xs"
             onClick={() => fileInput.current?.click()}
           >
-            📷 Take a photo
+            Take a photo
           </button>
-          <button
-            type="button"
-            className="text-sm text-muted underline underline-offset-4"
-            onClick={() => setStage("form")}
-          >
-            Skip — I&apos;ll type it in
-          </button>
+          <p className="mt-5">
+            <button
+              type="button"
+              className="link-quiet"
+              onClick={() => setStage("form")}
+            >
+              Skip — I&apos;ll type it in
+            </button>
+          </p>
         </div>
       )}
 
       {stage === "reading" && (
-        <div className="rounded-2xl border border-line bg-surface p-5 text-center">
-          <p className="text-sm text-muted">Reading the label…</p>
-        </div>
+        <p className="border-t border-rule py-10 text-center eyebrow">
+          Reading the label…
+        </p>
       )}
 
       {notice && stage === "form" && (
-        <p className="rounded-xl border border-line bg-surface p-3 text-sm text-muted">
+        <p className="border-l-2 border-rule pl-4 text-[0.9375rem] leading-relaxed text-muted">
           {notice}
         </p>
       )}
 
-      {stage === "form" && (
-        <WineForm mode="create" reading={reading} photoDataUrl={photo} />
-      )}
+      {stage === "form" && <WineForm mode="create" reading={reading} photoDataUrl={photo} />}
 
       {stage !== "form" && (
         <p className="text-center">
-          <Link href="/" className="text-sm text-muted underline underline-offset-4">
+          <Link href="/" className="link-quiet">
             Back to the log
           </Link>
         </p>

@@ -1,37 +1,36 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #141010;
-  --color-surface: #1f1918;
-  --color-surface-2: #2b2321;
-  --color-line: #3a2e2c;
-  --color-ink: #f5ece8;
-  --color-muted: #a5938c;
-  --color-wine: #a01f45;
-  --color-wine-soft: #d75f7d;
-  --color-gold: #d9a441;
-  --color-sage: #7fa682;
+  /* Warm paper, not clinical white — it flatters bottle photography. */
+  --color-paper: #fbfaf7;
+  --color-card: #ffffff;
+  --color-tint: #f1eee9;
+  --color-ink: #17140f;
+  --color-ink-soft: #55504a;
+  --color-muted: #736c63;
+  --color-rule: #e5e0d8;
+  --color-wine: #7a1b32;
 
-  --font-display: Georgia, "Iowan Old Style", "Times New Roman", serif;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 html {
-  background-color: var(--color-bg);
-  color-scheme: dark;
-  /* Keeps the fixed header clear of iOS's status bar in standalone mode. */
+  background-color: var(--color-paper);
+  color-scheme: light;
   -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background-color: var(--color-bg);
+  background-color: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
   min-height: 100dvh;
   overscroll-behavior-y: none;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Don't let iOS zoom the page when a text field is focused. */
+/* Don't let iOS zoom the page when a field takes focus. */
 input,
 select,
 textarea {
@@ -39,41 +38,55 @@ textarea {
 }
 
 @layer components {
+  /* Small letterspaced caps — the connective tissue of the whole layout. */
+  .eyebrow {
+    @apply text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted;
+  }
+
+  .rule {
+    @apply border-0 border-t border-rule;
+  }
+
+  /* Underlined fields rather than boxes: fewer edges, calmer page. */
   .field {
-    @apply w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-ink
-      placeholder:text-muted/70 outline-none transition
-      focus:border-wine-soft focus:ring-2 focus:ring-wine-soft/30;
+    @apply w-full border-0 border-b border-rule bg-transparent px-0 py-2.5
+      text-ink outline-none transition-colors placeholder:text-muted/70
+      focus:border-ink;
   }
 
-  .label {
-    @apply mb-1.5 block text-xs font-medium tracking-wide text-muted uppercase;
+  .field-boxed {
+    @apply w-full rounded-none border border-rule bg-card px-3 py-2.5 text-ink
+      outline-none transition-colors placeholder:text-muted/70 focus:border-ink;
   }
 
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3
-      text-sm font-semibold transition active:scale-[0.98] disabled:opacity-50
+  /* Disabled goes quiet outline rather than a grey slab. */
+  .btn-ink {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border
+      border-ink bg-ink px-6 py-3.5 text-[0.75rem] font-medium uppercase
+      tracking-[0.14em] text-paper transition active:scale-[0.98]
+      disabled:border-rule disabled:bg-transparent disabled:text-muted
       disabled:active:scale-100;
   }
 
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3
-      text-sm font-semibold transition active:scale-[0.98] disabled:opacity-50
-      disabled:active:scale-100 bg-wine text-white hover:bg-wine/90;
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border
+      border-rule bg-transparent px-6 py-3.5 text-[0.75rem] font-medium
+      uppercase tracking-[0.14em] text-ink transition active:scale-[0.98]
+      hover:border-ink disabled:opacity-40;
   }
 
-  .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3
-      text-sm font-semibold transition active:scale-[0.98] disabled:opacity-50
-      disabled:active:scale-100 border border-line bg-surface text-ink
-      hover:bg-surface-2;
+  .link-quiet {
+    @apply text-[0.75rem] uppercase tracking-[0.12em] text-muted underline
+      decoration-rule underline-offset-4 transition-colors hover:text-ink;
   }
 
+  /* Tag chips: hairline outline, ink fill when chosen. */
   .chip {
-    @apply rounded-full border border-line bg-surface px-3 py-1.5 text-sm
-      text-muted transition active:scale-95;
+    @apply rounded-full border border-rule px-3.5 py-1.5 text-[0.8125rem]
+      text-ink-soft transition active:scale-95 hover:border-muted;
   }
 
   .chip-on {
-    @apply border-wine-soft bg-wine/25 text-ink;
+    @apply border-ink bg-ink text-paper hover:border-ink;
   }
 }

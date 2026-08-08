@@ -12,11 +12,7 @@ export default function LockButton() {
   }
 
   return (
-    <button
-      type="button"
-      onClick={lock}
-      className="text-xs text-muted underline underline-offset-4"
-    >
+    <button type="button" onClick={lock} className="link-quiet mt-2 shrink-0">
       Lock
     </button>
   );

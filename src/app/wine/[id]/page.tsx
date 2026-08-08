@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import BottlePlaceholder from "@/components/BottlePlaceholder";
 import DeleteWineButton from "@/components/DeleteWineButton";
-import RatingPill from "@/components/RatingPill";
+import RatingMark from "@/components/RatingMark";
 import { tagLabel } from "@/lib/taxonomy";
 import { getWine } from "@/lib/wines";
 
@@ -22,7 +23,6 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
   if (!wine) notFound();
 
   const facts: [string, string][] = [
-    ["Producer", wine.producer ?? ""],
     ["Vintage", wine.vintage ? String(wine.vintage) : ""],
     ["Type", wine.wine_type ?? ""],
     ["Grapes", wine.grapes.join(", ")],
@@ -30,46 +30,49 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
     ["Bought at", wine.source ?? ""],
     ["Price", wine.price_eur !== null ? `€${wine.price_eur.toFixed(2)}` : ""],
     ["Drank", formatDate(wine.drank_on)],
-  ];
+  ].filter(([, value]) => value !== "") as [string, string][];
 
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-2xl px-4 pb-16 pt-[max(1.5rem,env(safe-area-inset-top))]">
-      <header className="mb-5 flex items-center justify-between gap-4">
-        <Link href="/" className="text-sm text-muted underline underline-offset-4">
+    <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-20 pt-[max(1.75rem,env(safe-area-inset-top))]">
+      <nav className="mb-7 flex items-center justify-between">
+        <Link href="/" className="link-quiet">
           ← All wines
         </Link>
-        <Link
-          href={`/wine/${wine.id}/edit`}
-          className="text-sm text-muted underline underline-offset-4"
-        >
+        <Link href={`/wine/${wine.id}/edit`} className="link-quiet">
           Edit
         </Link>
-      </header>
+      </nav>
 
-      <div className="flex gap-4">
-        {wine.photo_id && (
+      <div className="mx-auto aspect-4/5 w-full max-w-xs overflow-hidden bg-tint">
+        {wine.photo_id ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={`/api/photos/${wine.photo_id}`}
             alt={`Label of ${wine.name}`}
-            className="h-40 w-32 shrink-0 rounded-xl border border-line object-cover"
+            className="h-full w-full object-cover"
           />
+        ) : (
+          <BottlePlaceholder />
         )}
-        <div className="min-w-0 flex-1">
-          <h1 className="font-[family-name:var(--font-display)] text-2xl leading-tight text-ink">
-            {wine.name}
-          </h1>
-          {wine.producer && <p className="mt-1 text-muted">{wine.producer}</p>}
-          <div className="mt-3">
-            <RatingPill score={wine.score} />
-          </div>
-        </div>
       </div>
 
+      <header className="mt-8 text-center">
+        {wine.producer && <p className="eyebrow">{wine.producer}</p>}
+        <h1 className="mt-2 font-display text-[2rem] leading-[1.1] tracking-[-0.01em] text-ink">
+          {wine.name}
+        </h1>
+        <div className="mt-4 flex justify-center">
+          <RatingMark score={wine.score} size="lg" />
+        </div>
+      </header>
+
       {wine.tags.length > 0 && (
-        <div className="mt-6 flex flex-wrap gap-1.5">
+        <div className="mt-7 flex flex-wrap justify-center gap-1.5">
           {wine.tags.map((tag) => (
-            <span key={tag} className="chip chip-on">
+            <span
+              key={tag}
+              className="rounded-full border border-rule px-3 py-1 text-[0.8125rem] text-ink-soft"
+            >
               {tagLabel(tag)}
             </span>
           ))}
@@ -77,24 +80,23 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
       )}
 
       {wine.notes && (
-        <section className="mt-6 rounded-2xl border border-line bg-surface p-4">
-          <h2 className="label">Notes</h2>
-          <p className="whitespace-pre-wrap text-ink">{wine.notes}</p>
-        </section>
+        <blockquote className="mx-auto mt-9 max-w-md border-t border-rule pt-7 text-center">
+          <p className="font-display text-[1.375rem] leading-[1.45] text-ink">
+            {wine.notes}
+          </p>
+        </blockquote>
       )}
 
-      <dl className="mt-6 divide-y divide-line rounded-2xl border border-line bg-surface px-4">
-        {facts
-          .filter(([, value]) => value !== "")
-          .map(([term, value]) => (
-            <div key={term} className="flex justify-between gap-4 py-3 text-sm">
-              <dt className="text-muted">{term}</dt>
-              <dd className="text-right text-ink">{value}</dd>
-            </div>
-          ))}
+      <dl className="mx-auto mt-10 max-w-md border-t border-rule">
+        {facts.map(([term, value]) => (
+          <div key={term} className="flex justify-between gap-6 border-b border-rule py-3.5">
+            <dt className="eyebrow pt-0.5">{term}</dt>
+            <dd className="text-right text-[0.9375rem] text-ink">{value}</dd>
+          </div>
+        ))}
       </dl>
 
-      <div className="mt-8">
+      <div className="mt-12 text-center">
         <DeleteWineButton id={wine.id} name={wine.name} />
       </div>
     </main>

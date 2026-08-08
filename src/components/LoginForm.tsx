@@ -37,15 +37,15 @@ export default function LoginForm({ next }: { next: string }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3">
+    <form onSubmit={onSubmit} className="space-y-6">
       <div>
-        <label className="label" htmlFor="passcode">
+        <label className="eyebrow mb-2 block text-center" htmlFor="passcode">
           Passcode
         </label>
         <input
           id="passcode"
           type="password"
-          className="field"
+          className="field text-center text-[1.25rem] tracking-[0.3em]"
           autoComplete="current-password"
           value={passcode}
           onChange={(event) => setPasscode(event.target.value)}
@@ -53,9 +53,9 @@ export default function LoginForm({ next }: { next: string }) {
         />
       </div>
 
-      {error && <p className="text-sm text-wine-soft">{error}</p>}
+      {error && <p className="text-center text-[0.875rem] text-wine">{error}</p>}
 
-      <button type="submit" className="btn-primary w-full" disabled={busy || !passcode}>
+      <button type="submit" className="btn-ink w-full" disabled={busy || !passcode}>
         {busy ? "Checking…" : "Unlock"}
       </button>
     </form>

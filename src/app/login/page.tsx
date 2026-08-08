@@ -11,17 +11,23 @@ export default async function LoginPage({
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center px-6">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <h1 className="font-[family-name:var(--font-display)] text-4xl text-ink">
-            Cellar Notes
+      <div className="w-full max-w-xs">
+        <div className="text-center">
+          <h1 className="font-display text-[3rem] leading-[0.95] tracking-[-0.02em] text-ink">
+            Cellar
+            <br />
+            Notes
           </h1>
-          <p className="mt-2 text-sm text-muted">
+          <hr className="rule mx-auto mt-7 w-12" />
+          <p className="mt-5 text-[0.9375rem] leading-relaxed text-muted">
             Wines you&apos;ve had, and what you made of them.
           </p>
         </div>
-        {/* Only ever follow a same-origin path, never an absolute URL. */}
-        <LoginForm next={next?.startsWith("/") ? next : "/"} />
+
+        <div className="mt-10">
+          {/* Only ever follow a same-origin path, never an absolute URL. */}
+          <LoginForm next={next?.startsWith("/") ? next : "/"} />
+        </div>
       </div>
     </main>
   );

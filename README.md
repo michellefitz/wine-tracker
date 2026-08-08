@@ -79,6 +79,15 @@ Android. HTTPS is required for the camera, which Vercel gives you by default.
 | Photos           | Base64 in Postgres           | One less service to wire up; photos are ~150 KB after downscaling |
 | Auth             | One passcode, signed cookie  | It's a single-user app on a public URL                         |
 | Styling          | Tailwind v4                  | —                                                               |
+| Type             | Instrument Serif + Sans      | Self-hosted at build time, so no runtime call to Google        |
+
+**On the look.** Bright warm paper, hairline rules, small letterspaced caps for
+labels, and a serif reserved for wine names and notes. Bottle photos are the
+only strong colour on the page, which is the point: the log is a gallery of
+labels, and in a shop you recognise a bottle before you read its name. Rating
+carries the one accent — wines you liked take the bordeaux, the rest stay grey,
+so a screenful sorts itself before you read a word. Every text colour clears
+WCAG AA against the background.
 
 A few decisions worth knowing about:
 

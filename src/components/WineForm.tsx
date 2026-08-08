@@ -18,25 +18,38 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="border-t border-rule pt-7">
+      <h2 className="eyebrow mb-4">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
 export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
   const router = useRouter();
 
   const [name, setName] = useState(wine?.name ?? reading?.name ?? "");
   const [producer, setProducer] = useState(wine?.producer ?? reading?.producer ?? "");
-  const [vintage, setVintage] = useState(
-    String(wine?.vintage ?? reading?.vintage ?? ""),
-  );
+  const [vintage, setVintage] = useState(String(wine?.vintage ?? reading?.vintage ?? ""));
   const [wineType, setWineType] = useState(wine?.wine_type ?? reading?.wine_type ?? "");
   const [region, setRegion] = useState(wine?.region ?? reading?.region ?? "");
   const [country, setCountry] = useState(wine?.country ?? reading?.country ?? "");
-  const [grapes, setGrapes] = useState(
-    (wine?.grapes ?? reading?.grapes ?? []).join(", "),
-  );
+  const [grapes, setGrapes] = useState((wine?.grapes ?? reading?.grapes ?? []).join(", "));
 
   const [score, setScore] = useState<number | null>(wine?.score ?? null);
   const [tags, setTags] = useState<string[]>(wine?.tags ?? []);
   const [notes, setNotes] = useState(wine?.notes ?? "");
-  const [price, setPrice] = useState(wine?.price_eur !== null && wine?.price_eur !== undefined ? String(wine.price_eur) : "");
+  const [price, setPrice] = useState(
+    wine?.price_eur !== null && wine?.price_eur !== undefined ? String(wine.price_eur) : "",
+  );
   const [source, setSource] = useState(wine?.source ?? "");
   const [drankOn, setDrankOn] = useState(wine?.drank_on ?? today());
 
@@ -125,23 +138,23 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-7">
-      <section className="space-y-3">
+    <form onSubmit={onSubmit} className="space-y-8">
+      <section className="space-y-5">
         <div>
-          <label className="label" htmlFor="name">
+          <label className="eyebrow mb-1 block" htmlFor="name">
             Wine
           </label>
           <input
             id="name"
-            className="field"
+            className="field font-display text-[1.375rem]"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="e.g. Reserva Malbec"
+            placeholder="Reserva Malbec"
           />
         </div>
 
         <div>
-          <label className="label" htmlFor="producer">
+          <label className="eyebrow mb-1 block" htmlFor="producer">
             Producer
           </label>
           <input
@@ -149,13 +162,13 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
             className="field"
             value={producer}
             onChange={(event) => setProducer(event.target.value)}
-            placeholder="e.g. Bodega Norton"
+            placeholder="Bodega Norton"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-5">
           <div>
-            <label className="label" htmlFor="vintage">
+            <label className="eyebrow mb-1 block" htmlFor="vintage">
               Vintage
             </label>
             <input
@@ -168,7 +181,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
             />
           </div>
           <div>
-            <label className="label" htmlFor="wine-type">
+            <label className="eyebrow mb-1 block" htmlFor="wine-type">
               Type
             </label>
             <select
@@ -188,36 +201,45 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
         </div>
       </section>
 
-      <section>
-        <h2 className="label">How was it?</h2>
+      <Section title="How was it?">
         <div className="grid grid-cols-2 gap-2">
-          {RATINGS.map((rating) => (
-            <button
-              key={rating.id}
-              type="button"
-              onClick={() => setScore(rating.score)}
-              className={`rounded-xl border px-3 py-4 text-sm font-medium transition
-                active:scale-[0.97] ${
-                  score === rating.score
-                    ? "border-wine-soft bg-wine/25 text-ink"
-                    : "border-line bg-surface text-muted"
-                }`}
-            >
-              <span className="mr-1.5 text-lg" aria-hidden>
-                {rating.emoji}
-              </span>
-              {rating.label}
-            </button>
-          ))}
+          {RATINGS.map((rating) => {
+            const chosen = score === rating.score;
+            return (
+              <button
+                key={rating.id}
+                type="button"
+                onClick={() => setScore(rating.score)}
+                className={`rounded-full border px-3 py-3.5 text-[0.9375rem]
+                  transition active:scale-[0.98] ${
+                    chosen
+                      ? "border-ink bg-ink text-paper"
+                      : "border-rule text-ink-soft hover:border-muted"
+                  }`}
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <span
+                    aria-hidden
+                    className={`inline-block size-2 rounded-full border ${
+                      chosen
+                        ? "border-paper " + (rating.solid ? "bg-paper" : "bg-transparent")
+                        : (rating.liked ? "border-wine " : "border-muted ") +
+                          (rating.solid ? (rating.liked ? "bg-wine" : "bg-muted") : "bg-transparent")
+                    }`}
+                  />
+                  {rating.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
-      </section>
+      </Section>
 
-      <section>
-        <h2 className="label">What stood out?</h2>
-        <div className="space-y-3">
+      <Section title="What stood out?">
+        <div className="space-y-5">
           {TAG_GROUPS.map((group) => (
             <div key={group}>
-              <p className="mb-1.5 text-xs text-muted/70">{group}</p>
+              <p className="mb-2 text-[0.8125rem] text-muted">{group}</p>
               <div className="flex flex-wrap gap-1.5">
                 {tagsInGroup(group).map((tag) => (
                   <button
@@ -233,35 +255,34 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
             </div>
           ))}
         </div>
-      </section>
+      </Section>
 
-      <section>
-        <label className="label" htmlFor="notes">
-          Notes
-        </label>
+      <Section title="Notes">
+        {/* Boxed rather than underlined, so it doesn't double up with the
+            next section's rule. */}
         <textarea
           id="notes"
-          className="field min-h-24 resize-y"
+          className="field-boxed min-h-28 resize-y font-display text-[1.125rem] leading-relaxed"
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           placeholder="Anything you want to remember about it."
         />
-      </section>
+      </Section>
 
-      <section>
+      <section className="border-t border-rule pt-7">
         <button
           type="button"
           onClick={() => setShowDetails((open) => !open)}
-          className="text-sm text-muted underline underline-offset-4"
+          className="link-quiet"
         >
-          {showDetails ? "Hide extra details" : "Add where, when, how much"}
+          {showDetails ? "Hide extra details" : "Where, when, how much"}
         </button>
 
         {showDetails && (
-          <div className="mt-3 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="mt-6 space-y-5">
+            <div className="grid grid-cols-2 gap-5">
               <div>
-                <label className="label" htmlFor="source">
+                <label className="eyebrow mb-1 block" htmlFor="source">
                   Bought at
                 </label>
                 <select
@@ -279,7 +300,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
                 </select>
               </div>
               <div>
-                <label className="label" htmlFor="price">
+                <label className="eyebrow mb-1 block" htmlFor="price">
                   Price (€)
                 </label>
                 <input
@@ -293,9 +314,9 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-5">
               <div>
-                <label className="label" htmlFor="region">
+                <label className="eyebrow mb-1 block" htmlFor="region">
                   Region
                 </label>
                 <input
@@ -307,7 +328,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
                 />
               </div>
               <div>
-                <label className="label" htmlFor="country">
+                <label className="eyebrow mb-1 block" htmlFor="country">
                   Country
                 </label>
                 <input
@@ -321,7 +342,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
             </div>
 
             <div>
-              <label className="label" htmlFor="grapes">
+              <label className="eyebrow mb-1 block" htmlFor="grapes">
                 Grapes
               </label>
               <input
@@ -334,7 +355,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
             </div>
 
             <div>
-              <label className="label" htmlFor="drank-on">
+              <label className="eyebrow mb-1 block" htmlFor="drank-on">
                 Date
               </label>
               <input
@@ -349,11 +370,11 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
         )}
       </section>
 
-      {error && <p className="text-sm text-wine-soft">{error}</p>}
+      {error && <p className="text-[0.9375rem] text-wine">{error}</p>}
 
-      <div className="sticky bottom-0 -mx-4 border-t border-line bg-bg/95 px-4 py-3
-        pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
-        <button type="submit" className="btn-primary w-full" disabled={saving}>
+      <div className="sticky bottom-0 -mx-5 border-t border-rule bg-paper/95 px-5 py-4
+        pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
+        <button type="submit" className="btn-ink w-full" disabled={saving}>
           {saving ? "Saving…" : mode === "edit" ? "Save changes" : "Add to the log"}
         </button>
       </div>
