@@ -9,6 +9,14 @@ import type { Wine } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Writing a profile takes longer than Vercel's default function budget, and a
+ * killed function looks exactly like a failed API call. Same 60s the label
+ * reader gets. Only the first view of a grape needs it; after that it's a
+ * single row out of Postgres.
+ */
+export const maxDuration = 60;
+
 export async function generateMetadata({
   params,
 }: {

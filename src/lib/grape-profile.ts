@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import Anthropic, { APIError } from "@anthropic-ai/sdk";
 import type { GrapeProfile } from "@/lib/types";
 
 /**
@@ -129,6 +129,21 @@ function strings(value: unknown, max: number, limit: number): string[] {
     .slice(0, limit);
 }
 
+/**
+ * What actually went wrong, short enough to put on the page.
+ *
+ * This app has one user behind a passcode, and the alternative is reading
+ * Vercel logs on a phone in a shop. A refused key, an exhausted balance and a
+ * function that ran out of time are three different problems that otherwise
+ * look identical from the sofa.
+ */
+function apiDetail(error: unknown): string {
+  if (error instanceof APIError) {
+    return `${error.status ? `${error.status} ` : ""}${error.message}`.slice(0, 200);
+  }
+  return (error instanceof Error ? error.message : String(error)).slice(0, 200);
+}
+
 /** Generates one profile. Never throws — a failure is a status, not an exception. */
 export async function generateGrapeProfile(name: string): Promise<Generated> {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -148,15 +163,18 @@ export async function generateGrapeProfile(name: string): Promise<Generated> {
       system: SYSTEM_PROMPT,
       thinking: { type: "adaptive" },
       output_config: {
-        effort: "medium",
+        effort: "low",
         format: { type: "json_schema", schema: SCHEMA },
       },
       messages: [{ role: "user", content: `${USER_PROMPT}${name}` }],
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("grape-profile: Anthropic call failed:", message);
-    return { status: "unavailable", message: "Couldn't look that grape up just now — try again in a minute." };
+    const detail = apiDetail(error);
+    console.error("grape-profile: Anthropic call failed:", detail);
+    return {
+      status: "unavailable",
+      message: `Couldn't write the notes for this grape. The API said: ${detail}`,
+    };
   }
 
   if (response.stop_reason === "refusal") {
