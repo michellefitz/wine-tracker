@@ -232,17 +232,23 @@ export type GrapeTally = {
   slug: string;
   /** The spelling used most often in the log, so it reads back as you wrote it. */
   label: string;
+  /** Every spelling behind this row, commonest first. */
+  spellings: string[];
   count: number;
   liked: number;
   disliked: number;
 };
+
+function bySize(a: GrapeTally, b: GrapeTally): number {
+  return b.count - a.count || a.label.localeCompare(b.label);
+}
 
 /**
  * The grapes in your own log, most-drunk first. This is the honest starting
  * point for learning: the varieties you actually keep buying.
  */
 export function tallyGrapes(wines: Wine[]): GrapeTally[] {
-  const tallies = new Map<string, GrapeTally & { spellings: Map<string, number> }>();
+  const tallies = new Map<string, Omit<GrapeTally, "spellings"> & { spellings: Map<string, number> }>();
 
   for (const wine of wines) {
     for (const grape of wine.grapes) {
@@ -272,8 +278,62 @@ export function tallyGrapes(wines: Wine[]): GrapeTally[] {
 
   return Array.from(tallies.values())
     .map(({ spellings, ...tally }) => {
-      const [label] = Array.from(spellings.entries()).sort((a, b) => b[1] - a[1])[0];
-      return { ...tally, label };
+      const ranked = Array.from(spellings.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([spelling]) => spelling);
+      return { ...tally, label: ranked[0], spellings: ranked };
     })
-    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+    .sort(bySize);
+}
+
+/**
+ * Folds rows that are the same grape under two names — Shiraz and Syrah, Malbec
+ * and Côt — into one, using the synonyms learned when their profiles were
+ * written. Nothing is folded until you've opened the grape at least once, which
+ * is the right order: the app shouldn't claim two names are one grape before it
+ * has looked that up.
+ */
+export async function mergeKnownSynonyms(tallies: GrapeTally[]): Promise<GrapeTally[]> {
+  if (tallies.length === 0) return tallies;
+
+  const db = sql();
+  const rows = (await db.query(
+    `SELECT grape_aliases.alias, grapes.slug, grapes.name
+       FROM grape_aliases
+       JOIN grapes ON grapes.slug = grape_aliases.slug
+      WHERE grape_aliases.alias = ANY($1::text[])`,
+    [tallies.map((tally) => tally.key)],
+  )) as { alias: string; slug: string; name: string }[];
+
+  if (rows.length === 0) return tallies;
+  const known = new Map(rows.map((row) => [row.alias, row]));
+
+  const merged = new Map<string, GrapeTally>();
+  for (const tally of tallies) {
+    const match = known.get(tally.key);
+    const id = match ? match.slug : tally.key;
+    const existing = merged.get(id);
+
+    if (!existing) {
+      merged.set(id, match
+        ? { ...tally, key: match.slug, slug: match.slug, label: match.name }
+        : { ...tally });
+      continue;
+    }
+
+    existing.count += tally.count;
+    existing.liked += tally.liked;
+    existing.disliked += tally.disliked;
+    existing.spellings = [...existing.spellings, ...tally.spellings];
+  }
+
+  return Array.from(merged.values()).sort(bySize);
+}
+
+/** The spellings on a row that aren't just the grape's own name. */
+export function otherSpellings(tally: GrapeTally): string[] {
+  const canonical = normalizeGrapeKey(tally.label);
+  return Array.from(
+    new Set(tally.spellings.filter((spelling) => normalizeGrapeKey(spelling) !== canonical)),
+  );
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { tallyGrapes } from "@/lib/grapes";
+import { mergeKnownSynonyms, otherSpellings, tallyGrapes } from "@/lib/grapes";
 import { listWines } from "@/lib/wines";
 import type { Wine } from "@/lib/types";
 
@@ -30,7 +30,13 @@ export default async function GrapesPage() {
     loadError = "Couldn't reach the database.";
   }
 
-  const grapes = tallyGrapes(wines);
+  let grapes = tallyGrapes(wines);
+  try {
+    grapes = await mergeKnownSynonyms(grapes);
+  } catch (error) {
+    // Worth showing unmerged; it only costs you two rows for one grape.
+    console.error("grapes: could not fold synonyms together:", error);
+  }
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-20 pt-[max(1.75rem,env(safe-area-inset-top))]">
@@ -67,8 +73,15 @@ export default async function GrapesPage() {
                 className="flex items-baseline justify-between gap-5 border-b border-rule
                   py-4 transition-colors hover:bg-tint/50"
               >
-                <span className="serif-text text-[1.125rem] leading-snug text-ink">
-                  {grape.label}
+                <span>
+                  <span className="serif-text text-[1.125rem] leading-snug text-ink">
+                    {grape.label}
+                  </span>
+                  {otherSpellings(grape).length > 0 && (
+                    <span className="mt-0.5 block text-[0.75rem] text-muted">
+                      you also logged it as {otherSpellings(grape).join(", ")}
+                    </span>
+                  )}
                 </span>
                 <span className="shrink-0 text-[0.8125rem] text-muted">
                   {record(grape.count, grape.liked, grape.disliked)}
