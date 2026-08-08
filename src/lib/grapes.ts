@@ -316,7 +316,7 @@ export async function mergeKnownSynonyms(tallies: GrapeTally[]): Promise<GrapeTa
 
     if (!existing) {
       merged.set(id, match
-        ? { ...tally, key: match.slug, slug: match.slug, label: match.name }
+        ? { ...tally, key: slugToKey(match.slug), slug: match.slug, label: match.name }
         : { ...tally });
       continue;
     }
