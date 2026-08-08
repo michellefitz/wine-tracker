@@ -68,7 +68,7 @@ export type GrapeProfile = {
  * "blend" into the grapes field costs one API call ever, not one per visit.
  */
 export type GrapeLookup =
-  | { status: "ok"; profile: GrapeProfile }
+  | { status: "ok"; profile: GrapeProfile; warning: string | null }
   | { status: "unknown"; note: string | null }
   | { status: "unavailable"; message: string };
 

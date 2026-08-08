@@ -160,36 +160,59 @@ async function rememberUnknown(key: string): Promise<void> {
   );
 }
 
+/** Postgres for "no such table" — the schema hasn't been brought up to date. */
+const UNDEFINED_TABLE = "42P01";
+
+/**
+ * Why the cache didn't work, in words that say what to do about it.
+ *
+ * Missing tables are the one failure worth naming precisely: it's what happens
+ * on the deploy right after this feature lands, and "couldn't reach the
+ * database" would send you hunting for a connection problem you don't have.
+ */
+function cacheTrouble(error: unknown): string {
+  const code = (error as { code?: unknown } | null)?.code;
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (code === UNDEFINED_TABLE || /relation .*grape.* does not exist/i.test(message)) {
+    return "These notes aren't being saved yet: the grape tables aren't in the database. Run `npm run db:init` — it's safe to re-run — and they'll be written once and kept.";
+  }
+  return "These notes couldn't be saved just now, so they'll be written again next time you look.";
+}
+
 /**
  * The one entry point: give it whatever the grape was called on the bottle and
  * get back a profile, cached after the first time.
  *
- * Nothing here throws. A database or API problem comes back as `unavailable`,
- * on the same principle as the label reader — you can always read the rest of
- * the page.
+ * Nothing here throws. An API problem comes back as `unavailable` and a
+ * database problem as a `warning` alongside the notes, on the same principle as
+ * the label reader — you can always read the rest of the page.
  */
 export async function getGrapeProfile(rawName: string): Promise<GrapeLookup> {
   const key = normalizeGrapeKey(rawName);
   if (!key) return { status: "unknown", note: null };
 
+  // A broken cache is a slow feature, not a broken one: fall through and write
+  // the profile fresh. The only thing lost is that it can't be kept.
   let cached: Awaited<ReturnType<typeof findCached>> = null;
+  let warning: string | null = null;
   try {
     cached = await findCached(key);
   } catch (error) {
     console.error("grapes: cache lookup failed:", error);
-    return { status: "unavailable", message: "Couldn't reach the database." };
+    warning = cacheTrouble(error);
   }
 
   if (cached?.kind === "unknown") return { status: "unknown", note: null };
   if (cached?.kind === "profile" && !cached.stale) {
-    return { status: "ok", profile: cached.profile };
+    return { status: "ok", profile: cached.profile, warning: null };
   }
 
   const generated = await generateGrapeProfile(prettifyKey(key));
 
   if (generated.status === "unavailable") {
     // A stale profile beats an error message.
-    if (cached?.kind === "profile") return { status: "ok", profile: cached.profile };
+    if (cached?.kind === "profile") return { status: "ok", profile: cached.profile, warning: null };
     return generated;
   }
 
@@ -204,11 +227,14 @@ export async function getGrapeProfile(rawName: string): Promise<GrapeLookup> {
 
   try {
     const slug = await saveProfile(generated.profile, key);
-    return { status: "ok", profile: { ...generated.profile, slug } };
+    return { status: "ok", profile: { ...generated.profile, slug }, warning };
   } catch (error) {
     console.error("grapes: could not cache the profile:", error);
-    // Worth showing even if it couldn't be saved; it'll be regenerated next time.
-    return { status: "ok", profile: { ...generated.profile, slug: grapeSlug(generated.profile.name) } };
+    return {
+      status: "ok",
+      profile: { ...generated.profile, slug: grapeSlug(generated.profile.name) },
+      warning: warning ?? cacheTrouble(error),
+    };
   }
 }
 

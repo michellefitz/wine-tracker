@@ -31,9 +31,12 @@ const COLOUR_LABEL: Record<string, string> = {
 export default function GrapeProfileView({
   profile,
   yourWines,
+  warning = null,
 }: {
   profile: GrapeProfile;
   yourWines: Wine[];
+  /** Set when the notes couldn't be cached — the page still reads fine without it. */
+  warning?: string | null;
 }) {
   const scales = GRAPE_SCALES.filter((scale) => profile[scale.id] !== null);
   const liked = yourWines.filter((wine) => wine.score > 0).length;
@@ -158,10 +161,15 @@ export default function GrapeProfileView({
         </Section>
       )}
 
-      <p className="mt-12 border-t border-rule pt-6 text-[0.75rem] leading-relaxed text-muted">
-        Written by Claude rather than copied from a reference book, so take it as
-        a starting point for your own palate — not the last word.
-      </p>
+      <div className="mt-12 border-t border-rule pt-6">
+        {warning && (
+          <p className="mb-3 text-[0.75rem] leading-relaxed text-wine">{warning}</p>
+        )}
+        <p className="text-[0.75rem] leading-relaxed text-muted">
+          Written by Claude rather than copied from a reference book, so take it as
+          a starting point for your own palate — not the last word.
+        </p>
+      </div>
     </div>
   );
 }

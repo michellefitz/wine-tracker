@@ -156,16 +156,16 @@ export async function generateGrapeProfile(name: string): Promise<Generated> {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("grape-profile: Anthropic call failed:", message);
-    return { status: "unavailable", message: "Couldn't look that grape up just now." };
+    return { status: "unavailable", message: "Couldn't look that grape up just now — try again in a minute." };
   }
 
   if (response.stop_reason === "refusal") {
-    return { status: "unavailable", message: "Couldn't look that grape up just now." };
+    return { status: "unavailable", message: "Couldn't look that grape up just now — try again in a minute." };
   }
 
   const textBlock = response.content.find((block) => block.type === "text");
   if (!textBlock || textBlock.type !== "text") {
-    return { status: "unavailable", message: "Got an empty entry back." };
+    return { status: "unavailable", message: "Got an empty entry back — try again in a minute." };
   }
 
   let raw: RawProfile;
@@ -173,7 +173,7 @@ export async function generateGrapeProfile(name: string): Promise<Generated> {
     raw = JSON.parse(textBlock.text) as RawProfile;
   } catch {
     console.error("grape-profile: response was not valid JSON:", textBlock.text.slice(0, 200));
-    return { status: "unavailable", message: "Got an unreadable entry back." };
+    return { status: "unavailable", message: "Got an unreadable entry back — try again in a minute." };
   }
 
   const canonical = typeof raw.name === "string" ? raw.name.trim().slice(0, 80) : "";

@@ -93,18 +93,14 @@ async function GrapeBody({ askedKey }: { askedKey: string }) {
   }
 
   if (lookup.status === "unavailable") {
-    return (
-      <Message
-        title={prettifyKey(askedKey)}
-        body={`${lookup.message} Nothing's lost — try again in a minute.`}
-      />
-    );
+    return <Message title={prettifyKey(askedKey)} body={lookup.message} />;
   }
 
   return (
     <GrapeProfileView
       profile={lookup.profile}
       yourWines={winesWithGrape(wines, profileKeys(lookup.profile, askedKey))}
+      warning={lookup.warning}
     />
   );
 }
