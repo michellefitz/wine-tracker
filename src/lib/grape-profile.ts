@@ -53,10 +53,10 @@ const SCHEMA = {
     also_known_as: { type: "array", items: { type: "string" } },
     colour: { anyOf: [{ type: "string", enum: ["red", "white", "other"] }, { type: "null" }] },
     summary: { anyOf: [{ type: "string" }, { type: "null" }] },
-    acidity: { anyOf: [{ type: "integer", minimum: 1, maximum: 5 }, { type: "null" }] },
-    body: { anyOf: [{ type: "integer", minimum: 1, maximum: 5 }, { type: "null" }] },
-    tannin: { anyOf: [{ type: "integer", minimum: 1, maximum: 5 }, { type: "null" }] },
-    sweetness: { anyOf: [{ type: "integer", minimum: 1, maximum: 5 }, { type: "null" }] },
+    acidity: { anyOf: [{ type: "integer" }, { type: "null" }] },
+    body: { anyOf: [{ type: "integer" }, { type: "null" }] },
+    tannin: { anyOf: [{ type: "integer" }, { type: "null" }] },
+    sweetness: { anyOf: [{ type: "integer" }, { type: "null" }] },
     flavours: { type: "array", items: { type: "string" } },
     regions: {
       type: "array",
@@ -114,10 +114,16 @@ export type Generated =
   | { status: "unknown"; note: string | null }
   | { status: "unavailable"; message: string };
 
+/**
+ * The scales, defended in code rather than in the schema — structured output
+ * won't accept a numeric range on an integer. Out-of-range values are pulled
+ * back rather than discarded: a 6 means "as high as it goes", not "unknown".
+ */
 function clampScale(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
   const number = Number(value);
-  if (!Number.isInteger(number) || number < 1 || number > 5) return null;
-  return number;
+  if (!Number.isFinite(number)) return null;
+  return Math.min(5, Math.max(1, Math.round(number)));
 }
 
 function strings(value: unknown, max: number, limit: number): string[] {
