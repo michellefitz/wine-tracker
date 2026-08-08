@@ -13,7 +13,7 @@ export default async function LoginPage({
     <main className="flex min-h-dvh flex-col items-center justify-center px-6">
       <div className="w-full max-w-xs">
         <div className="text-center">
-          <h1 className="font-display text-[3rem] leading-[0.95] tracking-[-0.02em] text-ink">
+          <h1 className="serif-display text-[3rem] leading-[0.95] tracking-[-0.02em] text-ink">
             Cellar
             <br />
             Notes

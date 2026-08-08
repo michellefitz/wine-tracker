@@ -11,8 +11,8 @@
   --color-rule: #e5e0d8;
   --color-wine: #7a1b32;
 
-  --font-display: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
-  --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-schibsted), ui-sans-serif, system-ui, sans-serif;
 }
 
 html {
@@ -38,6 +38,26 @@ textarea {
 }
 
 @layer components {
+  /*
+   * Two cuts of the same typeface. `font-optical-sizing: auto` lets the
+   * browser track the opsz axis to the rendered size, so a 40px masthead gets
+   * fine hairlines and a 17px card title gets sturdier ones — deliberately
+   * not pinned via font-variation-settings, which would disable that.
+   */
+  .serif-display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    /* A touch of WONK: the angled stress that gives Fraunces its character. */
+    font-variation-settings: "WONK" 1;
+  }
+
+  /* For running text — same face, none of the quirk, easier on the eye. */
+  .serif-text {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-variation-settings: "WONK" 0;
+  }
+
   /* Small letterspaced caps — the connective tissue of the whole layout. */
   .eyebrow {
     @apply text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted;

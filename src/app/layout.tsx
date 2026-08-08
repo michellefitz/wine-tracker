@@ -1,19 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Sans, Instrument_Serif } from "next/font/google";
+import { Fraunces, Schibsted_Grotesk } from "next/font/google";
 import ServiceWorker from "@/components/ServiceWorker";
 import "./globals.css";
 
-const displaySerif = Instrument_Serif({
-  weight: "400",
-  style: ["normal", "italic"],
+/**
+ * Fraunces carries the optical-size axis, so headings get the high-contrast
+ * display cut and running text gets sturdier strokes — from one file, handled
+ * by the browser. See `.serif-display` / `.serif-text` in globals.css.
+ */
+const displaySerif = Fraunces({
   subsets: ["latin"],
-  variable: "--font-instrument-serif",
+  axes: ["WONK", "opsz"],
+  variable: "--font-fraunces",
   display: "swap",
 });
 
-const bodySans = Instrument_Sans({
+const bodySans = Schibsted_Grotesk({
   subsets: ["latin"],
-  variable: "--font-instrument-sans",
+  variable: "--font-schibsted",
   display: "swap",
 });
 

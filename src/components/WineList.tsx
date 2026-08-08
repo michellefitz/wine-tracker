@@ -47,7 +47,7 @@ export default function WineList({ wines }: { wines: Wine[] }) {
   if (wines.length === 0) {
     return (
       <div className="border-t border-rule py-20 text-center">
-        <p className="mx-auto max-w-xs font-display text-2xl leading-snug text-ink">
+        <p className="mx-auto max-w-xs serif-display text-2xl leading-snug text-ink">
           Start with the last bottle you opened.
         </p>
         <p className="mx-auto mt-3 max-w-xs text-[0.9375rem] leading-relaxed text-muted">

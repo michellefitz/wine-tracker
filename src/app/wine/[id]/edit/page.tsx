@@ -20,7 +20,7 @@ export default async function EditWinePage({ params }: { params: Promise<{ id: s
             Cancel
           </Link>
         </div>
-        <h1 className="mt-3 font-display text-[2rem] leading-tight tracking-[-0.01em] text-ink">
+        <h1 className="mt-3 serif-display text-[2rem] leading-tight tracking-[-0.01em] text-ink">
           {wine.name}
         </h1>
       </header>

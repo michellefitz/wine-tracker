@@ -25,7 +25,7 @@ export default function WineCard({ wine }: { wine: Wine }) {
 
       <div className="pt-3">
         <RatingMark score={wine.score} />
-        <h2 className="mt-1.5 font-display text-[1.0625rem] leading-tight text-ink">
+        <h2 className="mt-1.5 serif-display text-[1.0625rem] leading-tight text-ink">
           {wine.name}
         </h2>
         {(wine.producer || place) && (

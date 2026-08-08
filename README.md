@@ -79,7 +79,16 @@ Android. HTTPS is required for the camera, which Vercel gives you by default.
 | Photos           | Base64 in Postgres           | One less service to wire up; photos are ~150 KB after downscaling |
 | Auth             | One passcode, signed cookie  | It's a single-user app on a public URL                         |
 | Styling          | Tailwind v4                  | —                                                               |
-| Type             | Instrument Serif + Sans      | Self-hosted at build time, so no runtime call to Google        |
+| Type             | Fraunces + Schibsted Grotesk | Both OFL, self-hosted at build, so no runtime call to Google    |
+
+**On the type.** Fraunces (Undercase Type) for wine names and notes, Schibsted
+Grotesk (Schibsted's newsroom grotesque) for everything else — chosen partly
+because neither is the serif-plus-Inter combination every other product ships.
+Fraunces carries an optical-size axis, so `font-optical-sizing: auto` lets the
+browser thin the strokes for a 40px masthead and thicken them for a 17px card
+title, from one font file. Two classes select the cut: `.serif-display` adds a
+little of the WONK axis for character in headings, `.serif-text` drops it for
+running text. Around 116 KB of font on first load, cached for a year after.
 
 **On the look.** Bright warm paper, hairline rules, small letterspaced caps for
 labels, and a serif reserved for wine names and notes. Bottle photos are the

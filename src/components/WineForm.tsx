@@ -146,7 +146,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
           </label>
           <input
             id="name"
-            className="field font-display text-[1.375rem]"
+            className="field serif-display text-[1.375rem]"
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Reserva Malbec"
@@ -262,7 +262,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
             next section's rule. */}
         <textarea
           id="notes"
-          className="field-boxed min-h-28 resize-y font-display text-[1.125rem] leading-relaxed"
+          className="field-boxed min-h-28 resize-y serif-text text-[1.125rem] leading-relaxed"
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           placeholder="Anything you want to remember about it."

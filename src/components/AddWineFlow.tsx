@@ -104,7 +104,7 @@ export default function AddWineFlow() {
 
       {stage === "capture" && (
         <div className="border-t border-rule pt-10 text-center">
-          <p className="mx-auto max-w-xs font-display text-[1.75rem] leading-snug text-ink">
+          <p className="mx-auto max-w-xs serif-display text-[1.75rem] leading-snug text-ink">
             Photograph the label.
           </p>
           <p className="mx-auto mt-3 max-w-xs text-[0.9375rem] leading-relaxed text-muted">

@@ -24,7 +24,7 @@ export default async function HomePage() {
     <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-32 pt-[max(1.75rem,env(safe-area-inset-top))]">
       <header className="mb-6">
         <div className="flex items-start justify-between gap-4">
-          <h1 className="font-display text-[2.5rem] leading-[0.95] tracking-[-0.02em] text-ink">
+          <h1 className="serif-display text-[2.5rem] leading-[0.95] tracking-[-0.02em] text-ink">
             Cellar
             <br />
             Notes

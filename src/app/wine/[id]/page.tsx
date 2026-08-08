@@ -58,7 +58,7 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
 
       <header className="mt-8 text-center">
         {wine.producer && <p className="eyebrow">{wine.producer}</p>}
-        <h1 className="mt-2 font-display text-[2rem] leading-[1.1] tracking-[-0.01em] text-ink">
+        <h1 className="mt-2 serif-display text-[2rem] leading-[1.1] tracking-[-0.01em] text-ink">
           {wine.name}
         </h1>
         <div className="mt-4 flex justify-center">
@@ -81,7 +81,7 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
 
       {wine.notes && (
         <blockquote className="mx-auto mt-9 max-w-md border-t border-rule pt-7 text-center">
-          <p className="font-display text-[1.375rem] leading-[1.45] text-ink">
+          <p className="serif-text text-[1.375rem] leading-[1.45] text-ink">
             {wine.notes}
           </p>
         </blockquote>
