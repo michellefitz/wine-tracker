@@ -18,6 +18,12 @@ that clusters everything between three and four stars.
 - **Free-text notes**, plus optional price, shop, and date.
 - **Browse and search** everything you've logged, filtered to just the ones you
   liked or just the ones you didn't.
+- **Read up on the grape.** Tap any grape on a wine and you get what it's like —
+  acidity, body, tannin and sweetness on the same five-point scales every time,
+  so grapes can be compared by eye — plus what it tastes of, where it grows,
+  what to eat with it, a couple of things worth knowing, and which of your own
+  bottles were made from it. **Grapes** on the log lists every variety you've
+  drunk, most-drunk first.
 - **Installs to your phone's home screen** and runs full-screen like an app.
 
 Deliberately not here yet: preference profiles and recommendations. Those want a
@@ -76,6 +82,7 @@ Android. HTTPS is required for the camera, which Vercel gives you by default.
 | Framework        | Next.js (App Router)         | One deployable for pages and API; first-class on Vercel        |
 | Database         | Neon Postgres over HTTP      | No connection pool to manage from serverless functions          |
 | Label reading    | Claude vision, server-side   | Handles supermarket own-label bottles that catalogues don't have |
+| Grape notes      | Claude, cached in Postgres   | No wine-encyclopedia API to sign up for, and a grape doesn't change |
 | Photos           | Base64 in Postgres           | One less service to wire up; photos are ~150 KB after downscaling |
 | Auth             | One passcode, signed cookie  | It's a single-user app on a public URL                         |
 | Styling          | Tailwind v4                  | —                                                               |
@@ -108,6 +115,21 @@ A few decisions worth knowing about:
 - **The label reader is never load-bearing.** If it fails, is misconfigured, or
   the photo isn't a wine, you get a note explaining why and the form appears
   anyway with the photo attached. You can always log a wine by hand.
+- **Grape notes are written once and kept.** The first time you open a grape it
+  costs one Claude call and a few seconds; after that it's a row in Postgres.
+  Every spelling that leads to a grape — what you typed, its proper name, its
+  synonyms — is stored pointing at the same profile, so "Shiraz" and "Syrah"
+  land on one page, and a word that turns out not to be a grape is remembered
+  as such rather than re-asked on every visit. Bump `PROFILE_VERSION` in
+  `lib/grape-profile.ts` to have them all rewritten.
+- **The grape scales are fixed at five points and always drawn.** A scale that
+  changes shape can't be compared across grapes, which is the only reason to
+  draw one. Tannin is the exception: it's left off whites, where it would
+  always read zero and teach nothing.
+- **The grape notes say they're generated.** They're written by a model, not
+  looked up in a reference book, so the page says so at the bottom. Same
+  principle as the label reader: useful, editable by disbelief, never
+  load-bearing.
 - **Tags are stored as ids, not labels** (`too_tannic`, not "Too tannic /
   harsh"), so the wording can change later without rewriting your history — and
   so a preference profile can just count ids.
@@ -122,6 +144,8 @@ src/
     page.tsx              the log
     add/                  capture → read label → form
     wine/[id]/            one entry, and its edit form
+    grapes/               every grape in your log, most-drunk first
+    grape/[slug]/         one grape: scales, flavours, regions, your bottles
     login/                passcode gate
     api/
       identify/           Claude reads a label photo
@@ -130,8 +154,10 @@ src/
       auth/               login and lock
   components/             UI
   lib/
-    taxonomy.ts           ratings, tags, wine types, shops
+    taxonomy.ts           ratings, tags, wine types, shops, grape scales
     wines.ts              queries and input validation
+    grapes.ts             name matching, the profile cache, log tallies
+    grape-profile.ts      Claude writes one grape's entry
     image.ts              browser-side downscaling
     auth.ts               cookie signing
   proxy.ts                the passcode gate, in front of everything
@@ -154,3 +180,9 @@ The data model is already shaped for these:
    thing Vivino gets wrong for supermarket shopping.
 3. **A shopping mode** — open it in the shop, filter to a supermarket, and see
    what you liked from there before.
+4. **Region pages, the way grapes work now.** `grapes` / `grape_aliases` and the
+   generate-once-then-cache path in `lib/grapes.ts` aren't grape-specific in
+   anything but their column names; a region wants different axes (climate,
+   which grapes it's known for, what a bottle from there tends to taste like)
+   but the same machinery. Regions are already recorded on every wine, so the
+   links have somewhere to point.

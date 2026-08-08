@@ -50,6 +50,58 @@ export const SOURCES = [
   "Other",
 ] as const;
 
+/**
+ * The four axes every grape is described on, so two grapes can be compared by
+ * looking rather than reading. Each is a 1–5 integer; `levels` turns the number
+ * into the word a person would actually say ("high acidity", "medium body").
+ *
+ * `hint` is the reason this feature exists: a scale you can't interpret teaches
+ * nothing, so each axis says in plain language what it feels like in the mouth.
+ */
+export const GRAPE_SCALES = [
+  {
+    id: "acidity",
+    label: "Acidity",
+    low: "Soft",
+    high: "Zippy",
+    levels: ["Low", "Soft", "Medium", "Fresh", "High"],
+    hint: "How much it makes your mouth water. High acidity tastes crisp and cuts through food; low acidity tastes round and soft.",
+  },
+  {
+    id: "body",
+    label: "Body",
+    low: "Light",
+    high: "Full",
+    levels: ["Very light", "Light", "Medium", "Full", "Very full"],
+    hint: "How much it fills your mouth — roughly the difference between skimmed milk and cream.",
+  },
+  {
+    id: "tannin",
+    label: "Tannin",
+    low: "Silky",
+    high: "Grippy",
+    levels: ["None", "Light", "Medium", "Firm", "Grippy"],
+    hint: "The drying grip on your gums, from the grape skins. Reds have it; whites almost never do.",
+  },
+  {
+    id: "sweetness",
+    label: "Sweetness",
+    low: "Bone dry",
+    high: "Sweet",
+    levels: ["Bone dry", "Dry", "Off-dry", "Sweet", "Very sweet"],
+    hint: "Nearly everything on a supermarket shelf is dry — the yeast ate all the sugar.",
+  },
+] as const;
+
+export type GrapeScale = (typeof GRAPE_SCALES)[number];
+export type GrapeScaleId = GrapeScale["id"];
+
+/** The word for a level, or null when the axis doesn't apply to this grape. */
+export function scaleLevelWord(scale: GrapeScale, value: number | null): string | null {
+  if (value === null || !Number.isInteger(value) || value < 1 || value > 5) return null;
+  return scale.levels[value - 1];
+}
+
 export type TagGroup = "Sweetness" | "Body" | "Structure" | "Flavour" | "Finish" | "Overall";
 
 export const TAG_GROUPS: TagGroup[] = [

@@ -25,7 +25,15 @@ export default async function HomePage() {
           leading-none tracking-[-0.02em] text-ink">
           Cellar Notes
         </h1>
-        <hr className="rule mt-5" />
+        {/* Its own line rather than beside the masthead, which is already
+            edge-to-edge on a small phone. */}
+        <div className="mt-4 flex items-baseline justify-between gap-4">
+          <span className="eyebrow">Your log</span>
+          <Link href="/grapes" className="link-quiet">
+            Grapes
+          </Link>
+        </div>
+        <hr className="rule mt-4" />
       </header>
 
       {loadError ? (
