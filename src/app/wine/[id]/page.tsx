@@ -4,6 +4,7 @@ import BottlePlaceholder from "@/components/BottlePlaceholder";
 import DeleteWineButton from "@/components/DeleteWineButton";
 import RatingMark from "@/components/RatingMark";
 import { grapeSlug } from "@/lib/grapes";
+import { countryFlag, placeLine } from "@/lib/places";
 import { tagLabel } from "@/lib/taxonomy";
 import { getWine } from "@/lib/wines";
 
@@ -22,6 +23,10 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const wine = await getWine(id);
   if (!wine) notFound();
+
+  // The place has its own line under the title, so it stays out of the table.
+  const place = placeLine(wine.region, wine.country);
+  const flag = countryFlag(wine.country);
 
   // Grapes are the one fact you can read further on, so they're rendered as
   // links rather than text — everything else on this list is just your entry.
@@ -49,7 +54,6 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
         ""
       ),
     ],
-    ["Region", [wine.region, wine.country].filter(Boolean).join(", ")],
     ["Bought at", wine.source ?? ""],
     ["Price", wine.price_eur !== null ? `€${wine.price_eur.toFixed(2)}` : ""],
     ["Drank", formatDate(wine.drank_on)],
@@ -84,6 +88,16 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
         <h1 className="mt-2 serif-display text-[2rem] leading-[1.1] tracking-[-0.01em] text-ink">
           {wine.name}
         </h1>
+        {place && (
+          <p className="mt-3 flex items-baseline justify-center gap-2 text-[0.9375rem] text-ink-soft">
+            {flag && (
+              <span aria-hidden="true" className="text-[1.0625rem] leading-none">
+                {flag}
+              </span>
+            )}
+            <span>{place}</span>
+          </p>
+        )}
         <div className="mt-4 flex justify-center">
           <RatingMark score={wine.score} size="lg" />
         </div>

@@ -1,10 +1,16 @@
 import Link from "next/link";
 import BottlePlaceholder from "@/components/BottlePlaceholder";
 import RatingMark from "@/components/RatingMark";
+import { countryFlag, placeLine } from "@/lib/places";
 import type { Wine } from "@/lib/types";
 
 export default function WineCard({ wine }: { wine: Wine }) {
-  const place = [wine.region, wine.country].filter(Boolean)[0];
+  const flag = countryFlag(wine.country);
+  // Cards are half a phone wide, so "Marlborough, New Zealand" truncates badly.
+  // When the flag is there to carry the country, the region alone is enough.
+  const place = flag
+    ? wine.region?.trim() || wine.country?.trim() || null
+    : placeLine(wine.region, wine.country);
 
   return (
     <Link href={`/wine/${wine.id}`} className="group block">
@@ -28,10 +34,19 @@ export default function WineCard({ wine }: { wine: Wine }) {
         <h2 className="mt-1.5 serif-display text-[1.0625rem] leading-tight text-ink">
           {wine.name}
         </h2>
-        {(wine.producer || place) && (
+        {(wine.producer || wine.vintage) && (
           <p className="mt-0.5 truncate text-[0.8125rem] text-muted">
-            {wine.producer ?? place}
-            {wine.vintage ? ` · ${wine.vintage}` : ""}
+            {[wine.producer, wine.vintage].filter(Boolean).join(" · ")}
+          </p>
+        )}
+        {place && (
+          <p className="mt-1 flex items-baseline gap-1.5 text-[0.8125rem] text-muted">
+            {flag && (
+              <span aria-hidden="true" className="shrink-0 leading-none">
+                {flag}
+              </span>
+            )}
+            <span className="truncate">{place}</span>
           </p>
         )}
       </div>
