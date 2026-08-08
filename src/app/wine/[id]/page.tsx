@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import BottlePlaceholder from "@/components/BottlePlaceholder";
 import DeleteWineButton from "@/components/DeleteWineButton";
 import RatingMark from "@/components/RatingMark";
+import { grapeSlug } from "@/lib/grapes";
 import { tagLabel } from "@/lib/taxonomy";
 import { getWine } from "@/lib/wines";
 
@@ -22,15 +23,37 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
   const wine = await getWine(id);
   if (!wine) notFound();
 
-  const facts: [string, string][] = [
+  // Grapes are the one fact you can read further on, so they're rendered as
+  // links rather than text — everything else on this list is just your entry.
+  const facts: [string, React.ReactNode][] = [
     ["Vintage", wine.vintage ? String(wine.vintage) : ""],
     ["Type", wine.wine_type ?? ""],
-    ["Grapes", wine.grapes.join(", ")],
+    [
+      "Grapes",
+      wine.grapes.length > 0 ? (
+        <span className="inline-flex flex-wrap justify-end gap-x-1.5 gap-y-1">
+          {wine.grapes.map((grape, index) => (
+            <span key={grape}>
+              <Link
+                href={`/grape/${grapeSlug(grape)}`}
+                className="underline decoration-rule underline-offset-4 transition-colors
+                  hover:decoration-ink"
+              >
+                {grape}
+              </Link>
+              {index < wine.grapes.length - 1 && ","}
+            </span>
+          ))}
+        </span>
+      ) : (
+        ""
+      ),
+    ],
     ["Region", [wine.region, wine.country].filter(Boolean).join(", ")],
     ["Bought at", wine.source ?? ""],
     ["Price", wine.price_eur !== null ? `€${wine.price_eur.toFixed(2)}` : ""],
     ["Drank", formatDate(wine.drank_on)],
-  ].filter(([, value]) => value !== "") as [string, string][];
+  ].filter(([, value]) => value !== "") as [string, React.ReactNode][];
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-20 pt-[max(1.75rem,env(safe-area-inset-top))]">
@@ -95,6 +118,12 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
           </div>
         ))}
       </dl>
+
+      {wine.grapes.length > 0 && (
+        <p className="mx-auto mt-3 max-w-md text-[0.8125rem] text-muted">
+          Tap a grape to read what it&apos;s like and where it grows.
+        </p>
+      )}
 
       <div className="mt-12 text-center">
         <DeleteWineButton id={wine.id} name={wine.name} />
