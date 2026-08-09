@@ -123,6 +123,15 @@ function flagFromIso(code: string): string {
 
 /** The flag for a country name, or null if we don't recognise it. */
 export function countryFlag(country: string | null | undefined): string | null {
+  const iso = countryCode(country);
+  return iso ? flagFromIso(iso) : null;
+}
+
+/**
+ * The ISO code as text ("FR", "NZ") — the gallery redesign sets country as a
+ * typographic mark rather than an emoji flag, which fights the neutral palette.
+ */
+export function countryCode(country: string | null | undefined): string | null {
   if (!country) return null;
 
   const name = normalize(country);
@@ -130,7 +139,7 @@ export function countryFlag(country: string | null | undefined): string | null {
 
   // A bare "IT" off a label should work too, but only if it's a code we know.
   const iso = ISO_BY_NAME[name] ?? name.toUpperCase();
-  return KNOWN_ISO.has(iso) ? flagFromIso(iso) : null;
+  return KNOWN_ISO.has(iso) ? iso : null;
 }
 
 /**

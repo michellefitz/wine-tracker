@@ -45,7 +45,7 @@ export default function GrapeProfileView({
     <div>
       <header className="text-center">
         {profile.colour && <p className="eyebrow">{COLOUR_LABEL[profile.colour]}</p>}
-        <h1 className="mt-2 serif-display text-[2.25rem] leading-[1.05] tracking-[-0.015em] text-ink">
+        <h1 className="essay mt-2 text-[1.875rem] leading-[1.15] text-ink">
           {profile.name}
         </h1>
         {profile.also_known_as.length > 0 && (
@@ -55,7 +55,7 @@ export default function GrapeProfileView({
         )}
       </header>
 
-      <p className="mx-auto mt-7 max-w-md serif-text text-[1.1875rem] leading-[1.5] text-ink">
+      <p className="mx-auto mt-7 max-w-md essay text-[1.1875rem] leading-[1.55] text-ink">
         {profile.summary}
       </p>
 
@@ -76,7 +76,7 @@ export default function GrapeProfileView({
               {profile.flavours.map((flavour) => (
                 <li
                   key={flavour}
-                  className="rounded-full border border-rule px-3 py-1 text-[0.8125rem] text-ink-soft"
+                  className="border border-rule px-3 py-1 text-[0.8125rem] text-ink-soft"
                 >
                   {flavour}
                 </li>
@@ -117,7 +117,7 @@ export default function GrapeProfileView({
           <Section title="Worth knowing">
             <ul className="space-y-4">
               {profile.facts.map((fact) => (
-                <li key={fact} className="serif-text text-[1.0625rem] leading-[1.5] text-ink">
+                <li key={fact} className="essay text-[1.0625rem] leading-[1.55] text-ink">
                   {fact}
                 </li>
               ))}

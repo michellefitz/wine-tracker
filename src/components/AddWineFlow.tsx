@@ -190,7 +190,7 @@ export default function AddWineFlow() {
 
       {stage === "capture" && (
         <div className="border-t border-rule pt-10 text-center">
-          <p className="mx-auto max-w-xs serif-display text-[1.75rem] leading-snug text-ink">
+          <p className="mx-auto max-w-xs essay text-[1.5rem] leading-snug text-ink">
             Photograph the label.
           </p>
           <p className="mx-auto mt-3 max-w-xs text-[0.9375rem] leading-relaxed text-muted">
@@ -223,7 +223,7 @@ export default function AddWineFlow() {
       )}
 
       {notice && stage === "form" && (
-        <p className="border-l-2 border-rule pl-4 text-[0.9375rem] leading-relaxed text-muted">
+        <p className="bg-tint px-4 py-3 text-[0.9375rem] leading-relaxed text-ink-soft">
           {notice}
         </p>
       )}

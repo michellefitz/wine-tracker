@@ -17,23 +17,26 @@ export default async function HomePage() {
       "Couldn't reach the database. Check DATABASE_URL, and that you've run `npm run db:init`.";
   }
 
+  const count = wines.length;
+
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-32 pt-[max(1.75rem,env(safe-area-inset-top))]">
-      <header className="mb-6">
+    <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-28 pt-[max(2rem,env(safe-area-inset-top))]">
+      <header className="mb-5">
         {/* Scales with the viewport so it stays on one line down to a 320px phone. */}
-        <h1 className="serif-display whitespace-nowrap text-[clamp(1.75rem,11vw,2.5rem)]
-          leading-none tracking-[-0.02em] text-ink">
+        <h1 className="masthead whitespace-nowrap text-[clamp(1.75rem,9vw,2.25rem)]
+          leading-none text-ink">
           Cellar Notes
         </h1>
-        {/* Its own line rather than beside the masthead, which is already
-            edge-to-edge on a small phone. */}
-        <div className="mt-4 flex items-baseline justify-between gap-4">
-          <span className="eyebrow">Your log</span>
+        <div className="mt-3 flex items-baseline justify-between gap-4">
+          <span className="eyebrow" style={{ fontVariantNumeric: "tabular-nums" }}>
+            {count > 0
+              ? `The collection · ${count} ${count === 1 ? "bottle" : "bottles"}`
+              : "The collection"}
+          </span>
           <Link href="/grapes" className="link-quiet">
             Grapes
           </Link>
         </div>
-        <hr className="rule mt-4" />
       </header>
 
       {loadError ? (
@@ -44,11 +47,14 @@ export default async function HomePage() {
         <WineList wines={wines} />
       )}
 
-      {/* A soft paper fade so the button never sits awkwardly on a photo. */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 flex justify-center
-        bg-gradient-to-t from-paper via-paper/90 to-transparent pt-12
-        pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-        <Link href="/add" className="btn-ink pointer-events-auto px-8">
+      {/* The register: one ink bar across the bottom, always under the thumb. */}
+      <div className="fixed inset-x-0 bottom-0">
+        <Link
+          href="/add"
+          className="flex w-full items-center justify-center gap-2 bg-ink py-4
+            pb-[max(1rem,env(safe-area-inset-bottom))] text-[0.75rem] font-medium
+            uppercase tracking-[0.16em] text-paper transition active:opacity-90"
+        >
           Log a wine
         </Link>
       </div>

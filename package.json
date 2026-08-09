@@ -12,9 +12,9 @@
     "icons": "node scripts/gen-icons.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.116.0",
+    "@anthropic-ai/sdk": "0.115.0",
     "@neondatabase/serverless": "^1.0.1",
-    "next": "^16.3.0",
+    "next": "16.2.12",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
@@ -25,5 +25,11 @@
     "@types/react-dom": "^19.1.7",
     "tailwindcss": "^4.1.13",
     "typescript": "^5.8.3"
+  },
+  "overrides": {
+    "postcss": "8.5.25",
+    "nanoid": "3.3.16",
+    "caniuse-lite": "1.0.30001806",
+    "baseline-browser-mapping": "2.11.10"
   }
 }
