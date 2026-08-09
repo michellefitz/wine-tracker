@@ -74,8 +74,9 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
         {wine.photo_id ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={`/api/photos/${wine.photo_id}`}
+            src={`/api/photos/${wine.photo_id}?w=960`}
             alt={`Label of ${wine.name}`}
+            decoding="async"
             className="h-full w-full object-cover"
           />
         ) : (

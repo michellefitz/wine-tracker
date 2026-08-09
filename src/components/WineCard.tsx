@@ -16,11 +16,13 @@ export default function WineCard({ wine }: { wine: Wine }) {
     <Link href={`/wine/${wine.id}`} className="group block">
       <div className="aspect-4/5 w-full overflow-hidden bg-tint">
         {wine.photo_id ? (
+          // 560px covers a 167 CSS px card at a phone's 3x density.
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={`/api/photos/${wine.photo_id}`}
+            src={`/api/photos/${wine.photo_id}?w=560`}
             alt=""
             loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover transition-transform duration-500
               group-hover:scale-[1.03] group-active:scale-[1.03]"
           />
