@@ -47,10 +47,8 @@ export default async function GrapesPage() {
       </nav>
 
       <header>
-        <h1 className="serif-display text-[2.25rem] leading-[1.05] tracking-[-0.015em] text-ink">
-          Grapes
-        </h1>
-        <p className="mt-3 max-w-md text-[0.9375rem] leading-relaxed text-muted">
+        <h1 className="display text-[1.75rem] leading-[1.1] text-ink">Grapes</h1>
+        <p className="essay mt-3 max-w-md text-[1.0625rem] leading-relaxed text-muted">
           Every variety you&apos;ve logged, most-drunk first. Tap one to read what it&apos;s
           like — how sharp, how full-bodied, what it tastes of, and where it grows.
         </p>
@@ -74,7 +72,7 @@ export default async function GrapesPage() {
                   py-4 transition-colors hover:bg-tint/50"
               >
                 <span>
-                  <span className="serif-text text-[1.125rem] leading-snug text-ink">
+                  <span className="essay text-[1.125rem] leading-snug text-ink">
                     {grape.label}
                   </span>
                   {otherSpellings(grape).length > 0 && (

@@ -3,7 +3,8 @@ import { ratingFor } from "@/lib/taxonomy";
 /**
  * A dot and a word. Wines you liked take the accent colour and the ones you
  * didn't stay grey, so a page of cards sorts itself visually before you read
- * a single label.
+ * a single label — the gallery convention where a red dot beside a work
+ * means it found a buyer.
  */
 export default function RatingMark({
   score,
@@ -30,8 +31,8 @@ export default function RatingMark({
       <span
         className={
           size === "lg"
-            ? "text-[0.75rem] font-medium uppercase tracking-[0.14em]"
-            : "text-[0.6875rem] font-medium uppercase tracking-[0.12em]"
+            ? "text-[0.75rem] font-medium uppercase tracking-[0.16em]"
+            : "text-[0.6875rem] font-medium uppercase tracking-[0.14em]"
         }
       >
         {size === "lg" ? rating.label : rating.short}

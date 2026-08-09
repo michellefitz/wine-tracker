@@ -22,7 +22,7 @@ export default function WineCard({ wine }: { wine: Wine }) {
             alt=""
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-500
-              group-hover:scale-[1.03]"
+              group-hover:scale-[1.03] group-active:scale-[1.03]"
           />
         ) : (
           <BottlePlaceholder />
@@ -31,16 +31,16 @@ export default function WineCard({ wine }: { wine: Wine }) {
 
       <div className="pt-3">
         <RatingMark score={wine.score} />
-        <h2 className="mt-1.5 serif-display text-[1.0625rem] leading-tight text-ink">
+        <h2 className="essay mt-1.5 text-[1.0625rem] leading-snug text-ink">
           {wine.name}
         </h2>
         {(wine.producer || wine.vintage) && (
-          <p className="mt-0.5 truncate text-[0.8125rem] text-muted">
-            {[wine.producer, wine.vintage].filter(Boolean).join(" · ")}
+          <p className="mt-1 truncate text-[0.8125rem] text-ink-soft">
+            {[wine.producer, wine.vintage].filter(Boolean).join(", ")}
           </p>
         )}
         {place && (
-          <p className="mt-1 flex items-baseline gap-1.5 text-[0.8125rem] text-muted">
+          <p className="mt-0.5 flex items-baseline gap-1.5 text-[0.8125rem] text-muted">
             {flag && (
               <span aria-hidden="true" className="shrink-0 leading-none">
                 {flag}

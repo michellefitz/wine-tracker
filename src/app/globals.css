@@ -1,18 +1,21 @@
 @import "tailwindcss";
 
 @theme {
-  /* Warm paper, not clinical white — it flatters bottle photography. */
-  --color-paper: #fbfaf7;
-  --color-card: #ffffff;
-  --color-tint: #f1eee9;
-  --color-ink: #17140f;
-  --color-ink-soft: #55504a;
-  --color-muted: #736c63;
-  --color-rule: #e5e0d8;
-  --color-wine: #7a1b32;
+  /*
+   * Bone/stone gallery neutrals in OKLCH, every one tinted faintly toward the
+   * wine hue (~20) so surfaces and accent cohere. Mineral, not creamy.
+   */
+  --color-paper: oklch(96.4% 0.004 45);
+  --color-card: oklch(98.8% 0.002 45);
+  --color-tint: oklch(93.2% 0.006 45);
+  --color-ink: oklch(23% 0.012 30);
+  --color-ink-soft: oklch(41% 0.012 32);
+  --color-muted: oklch(52% 0.011 38);
+  --color-rule: oklch(87.5% 0.007 45);
+  --color-wine: oklch(43% 0.135 18);
 
-  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
-  --font-sans: var(--font-schibsted), ui-sans-serif, system-ui, sans-serif;
+  --font-grotesk: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-spectral), Georgia, "Times New Roman", serif;
 }
 
 html {
@@ -24,7 +27,8 @@ html {
 body {
   background-color: var(--color-paper);
   color: var(--color-ink);
-  font-family: var(--font-sans);
+  font-family: var(--font-grotesk);
+  font-kerning: normal;
   min-height: 100dvh;
   overscroll-behavior-y: none;
   -webkit-font-smoothing: antialiased;
@@ -39,28 +43,31 @@ textarea {
 
 @layer components {
   /*
-   * Two cuts of the same typeface. `font-optical-sizing: auto` lets the
-   * browser track the opsz axis to the rendered size, so a 40px masthead gets
-   * fine hairlines and a 17px card title gets sturdier ones — deliberately
-   * not pinned via font-variation-settings, which would disable that.
+   * The identity mark: the notes face at medium weight, like the title on a
+   * book spine. Masthead and login only.
    */
-  .serif-display {
-    font-family: var(--font-display);
-    font-optical-sizing: auto;
-    /* A touch of WONK: the angled stress that gives Fraunces its character. */
-    font-variation-settings: "WONK" 1;
+  .masthead {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    letter-spacing: -0.01em;
   }
 
-  /* For running text — same face, none of the quirk, easier on the eye. */
-  .serif-text {
-    font-family: var(--font-display);
-    font-optical-sizing: auto;
-    font-variation-settings: "WONK" 0;
+  /* Wine names and headings: the caption cut — medium, quietly tight. */
+  .display {
+    font-family: var(--font-grotesk);
+    font-weight: 500;
+    letter-spacing: -0.01em;
   }
 
-  /* Small letterspaced caps — the connective tissue of the whole layout. */
+  /* The essay face, for tasting notes and grape prose. */
+  .essay {
+    font-family: var(--font-serif);
+    font-weight: 300;
+  }
+
+  /* Small letterspaced caps — the wayfinding system of the whole layout. */
   .eyebrow {
-    @apply text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted;
+    @apply text-[0.6875rem] font-medium uppercase tracking-[0.16em] text-muted;
   }
 
   .rule {
@@ -79,19 +86,22 @@ textarea {
       outline-none transition-colors placeholder:text-muted/70 focus:border-ink;
   }
 
-  /* Disabled goes quiet outline rather than a grey slab. */
+  /*
+   * Buttons went rectangular with the gallery redesign — pills read soft.
+   * Disabled goes quiet outline rather than a grey slab.
+   */
   .btn-ink {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border
-      border-ink bg-ink px-6 py-3.5 text-[0.75rem] font-medium uppercase
-      tracking-[0.14em] text-paper transition active:scale-[0.98]
+    @apply inline-flex items-center justify-center gap-2 border border-ink
+      bg-ink px-6 py-3.5 text-[0.75rem] font-medium uppercase
+      tracking-[0.16em] text-paper transition active:scale-[0.98]
       disabled:border-rule disabled:bg-transparent disabled:text-muted
       disabled:active:scale-100;
   }
 
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border
-      border-rule bg-transparent px-6 py-3.5 text-[0.75rem] font-medium
-      uppercase tracking-[0.14em] text-ink transition active:scale-[0.98]
+    @apply inline-flex items-center justify-center gap-2 border border-rule
+      bg-transparent px-6 py-3.5 text-[0.75rem] font-medium uppercase
+      tracking-[0.16em] text-ink transition active:scale-[0.98]
       hover:border-ink disabled:opacity-40;
   }
 
@@ -100,10 +110,10 @@ textarea {
       decoration-rule underline-offset-4 transition-colors hover:text-ink;
   }
 
-  /* Tag chips: hairline outline, ink fill when chosen. */
+  /* Tag chips: hairline rectangles, ink fill when chosen. */
   .chip {
-    @apply rounded-full border border-rule px-3.5 py-1.5 text-[0.8125rem]
-      text-ink-soft transition active:scale-95 hover:border-muted;
+    @apply border border-rule px-3 py-1.5 text-[0.8125rem] text-ink-soft
+      transition active:scale-95 hover:border-muted;
   }
 
   .chip-on {

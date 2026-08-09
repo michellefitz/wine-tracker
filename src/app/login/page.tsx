@@ -13,13 +13,13 @@ export default async function LoginPage({
     <main className="flex min-h-dvh flex-col items-center justify-center px-6">
       <div className="w-full max-w-xs">
         <div className="text-center">
-          <h1 className="serif-display text-[3rem] leading-[0.95] tracking-[-0.02em] text-ink">
+          <h1 className="masthead text-[3rem] leading-[1.1] text-ink">
             Cellar
             <br />
             Notes
           </h1>
           <hr className="rule mx-auto mt-7 w-12" />
-          <p className="mt-5 text-[0.9375rem] leading-relaxed text-muted">
+          <p className="essay mt-5 text-[1.0625rem] leading-relaxed text-muted">
             Wines you&apos;ve had, and what you made of them.
           </p>
         </div>
