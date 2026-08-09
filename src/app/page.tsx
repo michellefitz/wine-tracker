@@ -20,7 +20,7 @@ export default async function HomePage() {
   const count = wines.length;
 
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-28 pt-[max(2rem,env(safe-area-inset-top))]">
+    <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-32 pt-[max(2rem,env(safe-area-inset-top))]">
       <header className="mb-5">
         {/* Scales with the viewport so it stays on one line down to a 320px phone. */}
         <h1 className="masthead whitespace-nowrap text-[clamp(1.75rem,9vw,2.25rem)]
@@ -47,14 +47,13 @@ export default async function HomePage() {
         <WineList wines={wines} />
       )}
 
-      {/* The register: one ink bar across the bottom, always under the thumb. */}
-      <div className="fixed inset-x-0 bottom-0">
-        <Link
-          href="/add"
-          className="flex w-full items-center justify-center gap-2 bg-ink py-4
-            pb-[max(1rem,env(safe-area-inset-bottom))] text-[0.75rem] font-medium
-            uppercase tracking-[0.16em] text-paper transition active:opacity-90"
-        >
+      {/* A soft paper fade so the button never sits awkwardly on a photo. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 flex justify-center
+        bg-gradient-to-t from-paper via-paper/90 to-transparent pt-12
+        pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        {/* The one rounded control in the app: it floats over the grid rather
+            than sitting in it, and a square block here reads as another tile. */}
+        <Link href="/add" className="btn-ink pointer-events-auto rounded-full px-8">
           Log a wine
         </Link>
       </div>
