@@ -24,6 +24,12 @@ that clusters everything between three and four stars.
   what to eat with it, a couple of things worth knowing, and which of your own
   bottles were made from it. **Grapes** on the log lists every variety you've
   drunk, most-drunk first.
+- **Decode a label.** **Labels** is a glossary of what's actually printed on
+  bottles — Reserva, Cru, Brut, Sur Lie, DOCG — searchable, with a
+  pronunciation for the ones that are hard to say out loud, and a section for
+  the words that are legally meaningless. It leads with the rule that unlocks
+  most of a wine list: European labels name the place, everywhere else names
+  the grape.
 - **Installs to your phone's home screen** and runs full-screen like an app.
 
 Deliberately not here yet: preference profiles and recommendations. Those want a
@@ -130,6 +136,11 @@ A few decisions worth knowing about:
   looked up in a reference book, so the page says so at the bottom. Same
   principle as the label reader: useful, editable by disbelief, never
   load-bearing.
+- **The label glossary is hand-written and static.** Everything else the app
+  knows, it asks a model for. Not this: it's settled, slow-moving knowledge
+  where being wrong is worse than being absent, and the moment you want it —
+  in a shop, or at a table, on one bar of signal — is the worst moment to be
+  waiting on an API call. It's a prerendered page with no database behind it.
 - **Tags are stored as ids, not labels** (`too_tannic`, not "Too tannic /
   harsh"), so the wording can change later without rewriting your history — and
   so a preference profile can just count ids.
@@ -146,6 +157,7 @@ src/
     wine/[id]/            one entry, and its edit form
     grapes/               every grape in your log, most-drunk first
     grape/[slug]/         one grape: scales, flavours, regions, your bottles
+    labels/               the label glossary
     login/                passcode gate
     api/
       identify/           Claude reads a label photo
@@ -158,6 +170,8 @@ src/
     wines.ts              queries and input validation
     grapes.ts             name matching, the profile cache, log tallies
     grape-profile.ts      Claude writes one grape's entry
+    label-terms.ts        the label glossary, written by hand
+    text.ts               flattening names for matching
     image.ts              browser-side downscaling
     auth.ts               cookie signing
   proxy.ts                the passcode gate, in front of everything

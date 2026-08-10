@@ -1,5 +1,6 @@
 import { sql } from "@/lib/db";
 import { PROFILE_VERSION, generateGrapeProfile } from "@/lib/grape-profile";
+import { flatten } from "@/lib/text";
 import type { GrapeLookup, GrapeProfile, GrapeRegion, Wine } from "@/lib/types";
 
 /**
@@ -9,12 +10,7 @@ import type { GrapeLookup, GrapeProfile, GrapeRegion, Wine } from "@/lib/types";
  * so those three land on the same page.
  */
 export function normalizeGrapeKey(raw: string): string {
-  return raw
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
+  return flatten(raw);
 }
 
 /** The key as it appears in a URL. Reversible: hyphens back to spaces. */

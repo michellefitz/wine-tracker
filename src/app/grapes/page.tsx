@@ -40,9 +40,12 @@ export default async function GrapesPage() {
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-20 pt-[max(1.75rem,env(safe-area-inset-top))]">
-      <nav className="mb-9">
+      <nav className="mb-9 flex items-center justify-between">
         <Link href="/" className="link-quiet">
           ← All wines
+        </Link>
+        <Link href="/labels" className="link-quiet">
+          Labels
         </Link>
       </nav>
 

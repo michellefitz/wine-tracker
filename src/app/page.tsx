@@ -29,9 +29,14 @@ export default async function HomePage() {
             edge-to-edge on a small phone. */}
         <div className="mt-4 flex items-baseline justify-between gap-4">
           <span className="eyebrow">Your log</span>
-          <Link href="/grapes" className="link-quiet">
-            Grapes
-          </Link>
+          <nav className="flex shrink-0 items-baseline gap-4">
+            <Link href="/grapes" className="link-quiet">
+              Grapes
+            </Link>
+            <Link href="/labels" className="link-quiet">
+              Labels
+            </Link>
+          </nav>
         </div>
         <hr className="rule mt-4" />
       </header>
