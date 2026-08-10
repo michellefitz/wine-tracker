@@ -47,12 +47,12 @@ export default function WineList({ wines }: { wines: Wine[] }) {
   if (wines.length === 0) {
     return (
       <div className="border-t border-rule py-20 text-center">
-        <p className="mx-auto max-w-xs serif-display text-2xl leading-snug text-ink">
+        <p className="mx-auto max-w-xs essay text-[1.5rem] leading-snug text-ink">
           Start with the last bottle you opened.
         </p>
         <p className="mx-auto mt-3 max-w-xs text-[0.9375rem] leading-relaxed text-muted">
-          Photograph the label, say whether you liked it, and it&apos;s in the log. The
-          shelf gets much easier after a dozen of these.
+          Photograph the label, say whether you liked it, and it&apos;s No. 1 in the
+          collection. The shelf gets much easier after a dozen of these.
         </p>
       </div>
     );
@@ -60,7 +60,7 @@ export default function WineList({ wines }: { wines: Wine[] }) {
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-5">
         <input
           type="search"
           className="field text-[0.9375rem]"
@@ -69,13 +69,13 @@ export default function WineList({ wines }: { wines: Wine[] }) {
           onChange={(event) => setQuery(event.target.value)}
         />
 
-        <div className="mt-4 flex gap-5">
+        <div className="mt-3 flex gap-6">
           {FILTERS.map((option) => (
             <button
               key={option.id}
               type="button"
               onClick={() => setFilter(option.id)}
-              className={`pb-1 text-[0.6875rem] font-medium uppercase tracking-[0.14em]
+              className={`pb-1 text-[0.6875rem] font-medium uppercase tracking-[0.16em]
                 transition-colors ${
                   filter === option.id
                     ? "border-b border-ink text-ink"
@@ -93,7 +93,7 @@ export default function WineList({ wines }: { wines: Wine[] }) {
           Nothing matches that.
         </p>
       ) : (
-        <ul className="grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 sm:gap-x-5">
+        <ul className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 sm:gap-x-5">
           {visible.map((wine) => (
             <li key={wine.id}>
               <WineCard wine={wine} />

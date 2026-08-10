@@ -1,23 +1,24 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Schibsted_Grotesk } from "next/font/google";
+import { Archivo, Spectral } from "next/font/google";
 import ServiceWorker from "@/components/ServiceWorker";
 import "./globals.css";
 
-/**
- * Fraunces carries the optical-size axis, so headings get the high-contrast
- * display cut and running text gets sturdier strokes — from one file, handled
- * by the browser. See `.serif-display` / `.serif-text` in globals.css.
- */
-const displaySerif = Fraunces({
+/* The quiet workhorse: UI labels, buttons, captions, letterspaced caps. */
+const grotesk = Archivo({
   subsets: ["latin"],
-  axes: ["WONK", "opsz"],
-  variable: "--font-fraunces",
+  variable: "--font-archivo",
   display: "swap",
 });
 
-const bodySans = Schibsted_Grotesk({
+/*
+ * One serif for all the content: 300 for tasting notes and prose, 500 for the
+ * masthead — the whole app speaks in a single bookish voice.
+ */
+const serif = Spectral({
   subsets: ["latin"],
-  variable: "--font-schibsted",
+  weight: ["300", "400", "500"],
+  style: ["normal", "italic"],
+  variable: "--font-spectral",
   display: "swap",
 });
 
@@ -37,7 +38,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#fbfaf7",
+  themeColor: "#f5f4f1",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -46,7 +47,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-IE" className={`${displaySerif.variable} ${bodySans.variable}`}>
+    <html lang="en-IE" className={`${grotesk.variable} ${serif.variable}`}>
       <body>
         <ServiceWorker />
         {children}

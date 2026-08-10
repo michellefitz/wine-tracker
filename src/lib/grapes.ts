@@ -249,6 +249,36 @@ export function winesWithGrape(wines: Wine[], keys: string[]): Wine[] {
   return wines.filter((wine) => wine.grapes.some((grape) => wanted.has(normalizeGrapeKey(grape))));
 }
 
+/** The headings the grape index is grouped under, in the order they appear. */
+export const GRAPE_STYLES = ["Red", "White", "Sparkling", "Dessert"] as const;
+
+export type GrapeStyle = (typeof GRAPE_STYLES)[number];
+
+/**
+ * The seven types you can log, folded into those four. Rosé is made from red
+ * grapes and orange from white ones, so each sits with its grape's colour;
+ * fortified sits with dessert, being the other sweet thing on the shelf.
+ */
+const STYLE_BY_TYPE: Record<string, GrapeStyle> = {
+  red: "Red",
+  rose: "Red",
+  white: "White",
+  orange: "White",
+  sparkling: "Sparkling",
+  dessert: "Dessert",
+  fortified: "Dessert",
+};
+
+function styleOf(wineType: string | null): GrapeStyle | null {
+  if (!wineType) return null;
+  const key = wineType
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+  return STYLE_BY_TYPE[key] ?? null;
+}
+
 export type GrapeTally = {
   key: string;
   slug: string;
@@ -259,7 +289,45 @@ export type GrapeTally = {
   count: number;
   liked: number;
   disliked: number;
+  /** How many bottles of each style this grape turned up in. */
+  styles: Partial<Record<GrapeStyle, number>>;
 };
+
+/**
+ * Which heading a grape belongs under: whichever style you've actually drunk it
+ * as most often. A grape only ever logged in bottles with no type set has no
+ * style, and falls to the end of the page.
+ */
+export function grapeStyle(tally: GrapeTally): GrapeStyle | null {
+  let best: GrapeStyle | null = null;
+  for (const style of GRAPE_STYLES) {
+    const count = tally.styles[style] ?? 0;
+    if (count > 0 && (best === null || count > (tally.styles[best] ?? 0))) best = style;
+  }
+  return best;
+}
+
+/** The tallies split under their headings, empty groups dropped. */
+export function groupByStyle(
+  tallies: GrapeTally[],
+): { style: GrapeStyle | null; grapes: GrapeTally[] }[] {
+  const groups = new Map<GrapeStyle | null, GrapeTally[]>();
+  for (const tally of tallies) {
+    const style = grapeStyle(tally);
+    const group = groups.get(style);
+    if (group) group.push(tally);
+    else groups.set(style, [tally]);
+  }
+
+  const ordered: { style: GrapeStyle | null; grapes: GrapeTally[] }[] = [];
+  for (const style of GRAPE_STYLES) {
+    const grapes = groups.get(style);
+    if (grapes) ordered.push({ style, grapes });
+  }
+  const untyped = groups.get(null);
+  if (untyped) ordered.push({ style: null, grapes: untyped });
+  return ordered;
+}
 
 function bySize(a: GrapeTally, b: GrapeTally): number {
   return b.count - a.count || a.label.localeCompare(b.label);
@@ -273,6 +341,8 @@ export function tallyGrapes(wines: Wine[]): GrapeTally[] {
   const tallies = new Map<string, Omit<GrapeTally, "spellings"> & { spellings: Map<string, number> }>();
 
   for (const wine of wines) {
+    const style = styleOf(wine.wine_type);
+
     for (const grape of wine.grapes) {
       const key = normalizeGrapeKey(grape);
       if (!key) continue;
@@ -286,6 +356,7 @@ export function tallyGrapes(wines: Wine[]): GrapeTally[] {
           count: 0,
           liked: 0,
           disliked: 0,
+          styles: {},
           spellings: new Map(),
         };
         tallies.set(key, tally);
@@ -294,6 +365,7 @@ export function tallyGrapes(wines: Wine[]): GrapeTally[] {
       tally.count += 1;
       if (wine.score > 0) tally.liked += 1;
       if (wine.score < 0) tally.disliked += 1;
+      if (style) tally.styles[style] = (tally.styles[style] ?? 0) + 1;
       tally.spellings.set(grape, (tally.spellings.get(grape) ?? 0) + 1);
     }
   }
@@ -338,8 +410,8 @@ export async function mergeKnownSynonyms(tallies: GrapeTally[]): Promise<GrapeTa
 
     if (!existing) {
       merged.set(id, match
-        ? { ...tally, key: slugToKey(match.slug), slug: match.slug, label: match.name }
-        : { ...tally });
+        ? { ...tally, key: slugToKey(match.slug), slug: match.slug, label: match.name, styles: { ...tally.styles } }
+        : { ...tally, styles: { ...tally.styles } });
       continue;
     }
 
@@ -347,6 +419,10 @@ export async function mergeKnownSynonyms(tallies: GrapeTally[]): Promise<GrapeTa
     existing.liked += tally.liked;
     existing.disliked += tally.disliked;
     existing.spellings = [...existing.spellings, ...tally.spellings];
+    for (const style of GRAPE_STYLES) {
+      const count = tally.styles[style];
+      if (count) existing.styles[style] = (existing.styles[style] ?? 0) + count;
+    }
   }
 
   return Array.from(merged.values()).sort(bySize);

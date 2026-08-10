@@ -1,22 +1,30 @@
 import Link from "next/link";
 import BottlePlaceholder from "@/components/BottlePlaceholder";
 import RatingMark from "@/components/RatingMark";
+import { countryFlag, placeLine } from "@/lib/places";
 import type { Wine } from "@/lib/types";
 
 export default function WineCard({ wine }: { wine: Wine }) {
-  const place = [wine.region, wine.country].filter(Boolean)[0];
+  const flag = countryFlag(wine.country);
+  // Cards are half a phone wide, so "Marlborough, New Zealand" truncates badly.
+  // When the flag is there to carry the country, the region alone is enough.
+  const place = flag
+    ? wine.region?.trim() || wine.country?.trim() || null
+    : placeLine(wine.region, wine.country);
 
   return (
     <Link href={`/wine/${wine.id}`} className="group block">
       <div className="aspect-4/5 w-full overflow-hidden bg-tint">
         {wine.photo_id ? (
+          // 560px covers a 167 CSS px card at a phone's 3x density.
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={`/api/photos/${wine.photo_id}`}
+            src={`/api/photos/${wine.photo_id}?w=560`}
             alt=""
             loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover transition-transform duration-500
-              group-hover:scale-[1.03]"
+              group-hover:scale-[1.03] group-active:scale-[1.03]"
           />
         ) : (
           <BottlePlaceholder />
@@ -25,13 +33,22 @@ export default function WineCard({ wine }: { wine: Wine }) {
 
       <div className="pt-3">
         <RatingMark score={wine.score} />
-        <h2 className="mt-1.5 serif-display text-[1.0625rem] leading-tight text-ink">
+        <h2 className="essay mt-1.5 text-[1.0625rem] leading-snug text-ink">
           {wine.name}
         </h2>
-        {(wine.producer || place) && (
-          <p className="mt-0.5 truncate text-[0.8125rem] text-muted">
-            {wine.producer ?? place}
-            {wine.vintage ? ` · ${wine.vintage}` : ""}
+        {(wine.producer || wine.vintage) && (
+          <p className="mt-1 truncate text-[0.8125rem] text-ink-soft">
+            {[wine.producer, wine.vintage].filter(Boolean).join(", ")}
+          </p>
+        )}
+        {place && (
+          <p className="mt-0.5 flex items-baseline gap-1.5 text-[0.8125rem] text-muted">
+            {flag && (
+              <span aria-hidden="true" className="shrink-0 leading-none">
+                {flag}
+              </span>
+            )}
+            <span className="truncate">{place}</span>
           </p>
         )}
       </div>

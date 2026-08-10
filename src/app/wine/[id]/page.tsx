@@ -4,6 +4,7 @@ import BottlePlaceholder from "@/components/BottlePlaceholder";
 import DeleteWineButton from "@/components/DeleteWineButton";
 import RatingMark from "@/components/RatingMark";
 import { grapeSlug } from "@/lib/grapes";
+import { countryFlag, placeLine } from "@/lib/places";
 import { tagLabel } from "@/lib/taxonomy";
 import { getWine } from "@/lib/wines";
 
@@ -22,6 +23,10 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const wine = await getWine(id);
   if (!wine) notFound();
+
+  // The place has its own line under the title, so it stays out of the table.
+  const place = placeLine(wine.region, wine.country);
+  const flag = countryFlag(wine.country);
 
   // Grapes are the one fact you can read further on, so they're rendered as
   // links rather than text — everything else on this list is just your entry.
@@ -49,7 +54,6 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
         ""
       ),
     ],
-    ["Region", [wine.region, wine.country].filter(Boolean).join(", ")],
     ["Bought at", wine.source ?? ""],
     ["Price", wine.price_eur !== null ? `€${wine.price_eur.toFixed(2)}` : ""],
     ["Drank", formatDate(wine.drank_on)],
@@ -57,7 +61,7 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-20 pt-[max(1.75rem,env(safe-area-inset-top))]">
-      <nav className="mb-7 flex items-center justify-between">
+      <nav className="mb-8 flex items-center justify-between">
         <Link href="/" className="link-quiet">
           ← All wines
         </Link>
@@ -70,8 +74,9 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
         {wine.photo_id ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={`/api/photos/${wine.photo_id}`}
+            src={`/api/photos/${wine.photo_id}?w=960`}
             alt={`Label of ${wine.name}`}
+            decoding="async"
             className="h-full w-full object-cover"
           />
         ) : (
@@ -79,22 +84,33 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
         )}
       </div>
 
-      <header className="mt-8 text-center">
+      {/* The wall label: producer, work, place, verdict. */}
+      <header className="mt-9 text-center">
         {wine.producer && <p className="eyebrow">{wine.producer}</p>}
-        <h1 className="mt-2 serif-display text-[2rem] leading-[1.1] tracking-[-0.01em] text-ink">
+        <h1 className="essay mt-3 text-[1.875rem] leading-[1.2] text-ink">
           {wine.name}
         </h1>
-        <div className="mt-4 flex justify-center">
+        {place && (
+          <p className="mt-2.5 flex items-baseline justify-center gap-2 text-[0.9375rem] text-ink-soft">
+            {flag && (
+              <span aria-hidden="true" className="text-[1.0625rem] leading-none">
+                {flag}
+              </span>
+            )}
+            <span>{place}</span>
+          </p>
+        )}
+        <div className="mt-5 flex justify-center">
           <RatingMark score={wine.score} size="lg" />
         </div>
       </header>
 
       {wine.tags.length > 0 && (
-        <div className="mt-7 flex flex-wrap justify-center gap-1.5">
+        <div className="mt-8 flex flex-wrap justify-center gap-1.5">
           {wine.tags.map((tag) => (
             <span
               key={tag}
-              className="rounded-full border border-rule px-3 py-1 text-[0.8125rem] text-ink-soft"
+              className="border border-rule px-3 py-1 text-[0.8125rem] text-ink-soft"
             >
               {tagLabel(tag)}
             </span>
@@ -103,18 +119,16 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
       )}
 
       {wine.notes && (
-        <blockquote className="mx-auto mt-9 max-w-md border-t border-rule pt-7 text-center">
-          <p className="serif-text text-[1.375rem] leading-[1.45] text-ink">
-            {wine.notes}
-          </p>
+        <blockquote className="mx-auto mt-10 max-w-md border-t border-rule pt-8 text-center">
+          <p className="essay text-[1.375rem] leading-[1.5] text-ink">{wine.notes}</p>
         </blockquote>
       )}
 
-      <dl className="mx-auto mt-10 max-w-md border-t border-rule">
+      <dl className="mx-auto mt-11 max-w-md border-t border-rule">
         {facts.map(([term, value]) => (
           <div key={term} className="flex justify-between gap-6 border-b border-rule py-3.5">
             <dt className="eyebrow pt-0.5">{term}</dt>
-            <dd className="text-right text-[0.9375rem] text-ink">{value}</dd>
+            <dd className="text-right text-[0.9375rem] tabular-nums text-ink">{value}</dd>
           </div>
         ))}
       </dl>
@@ -125,7 +139,7 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
         </p>
       )}
 
-      <div className="mt-12 text-center">
+      <div className="mt-14 text-center">
         <DeleteWineButton id={wine.id} name={wine.name} />
       </div>
     </main>

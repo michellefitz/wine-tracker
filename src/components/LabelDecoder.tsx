@@ -42,7 +42,7 @@ export default function LabelDecoder() {
                 {entries.map((entry) => (
                   <div key={entry.term} className="border-b border-rule pb-5 last:border-b-0 [&:not(:first-child)]:pt-5">
                     <dt className="flex flex-wrap items-baseline gap-x-2.5">
-                      <span className="serif-text text-[1.0625rem] leading-snug text-ink">
+                      <span className="essay text-[1.0625rem] leading-snug text-ink">
                         {entry.term}
                       </span>
                       {entry.say && (

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { mergeKnownSynonyms, otherSpellings, tallyGrapes } from "@/lib/grapes";
+import { groupByStyle, mergeKnownSynonyms, otherSpellings, tallyGrapes } from "@/lib/grapes";
 import { listWines } from "@/lib/wines";
 import type { Wine } from "@/lib/types";
 
@@ -50,12 +50,11 @@ export default async function GrapesPage() {
       </nav>
 
       <header>
-        <h1 className="serif-display text-[2.25rem] leading-[1.05] tracking-[-0.015em] text-ink">
-          Grapes
-        </h1>
-        <p className="mt-3 max-w-md text-[0.9375rem] leading-relaxed text-muted">
-          Every variety you&apos;ve logged, most-drunk first. Tap one to read what it&apos;s
-          like — how sharp, how full-bodied, what it tastes of, and where it grows.
+        <h1 className="display text-[1.75rem] leading-[1.1] text-ink">Grapes</h1>
+        <p className="essay mt-3 max-w-md text-[1.0625rem] leading-relaxed text-muted">
+          Every variety you&apos;ve logged, grouped by what you drank it as and
+          most-drunk first. Tap one to read what it&apos;s like — how sharp, how
+          full-bodied, what it tastes of, and where it grows.
         </p>
       </header>
 
@@ -68,31 +67,36 @@ export default async function GrapesPage() {
           Nothing yet. Log a bottle with its grape on it and it&apos;ll appear here.
         </p>
       ) : (
-        <ul className="mt-9 border-t border-rule">
-          {grapes.map((grape) => (
-            <li key={grape.key}>
-              <Link
-                href={`/grape/${grape.slug}`}
-                className="flex items-baseline justify-between gap-5 border-b border-rule
-                  py-4 transition-colors hover:bg-tint/50"
-              >
-                <span>
-                  <span className="serif-text text-[1.125rem] leading-snug text-ink">
-                    {grape.label}
-                  </span>
-                  {otherSpellings(grape).length > 0 && (
-                    <span className="mt-0.5 block text-[0.75rem] text-muted">
-                      you also logged it as {otherSpellings(grape).join(", ")}
+        groupByStyle(grapes).map(({ style, grapes: inStyle }) => (
+          <section key={style ?? "untyped"} className="mt-9">
+            <h2 className="eyebrow">{style ?? "Not typed yet"}</h2>
+            <ul className="mt-3 border-t border-rule">
+              {inStyle.map((grape) => (
+                <li key={grape.key}>
+                  <Link
+                    href={`/grape/${grape.slug}`}
+                    className="flex items-baseline justify-between gap-5 border-b border-rule
+                      py-4 transition-colors hover:bg-tint/50"
+                  >
+                    <span>
+                      <span className="essay text-[1.125rem] leading-snug text-ink">
+                        {grape.label}
+                      </span>
+                      {otherSpellings(grape).length > 0 && (
+                        <span className="mt-0.5 block text-[0.75rem] text-muted">
+                          you also logged it as {otherSpellings(grape).join(", ")}
+                        </span>
+                      )}
                     </span>
-                  )}
-                </span>
-                <span className="shrink-0 text-[0.8125rem] text-muted">
-                  {record(grape.count, grape.liked, grape.disliked)}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+                    <span className="shrink-0 text-[0.8125rem] text-muted">
+                      {record(grape.count, grape.liked, grape.disliked)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
       )}
     </main>
   );

@@ -24,11 +24,11 @@ export default function LabelsPage() {
       </nav>
 
       <header className="mb-9">
-        <h1 className="serif-display text-[2.25rem] leading-[1.05] tracking-[-0.015em] text-ink">
+        <h1 className="display text-[1.75rem] leading-[1.1] text-ink">
           Reading a label
         </h1>
 
-        <div className="mt-5 max-w-md space-y-4 text-[0.9375rem] leading-relaxed text-ink-soft">
+        <div className="essay mt-3 max-w-md space-y-4 text-[1.0625rem] leading-relaxed text-ink-soft">
           <p>
             Start with the one rule that unlocks most of a wine list:{" "}
             <strong className="font-medium text-ink">
@@ -40,7 +40,7 @@ export default function LabelsPage() {
             Sancerre is Sauvignon Blanc. Rioja is mostly Tempranillo, Barolo is Nebbiolo,
             Chianti is mostly Sangiovese. An Australian bottle just says Shiraz on the front.
           </p>
-          <p className="text-muted">
+          <p className="text-[0.9375rem] text-muted">
             Nothing below is a judgement of quality. It&apos;s what the words are
             allowed to mean — and, often, that they&apos;re allowed to mean nothing.
           </p>

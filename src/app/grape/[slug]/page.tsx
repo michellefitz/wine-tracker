@@ -35,9 +35,7 @@ function Outline({ name }: { name: string }) {
   return (
     <div className="animate-pulse">
       <header className="text-center">
-        <h1 className="serif-display text-[2.25rem] leading-[1.05] tracking-[-0.015em] text-ink">
-          {name}
-        </h1>
+        <h1 className="essay text-[1.875rem] leading-[1.15] text-ink">{name}</h1>
         <p className="mt-3 text-[0.8125rem] text-muted">Reading up on this grape…</p>
       </header>
 
@@ -69,7 +67,7 @@ function Outline({ name }: { name: string }) {
 function Message({ title, body }: { title: string; body: string }) {
   return (
     <div className="mx-auto max-w-md text-center">
-      <h1 className="serif-display text-[2rem] leading-[1.1] text-ink">{title}</h1>
+      <h1 className="essay text-[1.75rem] leading-[1.15] text-ink">{title}</h1>
       <p className="mt-4 text-[0.9375rem] leading-relaxed text-muted">{body}</p>
     </div>
   );

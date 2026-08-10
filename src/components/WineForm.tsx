@@ -146,7 +146,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
           </label>
           <input
             id="name"
-            className="field serif-display text-[1.375rem]"
+            className="field essay text-[1.375rem]"
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Reserva Malbec"
@@ -210,7 +210,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
                 key={rating.id}
                 type="button"
                 onClick={() => setScore(rating.score)}
-                className={`rounded-full border px-3 py-3.5 text-[0.9375rem]
+                className={`border px-3 py-3.5 text-[0.9375rem]
                   transition active:scale-[0.98] ${
                     chosen
                       ? "border-ink bg-ink text-paper"
@@ -262,7 +262,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
             next section's rule. */}
         <textarea
           id="notes"
-          className="field-boxed min-h-28 resize-y serif-text text-[1.125rem] leading-relaxed"
+          className="field-boxed min-h-28 resize-y essay text-[1.125rem] leading-relaxed"
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           placeholder="Anything you want to remember about it."
