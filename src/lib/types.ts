@@ -93,6 +93,8 @@ export type WineFacts = {
   found: boolean;
   summary: string | null;
   style: string | null;
+  /** Grapes the search found, used when the log doesn't name any. */
+  grapes: string[];
   ratings: WineRating[];
   details: { label: string; value: string }[];
   awards: string[];

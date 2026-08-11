@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { FACTS_VERSION, researchWine } from "@/lib/wine-research";
+import { FACTS_VERSION, researchWine, worthShowing } from "@/lib/wine-research";
 import type { Wine, WineFacts, WineRating } from "@/lib/types";
 
 /**
@@ -11,7 +11,7 @@ import type { Wine, WineFacts, WineRating } from "@/lib/types";
  */
 
 const SELECT_COLUMNS = `
-  wine_id, found, summary, style, ratings, details, awards, food, sources, note,
+  wine_id, found, summary, style, grapes, ratings, details, awards, food, sources, note,
   version, looked_up_at
 `;
 
@@ -23,8 +23,9 @@ function toFacts(row: Record<string, unknown>): StoredFacts {
     found: row.found === true,
     summary: (row.summary as string) ?? null,
     style: (row.style as string) ?? null,
+    grapes: (row.grapes as string[]) ?? [],
     ratings: (row.ratings as WineRating[]) ?? [],
-    details: (row.details as { label: string; value: string }[]) ?? [],
+    details: (((row.details as { label: string; value: string }[]) ?? []).filter(worthShowing)),
     awards: (row.awards as string[]) ?? [],
     food: (row.food as string[]) ?? [],
     sources: (row.sources as { title: string; url: string }[]) ?? [],
@@ -47,13 +48,15 @@ async function saveFacts(facts: WineFacts): Promise<void> {
   const db = sql();
   await db.query(
     `INSERT INTO wine_facts
-       (wine_id, found, summary, style, ratings, details, awards, food, sources, note,
+       (wine_id, found, summary, style, grapes, ratings, details, awards, food, sources, note,
         version, looked_up_at)
-     VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, $8::jsonb, $9::jsonb, $10, $11, now())
+     VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, $8::jsonb, $9::jsonb, $10::jsonb,
+             $11, $12, now())
      ON CONFLICT (wine_id) DO UPDATE SET
        found = EXCLUDED.found,
        summary = EXCLUDED.summary,
        style = EXCLUDED.style,
+       grapes = EXCLUDED.grapes,
        ratings = EXCLUDED.ratings,
        details = EXCLUDED.details,
        awards = EXCLUDED.awards,
@@ -67,6 +70,7 @@ async function saveFacts(facts: WineFacts): Promise<void> {
       facts.found,
       facts.summary,
       facts.style,
+      JSON.stringify(facts.grapes),
       JSON.stringify(facts.ratings),
       JSON.stringify(facts.details),
       JSON.stringify(facts.awards),
@@ -78,8 +82,9 @@ async function saveFacts(facts: WineFacts): Promise<void> {
   );
 }
 
-/** Postgres for "no such table" — the schema hasn't been brought up to date. */
+/** Postgres for "no such table" and "no such column" — the schema is behind. */
 const UNDEFINED_TABLE = "42P01";
+const UNDEFINED_COLUMN = "42703";
 
 function storeTrouble(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
@@ -87,6 +92,9 @@ function storeTrouble(error: unknown): string {
 
   if (code === UNDEFINED_TABLE || /relation .*wine_facts.* does not exist/i.test(message)) {
     return "This isn't being saved yet: the wine_facts table isn't in the database. Run `npm run db:init` — it's safe to re-run.";
+  }
+  if (code === UNDEFINED_COLUMN || /column .* does not exist/i.test(message)) {
+    return "This isn't being saved yet: the wine_facts table is missing a column added since you made it. Run `npm run db:init` — it's safe to re-run.";
   }
   return "This couldn't be saved, so it'll be looked up again next time.";
 }

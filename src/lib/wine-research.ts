@@ -18,7 +18,15 @@ export const FACTS_VERSION = 1;
 const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5";
 
 /** Cap the searching. Most supermarket bottles are settled in two or three. */
-const MAX_SEARCHES = 6;
+const MAX_SEARCHES = 3;
+
+/**
+ * Per-call ceilings, chosen so the pair finishes inside a 60s function budget
+ * with room left to return a message. A lookup that overruns has to fail
+ * *visibly* — being killed mid-flight is the one outcome with nothing to show.
+ */
+const RESEARCH_TIMEOUT_MS = 32_000;
+const EXTRACT_TIMEOUT_MS = 14_000;
 
 const RESEARCH_SYSTEM = `You research one specific bottle of wine on the web for someone who
 keeps a log of what they've drunk. They already know whether they liked it; what they want is
@@ -33,8 +41,16 @@ coverage at all, and saying so plainly is more useful than padding. Never supply
 award or tasting note from memory — if it isn't in the results you read, it doesn't exist for
 this purpose.
 
+Write the summary as two or three short paragraphs with a blank line between them, not one
+block: what the wine is, then what it tastes like, then anything notable about where it comes
+from. Short paragraphs are the point — this is read on a phone.
+
 Cover, where the results support it:
 - What this wine is and what it tastes like, in plain words.
+- The grape or grapes it's made from, if the results state them.
+- Hard label facts, each as its own item: producer, alcohol, serving temperature, ageing,
+  closure. Skip bottle size, vegan/vegetarian suitability and allergen statements — they say
+  nothing about the wine.
 - Any ratings or scores, with the source, the scale, and how many people rated it.
 - Any awards or medals, with the year.
 - Concrete facts from the producer or retailer: alcohol, ageing, closure, whether it's organic.
@@ -51,8 +67,12 @@ a medal or a number, and never round or "correct" one.
 Scores stay exactly as written, as text: "3.9", "91", "Silver". The scale is the rest of the
 phrase: "out of 5", "points". Ratings only count when the write-up names where they came from.
 
-"details" is for hard facts a label or producer would state — alcohol, ageing, closure, organic
-certification — as short label/value pairs like {"label": "Alcohol", "value": "13.5%"}.
+"details" is for hard facts a label or producer would state, as short label/value pairs like
+{"label": "Alcohol", "value": "13.5%"}. Use these labels exactly when you have them: "Producer",
+"Alcohol", "Serving temperature", "Ageing", "Closure". Put the grapes in "grapes" instead, never
+in details. Leave out bottle size, vegan or vegetarian suitability, and allergen statements.
+
+"summary" keeps the paragraph breaks from the write-up — copy them through as blank lines.
 
 If the write-up says little or nothing was found, set found to false and use "note" to say what
 was searched for and why it came up short. That's a normal outcome, not a failure.`;
@@ -63,6 +83,7 @@ const SCHEMA = {
     found: { type: "boolean" },
     summary: { anyOf: [{ type: "string" }, { type: "null" }] },
     style: { anyOf: [{ type: "string" }, { type: "null" }] },
+    grapes: { type: "array", items: { type: "string" } },
     ratings: {
       type: "array",
       items: {
@@ -93,7 +114,7 @@ const SCHEMA = {
     food: { type: "array", items: { type: "string" } },
     note: { anyOf: [{ type: "string" }, { type: "null" }] },
   },
-  required: ["found", "summary", "style", "ratings", "details", "awards", "food", "note"],
+  required: ["found", "summary", "style", "grapes", "ratings", "details", "awards", "food", "note"],
   additionalProperties: false,
 } as const;
 
@@ -156,6 +177,16 @@ function sourcesOf(content: Anthropic.ContentBlock[]): { title: string; url: str
     .map(([url, title]) => ({ title: title.slice(0, 160), url }));
 }
 
+/**
+ * Details worth a row on the page. Bottle size and dietary-suitability lines are
+ * on nearly every label and tell you nothing about how the wine tastes.
+ */
+const NOT_WORTH_A_ROW = /^(bottle\s*size|size|volume|vegan|vegetarian|allergens?|contains|sulphites?|sulfites?)\b/i;
+
+export function worthShowing(detail: { label: string }): boolean {
+  return !NOT_WORTH_A_ROW.test(detail.label.trim());
+}
+
 function strings(value: unknown, max: number, limit: number): string[] {
   if (!Array.isArray(value)) return [];
   return value
@@ -184,18 +215,23 @@ async function research(client: Anthropic, bottle: string): Promise<string | Res
     },
   ];
 
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  // One resume at most: each pause costs another full turn of searching, and
+  // two of those is how a lookup runs past the function budget.
+  for (let attempt = 0; attempt < 2; attempt += 1) {
     let response: Anthropic.Message;
     try {
-      response = await client.messages.create({
-        model: MODEL,
-        max_tokens: 8192,
-        system: RESEARCH_SYSTEM,
-        thinking: { type: "adaptive" },
-        output_config: { effort: "medium" },
-        tools: [{ type: "web_search_20260209", name: "web_search", max_uses: MAX_SEARCHES }],
-        messages,
-      });
+      response = await client.messages.create(
+        {
+          model: MODEL,
+          max_tokens: 8192,
+          system: RESEARCH_SYSTEM,
+          thinking: { type: "adaptive" },
+          output_config: { effort: "low" },
+          tools: [{ type: "web_search_20260209", name: "web_search", max_uses: MAX_SEARCHES }],
+          messages,
+        },
+        { timeout: RESEARCH_TIMEOUT_MS, maxRetries: 0 },
+      );
     } catch (error) {
       const detail = apiDetail(error);
       console.error("wine-research: search call failed:", detail);
@@ -218,7 +254,10 @@ async function research(client: Anthropic, bottle: string): Promise<string | Res
     return JSON.stringify({ text, sources: sourcesOf(response.content) });
   }
 
-  return { status: "unavailable", message: "The search kept going and had to be stopped." };
+  return {
+    status: "unavailable",
+    message: "The search ran long and was stopped. Try Refresh — it often lands second time.",
+  };
 }
 
 /** Looks one bottle up. Never throws — a failure comes back as a status. */
@@ -236,19 +275,22 @@ export async function researchWine(wine: Wine): Promise<Researched> {
 
   let response: Anthropic.Message;
   try {
-    response = await client.messages.create({
-      model: MODEL,
-      max_tokens: 4096,
-      system: EXTRACT_SYSTEM,
-      thinking: { type: "adaptive" },
-      output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
-      messages: [
-        {
-          role: "user",
-          content: `Bottle as it was logged:\n${bottle}\n\nResearch write-up:\n${text}`,
-        },
-      ],
-    });
+    response = await client.messages.create(
+      {
+        model: MODEL,
+        max_tokens: 4096,
+        system: EXTRACT_SYSTEM,
+        thinking: { type: "adaptive" },
+        output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
+        messages: [
+          {
+            role: "user",
+            content: `Bottle as it was logged:\n${bottle}\n\nResearch write-up:\n${text}`,
+          },
+        ],
+      },
+      { timeout: EXTRACT_TIMEOUT_MS, maxRetries: 0 },
+    );
   } catch (error) {
     const detail = apiDetail(error);
     console.error("wine-research: extract call failed:", detail);
@@ -293,6 +335,7 @@ export async function researchWine(wine: Wine): Promise<Researched> {
           value: trimmed(detail.value, 120) ?? "",
         }))
         .filter((detail) => detail.label && detail.value)
+        .filter(worthShowing)
         .slice(0, 8)
     : [];
 
@@ -305,6 +348,7 @@ export async function researchWine(wine: Wine): Promise<Researched> {
       found: raw.found === true && anything,
       summary,
       style: trimmed(raw.style, 600),
+      grapes: strings(raw.grapes, 60, 6),
       ratings,
       details,
       awards: strings(raw.awards, 120, 5),

@@ -1,23 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import BottlePlaceholder from "@/components/BottlePlaceholder";
 import DeleteWineButton from "@/components/DeleteWineButton";
-import WineFactsView from "@/components/WineFactsView";
+import WineFactsPanel from "@/components/WineFactsPanel";
 import RatingMark from "@/components/RatingMark";
 import { grapeSlug } from "@/lib/grapes";
 import { countryFlag, placeLine } from "@/lib/places";
 import { tagLabel } from "@/lib/taxonomy";
-import { getWineFacts } from "@/lib/wine-facts";
+import { findFacts } from "@/lib/wine-facts";
 import { getWine } from "@/lib/wines";
 
 export const dynamic = "force-dynamic";
-
-/**
- * The first view of a bottle searches the web for it, which runs past Vercel's
- * default function budget. Every view after that is a single row.
- */
-export const maxDuration = 60;
 
 function formatDate(iso: string): string {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IE", {
@@ -28,39 +21,18 @@ function formatDate(iso: string): string {
   });
 }
 
-/** Mirrors the real section so the page doesn't jump when the lookup lands. */
-function FactsOutline() {
-  return (
-    <section className="mx-auto mt-12 max-w-md animate-pulse border-t border-rule pt-7">
-      <p className="eyebrow mb-5">About this bottle</p>
-      <div className="space-y-2.5">
-        <span className="block h-3.5 w-full bg-tint" />
-        <span className="block h-3.5 w-full bg-tint" />
-        <span className="block h-3.5 w-2/5 bg-tint" />
-      </div>
-    </section>
-  );
-}
-
 /**
- * Kept out of the page body so the bottle, your rating and your note render
- * immediately — the lookup streams in underneath when it's ready.
+ * What's already stored for this bottle — one row, no API call. The lookup
+ * itself belongs to the client panel: a page render that can be killed halfway
+ * takes the whole page down with it, which is exactly what used to happen.
  */
-async function WineFacts({ wineId }: { wineId: string }) {
-  const wine = await getWine(wineId);
-  if (!wine) return null;
-
-  const lookup = await getWineFacts(wine);
-  if (lookup.status === "unavailable") {
-    return (
-      <section className="mx-auto mt-12 max-w-md border-t border-rule pt-7">
-        <p className="eyebrow mb-4">About this bottle</p>
-        <p className="text-[0.9375rem] leading-relaxed text-muted">{lookup.message}</p>
-      </section>
-    );
+async function storedFacts(wineId: string) {
+  try {
+    return await findFacts(wineId);
+  } catch (error) {
+    console.error("wine: could not read stored facts:", error);
+    return null;
   }
-
-  return <WineFactsView wineId={wineId} facts={lookup.facts} warning={lookup.warning} />;
 }
 
 export default async function WinePage({ params }: { params: Promise<{ id: string }> }) {
@@ -68,40 +40,59 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
   const wine = await getWine(id);
   if (!wine) notFound();
 
+  const stored = await storedFacts(id);
+
   // The place has its own line under the title, so it stays out of the table.
   const place = placeLine(wine.region, wine.country);
   const flag = countryFlag(wine.country);
 
-  // Grapes are the one fact you can read further on, so they're rendered as
-  // links rather than text — everything else on this list is just your entry.
-  const facts: [string, React.ReactNode][] = [
-    ["Vintage", wine.vintage ? String(wine.vintage) : ""],
-    ["Type", wine.wine_type ?? ""],
-    [
-      "Grapes",
-      wine.grapes.length > 0 ? (
-        <span className="inline-flex flex-wrap justify-end gap-x-1.5 gap-y-1">
-          {wine.grapes.map((grape, index) => (
-            <span key={grape}>
-              <Link
-                href={`/grape/${grapeSlug(grape)}`}
-                className="underline decoration-rule underline-offset-4 transition-colors
-                  hover:decoration-ink"
-              >
-                {grape}
-              </Link>
-              {index < wine.grapes.length - 1 && ","}
-            </span>
-          ))}
-        </span>
-      ) : (
-        ""
-      ),
-    ],
-    ["Bought at", wine.source ?? ""],
-    ["Price", wine.price_eur !== null ? `€${wine.price_eur.toFixed(2)}` : ""],
-    ["Drank", formatDate(wine.drank_on)],
-  ].filter(([, value]) => value !== "") as [string, React.ReactNode][];
+  // Grapes come from the log when you typed them and from the lookup when you
+  // didn't — either way they're the one fact you can read further on, so they
+  // render as links.
+  const grapes = wine.grapes.length > 0 ? wine.grapes : (stored?.grapes ?? []);
+  const grapesFound = wine.grapes.length === 0 && grapes.length > 0;
+
+  const grapeLinks =
+    grapes.length > 0 ? (
+      <span className="inline-flex flex-wrap justify-end gap-x-1.5 gap-y-1">
+        {grapes.map((grape, index) => (
+          <span key={grape}>
+            <Link
+              href={`/grape/${grapeSlug(grape)}`}
+              className="underline decoration-rule underline-offset-4 transition-colors
+                hover:decoration-ink"
+            >
+              {grape}
+            </Link>
+            {index < grapes.length - 1 && ","}
+          </span>
+        ))}
+      </span>
+    ) : (
+      ""
+    );
+
+  /**
+   * One table, whether a value came from you or from the search. Anything found
+   * rather than entered is set in the softer ink and footnoted — merging them
+   * shouldn't quietly blur who said what.
+   */
+  const own = new Set(["vintage", "type", "grapes", "bought at", "price", "drank"]);
+  const looked = (stored?.details ?? []).filter(
+    (detail) => !own.has(detail.label.trim().toLowerCase()),
+  );
+
+  const rows: { term: string; value: React.ReactNode; found?: boolean }[] = [
+    { term: "Vintage", value: wine.vintage ? String(wine.vintage) : "" },
+    { term: "Type", value: wine.wine_type ?? "" },
+    { term: "Grapes", value: grapeLinks, found: grapesFound },
+    ...looked.map((detail) => ({ term: detail.label, value: detail.value, found: true })),
+    { term: "Bought at", value: wine.source ?? "" },
+    { term: "Price", value: wine.price_eur !== null ? `€${wine.price_eur.toFixed(2)}` : "" },
+    { term: "Drank", value: formatDate(wine.drank_on) },
+  ].filter((row) => row.value !== "");
+
+  const anyFound = rows.some((row) => row.found);
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-20 pt-[max(1.75rem,env(safe-area-inset-top))]">
@@ -169,23 +160,26 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
       )}
 
       <dl className="mx-auto mt-11 max-w-md border-t border-rule">
-        {facts.map(([term, value]) => (
-          <div key={term} className="flex justify-between gap-6 border-b border-rule py-3.5">
-            <dt className="eyebrow pt-0.5">{term}</dt>
-            <dd className="text-right text-[0.9375rem] tabular-nums text-ink">{value}</dd>
+        {rows.map((row) => (
+          <div key={row.term} className="flex justify-between gap-6 border-b border-rule py-3.5">
+            <dt className="eyebrow pt-0.5">{row.term}</dt>
+            <dd
+              className={`text-right text-[0.9375rem] tabular-nums ${
+                row.found ? "text-ink-soft" : "text-ink"
+              }`}
+            >
+              {row.value}
+            </dd>
           </div>
         ))}
       </dl>
 
-      {wine.grapes.length > 0 && (
-        <p className="mx-auto mt-3 max-w-md text-[0.8125rem] text-muted">
-          Tap a grape to read what it&apos;s like and where it grows.
-        </p>
-      )}
+      <div className="mx-auto mt-3 max-w-md space-y-1 text-[0.8125rem] text-muted">
+        {grapes.length > 0 && <p>Tap a grape to read what it&apos;s like and where it grows.</p>}
+        {anyFound && <p>Greyed values were found on the web, not entered by you.</p>}
+      </div>
 
-      <Suspense fallback={<FactsOutline />}>
-        <WineFacts wineId={wine.id} />
-      </Suspense>
+      <WineFactsPanel wineId={wine.id} initial={stored} />
 
       <div className="mt-14 text-center">
         <DeleteWineButton id={wine.id} name={wine.name} />

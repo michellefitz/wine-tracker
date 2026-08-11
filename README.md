@@ -143,6 +143,20 @@ A few decisions worth knowing about:
   looked up in a reference book, so the page says so at the bottom. Same
   principle as the label reader: useful, editable by disbelief, never
   load-bearing.
+- **The lookup runs on the client, not in the page render.** It first ran inside
+  a streamed Suspense boundary on the server, and when a search overran the
+  function budget the response was killed mid-document — the browser was left
+  with a skeleton that never resolved, then "this page couldn't load". A job
+  that can take half a minute has no business inside a page render: the page
+  now ships what's already stored, and the panel does anything slow, where
+  waiting and failing are both visible and neither can take the page with it.
+  Both calls carry their own timeout, well inside the function budget, so an
+  overrun returns a sentence instead of being cut off.
+- **Looked-up values share the wine's own table.** Producer, grapes, alcohol and
+  serving temperature belong next to vintage and price, not in a separate
+  panel — but they're set in the softer ink with a footnote, because merging
+  them shouldn't blur who said what. Grapes found by the search fill in when you
+  didn't type any, and link to the grape pages like your own do.
 - **A bottle is looked up in two calls, not one.** The first searches the web
   and writes prose with citations; the second reads only that prose and fills in
   a schema. Splitting them lets the second call be told, in isolation, that it

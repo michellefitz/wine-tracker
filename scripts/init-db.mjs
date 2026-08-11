@@ -95,6 +95,7 @@ const STATEMENTS = [
      found        boolean NOT NULL DEFAULT false,
      summary      text,
      style        text,
+     grapes       jsonb NOT NULL DEFAULT '[]'::jsonb,
      ratings      jsonb NOT NULL DEFAULT '[]'::jsonb,
      details      jsonb NOT NULL DEFAULT '[]'::jsonb,
      awards       jsonb NOT NULL DEFAULT '[]'::jsonb,
@@ -104,6 +105,9 @@ const STATEMENTS = [
      version      smallint NOT NULL DEFAULT 1,
      looked_up_at timestamptz NOT NULL DEFAULT now()
    )`,
+
+  // Added after wine_facts shipped, so existing tables need it too.
+  `ALTER TABLE wine_facts ADD COLUMN IF NOT EXISTS grapes jsonb NOT NULL DEFAULT '[]'::jsonb`,
 
   // Every spelling that leads to a profile: what you typed, the canonical name,
   // and its synonyms, all flattened to lowercase. A null slug records "we asked
