@@ -8,17 +8,20 @@ import { type GrapeScale, scaleLevelWord } from "@/lib/taxonomy";
  * drawn the same way. So the geometry never varies with the value — five
  * segments, always, filled from the left.
  *
- * Ink rather than the bordeaux accent on purpose: in this app the accent means
- * "you liked it", and a grape's acidity is a fact, not a verdict.
+ * The fill takes the grape's own colour — bordeaux for a red, gold for a white
+ * — which is decoration, not meaning: the number is the number either way.
  */
 export default function ScaleMeter({
   scale,
   value,
   showHint = true,
+  accent,
 }: {
   scale: GrapeScale;
   value: number | null;
   showHint?: boolean;
+  /** Colour for the filled steps; ink when the grape's colour isn't known. */
+  accent?: string;
 }) {
   const word = scaleLevelWord(scale, value);
   if (!word || value === null) return null;
@@ -38,7 +41,10 @@ export default function ScaleMeter({
         {[1, 2, 3, 4, 5].map((step) => (
           <span
             key={step}
-            className={`h-[3px] flex-1 ${step <= value ? "bg-ink" : "bg-rule"}`}
+            className={`h-1 flex-1 rounded-full ${
+              step <= value ? (accent ? "" : "bg-ink") : "bg-rule"
+            }`}
+            style={step <= value && accent ? { backgroundColor: accent } : undefined}
           />
         ))}
       </div>

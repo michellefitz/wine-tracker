@@ -7,6 +7,7 @@ import RatingMark from "@/components/RatingMark";
 import { grapeSlug } from "@/lib/grapes";
 import { countryFlag, placeLine } from "@/lib/places";
 import { tagLabel } from "@/lib/taxonomy";
+import { wineColour } from "@/lib/wine-colours";
 import { findFacts } from "@/lib/wine-facts";
 import { getWine } from "@/lib/wines";
 
@@ -52,20 +53,28 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
   const grapes = wine.grapes.length > 0 ? wine.grapes : (stored?.grapes ?? []);
   const grapesFound = wine.grapes.length === 0 && grapes.length > 0;
 
+  const accent = wineColour(wine.wine_type);
+
   const grapeLinks =
     grapes.length > 0 ? (
-      <span className="inline-flex flex-wrap justify-end gap-x-1.5 gap-y-1">
-        {grapes.map((grape, index) => (
-          <span key={grape}>
-            <Link
-              href={`/grape/${grapeSlug(grape)}`}
-              className="underline decoration-rule underline-offset-4 transition-colors
-                hover:decoration-ink"
-            >
-              {grape}
-            </Link>
-            {index < grapes.length - 1 && ","}
-          </span>
+      <span className="inline-flex flex-wrap justify-end gap-1.5">
+        {grapes.map((grape) => (
+          <Link
+            key={grape}
+            href={`/grape/${grapeSlug(grape)}`}
+            className="rounded-full border px-3 py-1 text-[0.8125rem] leading-snug
+              transition-colors hover:border-muted"
+            style={
+              accent
+                ? {
+                    borderColor: `color-mix(in oklab, ${accent} 30%, transparent)`,
+                    backgroundColor: `color-mix(in oklab, ${accent} 7%, var(--color-card))`,
+                  }
+                : undefined
+            }
+          >
+            {grape}
+          </Link>
         ))}
       </span>
     ) : (
@@ -73,9 +82,9 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
     );
 
   /**
-   * One table, whether a value came from you or from the search. Anything found
-   * rather than entered is set in the softer ink and footnoted — merging them
-   * shouldn't quietly blur who said what.
+   * One table, whether a value came from you or from the search. What was found
+   * rather than entered sits in the softer ink — quietly, without a footnote,
+   * but the distinction is still there to be noticed.
    */
   const own = new Set(["vintage", "type", "grapes", "bought at", "price", "drank"]);
   const looked = (stored?.details ?? []).filter(
@@ -84,15 +93,29 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
 
   const rows: { term: string; value: React.ReactNode; found?: boolean }[] = [
     { term: "Vintage", value: wine.vintage ? String(wine.vintage) : "" },
-    { term: "Type", value: wine.wine_type ?? "" },
+    {
+      term: "Type",
+      value: wine.wine_type ? (
+        <span className="inline-flex items-center gap-2">
+          {accent && (
+            <span
+              aria-hidden="true"
+              className="inline-block size-2.5 rounded-full"
+              style={{ backgroundColor: accent }}
+            />
+          )}
+          {wine.wine_type}
+        </span>
+      ) : (
+        ""
+      ),
+    },
     { term: "Grapes", value: grapeLinks, found: grapesFound },
     ...looked.map((detail) => ({ term: detail.label, value: detail.value, found: true })),
     { term: "Bought at", value: wine.source ?? "" },
     { term: "Price", value: wine.price_eur !== null ? `€${wine.price_eur.toFixed(2)}` : "" },
     { term: "Drank", value: formatDate(wine.drank_on) },
   ].filter((row) => row.value !== "");
-
-  const anyFound = rows.some((row) => row.found);
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-20 pt-[max(1.75rem,env(safe-area-inset-top))]">
@@ -145,7 +168,8 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
           {wine.tags.map((tag) => (
             <span
               key={tag}
-              className="border border-rule px-3 py-1 text-[0.8125rem] text-ink-soft"
+              className="rounded-full border border-rule bg-card px-3.5 py-1.5
+                text-[0.8125rem] text-ink-soft"
             >
               {tagLabel(tag)}
             </span>
@@ -173,11 +197,6 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
           </div>
         ))}
       </dl>
-
-      <div className="mx-auto mt-3 max-w-md space-y-1 text-[0.8125rem] text-muted">
-        {grapes.length > 0 && <p>Tap a grape to read what it&apos;s like and where it grows.</p>}
-        {anyFound && <p>Greyed values were found on the web, not entered by you.</p>}
-      </div>
 
       <WineFactsPanel wineId={wine.id} initial={stored} />
 

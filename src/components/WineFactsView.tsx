@@ -1,14 +1,11 @@
+import ScoreBar from "@/components/ScoreBar";
+import { paragraphs } from "@/lib/prose";
 import type { StoredFacts } from "@/lib/wine-facts";
+import { awardGlyph, foodGlyph } from "@/lib/wine-colours";
 
-/**
- * Model prose arrives with its paragraph breaks intact; one wall of text is
- * unreadable on a phone, so they're honoured rather than collapsed.
- */
+/** Prose in readable paragraphs, made here rather than hoped for. */
 function Paragraphs({ text, className }: { text: string; className: string }) {
-  const parts = text
-    .split(/\n+/)
-    .map((part) => part.trim())
-    .filter(Boolean);
+  const parts = paragraphs(text);
 
   return (
     <>
@@ -34,16 +31,6 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
       {children}
     </section>
   );
-}
-
-function looked(iso: string): string {
-  const when = new Date(iso);
-  if (Number.isNaN(when.getTime())) return "";
-  const days = Math.floor((Date.now() - when.getTime()) / 86_400_000);
-  if (days <= 0) return "Looked up today";
-  if (days === 1) return "Looked up yesterday";
-  if (days < 30) return `Looked up ${days} days ago`;
-  return `Looked up ${when.toLocaleDateString("en-IE", { month: "long", year: "numeric" })}`;
 }
 
 /**
@@ -96,22 +83,22 @@ export default function WineFactsView({
             <Block title="Reviews">
               <ul className="divide-y divide-rule">
                 {facts.ratings.map((rating) => (
-                  <li
-                    key={`${rating.source}-${rating.score}`}
-                    className="flex items-baseline justify-between gap-4 py-3 first:pt-0 last:pb-0"
-                  >
-                    <span className="text-[0.9375rem] text-ink-soft">{rating.source}</span>
-                    <span className="shrink-0 text-right">
-                      <span className="text-[0.9375rem] tabular-nums text-ink">
-                        {rating.score}
-                        {rating.scale && <span className="text-muted"> {rating.scale}</span>}
-                      </span>
-                      {rating.count && (
-                        <span className="mt-0.5 block text-[0.75rem] text-muted">
-                          {rating.count}
+                  <li key={`${rating.source}-${rating.score}`} className="py-3.5 first:pt-0 last:pb-0">
+                    <div className="flex items-baseline justify-between gap-4">
+                      <span className="text-[0.9375rem] text-ink-soft">{rating.source}</span>
+                      <span className="shrink-0 text-right">
+                        <span className="text-[1.0625rem] tabular-nums text-ink">
+                          {rating.score}
                         </span>
-                      )}
-                    </span>
+                        {rating.scale && (
+                          <span className="text-[0.8125rem] text-muted"> {rating.scale}</span>
+                        )}
+                      </span>
+                    </div>
+                    <ScoreBar rating={rating} />
+                    {rating.count && (
+                      <span className="mt-1.5 block text-[0.75rem] text-muted">{rating.count}</span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -120,9 +107,14 @@ export default function WineFactsView({
 
           {facts.awards.length > 0 && (
             <Block title="Awards">
-              <ul className="list-disc space-y-1.5 pl-4 text-[0.9375rem] leading-relaxed text-ink-soft marker:text-muted">
+              <ul className="space-y-2 text-[0.9375rem] leading-relaxed text-ink-soft">
                 {facts.awards.map((award) => (
-                  <li key={award}>{award}</li>
+                  <li key={award} className="flex gap-2.5">
+                    <span aria-hidden="true" className="shrink-0 leading-[1.4]">
+                      {awardGlyph(award)}
+                    </span>
+                    <span>{award}</span>
+                  </li>
                 ))}
               </ul>
             </Block>
@@ -130,9 +122,21 @@ export default function WineFactsView({
 
           {facts.food.length > 0 && (
             <Block title="Goes with">
-              <p className="text-[0.9375rem] leading-relaxed text-ink-soft">
-                {facts.food.join(" · ")}
-              </p>
+              <ul className="flex flex-wrap gap-1.5">
+                {facts.food.map((food) => {
+                  const glyph = foodGlyph(food);
+                  return (
+                    <li
+                      key={food}
+                      className="flex items-center gap-1.5 rounded-full border border-rule
+                        bg-card px-3.5 py-1.5 text-[0.8125rem] text-ink-soft"
+                    >
+                      {glyph && <span aria-hidden="true">{glyph}</span>}
+                      {food}
+                    </li>
+                  );
+                })}
+              </ul>
             </Block>
           )}
 
@@ -159,11 +163,6 @@ export default function WineFactsView({
       )}
 
       {warning && <p className="mt-6 text-[0.75rem] leading-relaxed text-wine">{warning}</p>}
-
-      <p className="mt-7 text-[0.75rem] leading-relaxed text-muted">
-        {looked(facts.looked_up_at)} by searching the web. Other people&apos;s scores are
-        context for your own verdict, not a correction of it.
-      </p>
     </div>
   );
 }

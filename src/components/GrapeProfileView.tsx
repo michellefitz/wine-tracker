@@ -14,6 +14,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+/** A red grape's scales run bordeaux, a white's run gold. */
+function grapeAccent(colour: GrapeProfile["colour"]): string | undefined {
+  if (colour === "red") return "var(--color-wine)";
+  if (colour === "white") return "var(--color-gold)";
+  return undefined;
+}
+
 const COLOUR_LABEL: Record<string, string> = {
   red: "Red grape",
   white: "White grape",
@@ -64,7 +71,12 @@ export default function GrapeProfileView({
           <Section title="What it's like">
             <div className="border-t border-rule">
               {scales.map((scale) => (
-                <ScaleMeter key={scale.id} scale={scale} value={profile[scale.id]} />
+                <ScaleMeter
+                  key={scale.id}
+                  scale={scale}
+                  value={profile[scale.id]}
+                  accent={grapeAccent(profile.colour)}
+                />
               ))}
             </div>
           </Section>
@@ -76,7 +88,8 @@ export default function GrapeProfileView({
               {profile.flavours.map((flavour) => (
                 <li
                   key={flavour}
-                  className="border border-rule px-3 py-1 text-[0.8125rem] text-ink-soft"
+                  className="rounded-full border border-rule bg-card px-3.5 py-1.5
+                    text-[0.8125rem] text-ink-soft"
                 >
                   {flavour}
                 </li>

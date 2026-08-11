@@ -13,6 +13,8 @@
   --color-muted: oklch(52% 0.011 38);
   --color-rule: oklch(87.5% 0.007 45);
   --color-wine: oklch(43% 0.135 18);
+  /* Warm gold, for scores and medals — the one accent that isn't a verdict. */
+  --color-gold: oklch(72% 0.115 82);
 
   --font-grotesk: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-spectral), Georgia, "Times New Roman", serif;
@@ -110,9 +112,9 @@ textarea {
       decoration-rule underline-offset-4 transition-colors hover:text-ink;
   }
 
-  /* Tag chips: hairline rectangles, ink fill when chosen. */
+  /* Tag chips: hairline pills, ink fill when chosen. */
   .chip {
-    @apply border border-rule px-3 py-1.5 text-[0.8125rem] text-ink-soft
+    @apply rounded-full border border-rule px-3.5 py-1.5 text-[0.8125rem] text-ink-soft
       transition active:scale-95 hover:border-muted;
   }
 
