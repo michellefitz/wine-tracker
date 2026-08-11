@@ -74,6 +74,10 @@ in details. Leave out bottle size, vegan or vegetarian suitability, and allergen
 
 "summary" keeps the paragraph breaks from the write-up — copy them through as blank lines.
 
+"style" is one short line on how it tastes — body, sweetness, acidity, the dominant flavours —
+not a second paragraph of prose. It appears on the page under its own heading, so it should read
+as a description on its own: "Full-bodied and dry, with dark fruit, warm spice and vanilla."
+
 If the write-up says little or nothing was found, set found to false and use "note" to say what
 was searched for and why it came up short. That's a normal outcome, not a failure.`;
 
