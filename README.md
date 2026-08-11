@@ -30,6 +30,12 @@ that clusters everything between three and four stars.
   the words that are legally meaningless. It leads with the rule that unlocks
   most of a wine list: European labels name the place, everywhere else names
   the grape.
+- **Read up on the bottle itself.** Each wine searches the web for that exact
+  producer, name and vintage, and shows what it finds: a couple of sentences on
+  the wine, any scores with their source and scale, awards, hard facts like
+  alcohol and ageing, and links to where each came from. A **Refresh** on every
+  wine re-runs the search, so older entries pick up an improved lookup. Nothing
+  is written from memory — if the search didn't find it, it isn't shown.
 - **Installs to your phone's home screen** and runs full-screen like an app.
 
 Deliberately not here yet: preference profiles and recommendations. Those want a
@@ -89,6 +95,7 @@ Android. HTTPS is required for the camera, which Vercel gives you by default.
 | Database         | Neon Postgres over HTTP      | No connection pool to manage from serverless functions          |
 | Label reading    | Claude vision, server-side   | Handles supermarket own-label bottles that catalogues don't have |
 | Grape notes      | Claude, cached in Postgres   | No wine-encyclopedia API to sign up for, and a grape doesn't change |
+| Bottle lookup    | Claude web search, cached    | Supermarket bottles aren't in any wine database, but they are on the web |
 | Photos           | Base64 in Postgres           | One less service to wire up; photos are ~150 KB after downscaling |
 | Auth             | One passcode, signed cookie  | It's a single-user app on a public URL                         |
 | Styling          | Tailwind v4                  | —                                                               |
@@ -136,6 +143,19 @@ A few decisions worth knowing about:
   looked up in a reference book, so the page says so at the bottom. Same
   principle as the label reader: useful, editable by disbelief, never
   load-bearing.
+- **A bottle is looked up in two calls, not one.** The first searches the web
+  and writes prose with citations; the second reads only that prose and fills in
+  a schema. Splitting them lets the second call be told, in isolation, that it
+  may use nothing but what the research actually says — so a score on the page
+  was read somewhere rather than recalled. Source links come from the search
+  results themselves, never from text the model typed, so a link can't 404.
+- **"Nothing found" is a result worth storing.** Plenty of own-label bottles
+  have no coverage anywhere; recording that keeps the app from searching for
+  them again on every visit, and the page says so rather than padding.
+- **Other people's scores sit below your own.** This app exists because a
+  consensus rating clusters every wine between three and four stars. Ratings
+  from elsewhere are context for your verdict, placed under it and typeset
+  quieter, never a correction of it.
 - **The label glossary is hand-written and static.** Everything else the app
   knows, it asks a model for. Not this: it's settled, slow-moving knowledge
   where being wrong is worse than being absent, and the moment you want it —
@@ -169,6 +189,8 @@ src/
     taxonomy.ts           ratings, tags, wine types, shops, grape scales
     wines.ts              queries and input validation
     grapes.ts             name matching, the profile cache, log tallies
+    wine-facts.ts         the per-bottle lookup cache
+    wine-research.ts      Claude searches the web for one bottle
     grape-profile.ts      Claude writes one grape's entry
     label-terms.ts        the label glossary, written by hand
     text.ts               flattening names for matching

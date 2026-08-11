@@ -1,14 +1,23 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import BottlePlaceholder from "@/components/BottlePlaceholder";
 import DeleteWineButton from "@/components/DeleteWineButton";
+import WineFactsView from "@/components/WineFactsView";
 import RatingMark from "@/components/RatingMark";
 import { grapeSlug } from "@/lib/grapes";
 import { countryFlag, placeLine } from "@/lib/places";
 import { tagLabel } from "@/lib/taxonomy";
+import { getWineFacts } from "@/lib/wine-facts";
 import { getWine } from "@/lib/wines";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * The first view of a bottle searches the web for it, which runs past Vercel's
+ * default function budget. Every view after that is a single row.
+ */
+export const maxDuration = 60;
 
 function formatDate(iso: string): string {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IE", {
@@ -17,6 +26,41 @@ function formatDate(iso: string): string {
     year: "numeric",
     timeZone: "UTC",
   });
+}
+
+/** Mirrors the real section so the page doesn't jump when the lookup lands. */
+function FactsOutline() {
+  return (
+    <section className="mx-auto mt-12 max-w-md animate-pulse border-t border-rule pt-7">
+      <p className="eyebrow mb-5">About this bottle</p>
+      <div className="space-y-2.5">
+        <span className="block h-3.5 w-full bg-tint" />
+        <span className="block h-3.5 w-full bg-tint" />
+        <span className="block h-3.5 w-2/5 bg-tint" />
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Kept out of the page body so the bottle, your rating and your note render
+ * immediately — the lookup streams in underneath when it's ready.
+ */
+async function WineFacts({ wineId }: { wineId: string }) {
+  const wine = await getWine(wineId);
+  if (!wine) return null;
+
+  const lookup = await getWineFacts(wine);
+  if (lookup.status === "unavailable") {
+    return (
+      <section className="mx-auto mt-12 max-w-md border-t border-rule pt-7">
+        <p className="eyebrow mb-4">About this bottle</p>
+        <p className="text-[0.9375rem] leading-relaxed text-muted">{lookup.message}</p>
+      </section>
+    );
+  }
+
+  return <WineFactsView wineId={wineId} facts={lookup.facts} warning={lookup.warning} />;
 }
 
 export default async function WinePage({ params }: { params: Promise<{ id: string }> }) {
@@ -138,6 +182,10 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
           Tap a grape to read what it&apos;s like and where it grows.
         </p>
       )}
+
+      <Suspense fallback={<FactsOutline />}>
+        <WineFacts wineId={wine.id} />
+      </Suspense>
 
       <div className="mt-14 text-center">
         <DeleteWineButton id={wine.id} name={wine.name} />

@@ -72,6 +72,35 @@ export type GrapeLookup =
   | { status: "unknown"; note: string | null }
   | { status: "unavailable"; message: string };
 
+/** A score somebody else gave this wine, kept as text so "91 points" survives. */
+export type WineRating = {
+  source: string;
+  score: string;
+  scale: string | null;
+  count: string | null;
+};
+
+/**
+ * What the web knows about one specific bottle — as opposed to what you thought
+ * of it, which is the wine row itself.
+ *
+ * `found: false` is an ordinary outcome, not an error: plenty of supermarket
+ * own-label bottles have no coverage anywhere, and that's worth recording so it
+ * isn't looked up again on every visit.
+ */
+export type WineFacts = {
+  wine_id: string;
+  found: boolean;
+  summary: string | null;
+  style: string | null;
+  ratings: WineRating[];
+  details: { label: string; value: string }[];
+  awards: string[];
+  food: string[];
+  sources: { title: string; url: string }[];
+  note: string | null;
+};
+
 /** Body accepted by POST/PATCH on the wines endpoints. */
 export type WineInput = {
   producer?: string | null;

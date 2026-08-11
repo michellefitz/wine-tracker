@@ -87,6 +87,24 @@ const STATEMENTS = [
      created_at     timestamptz NOT NULL DEFAULT now()
    )`,
 
+  // What the web knows about one specific bottle, as opposed to what you made
+  // of it. Looked up once and kept; `found = false` is recorded too, so a
+  // bottle nobody has written about isn't searched for again on every visit.
+  `CREATE TABLE IF NOT EXISTS wine_facts (
+     wine_id      uuid PRIMARY KEY REFERENCES wines(id) ON DELETE CASCADE,
+     found        boolean NOT NULL DEFAULT false,
+     summary      text,
+     style        text,
+     ratings      jsonb NOT NULL DEFAULT '[]'::jsonb,
+     details      jsonb NOT NULL DEFAULT '[]'::jsonb,
+     awards       jsonb NOT NULL DEFAULT '[]'::jsonb,
+     food         jsonb NOT NULL DEFAULT '[]'::jsonb,
+     sources      jsonb NOT NULL DEFAULT '[]'::jsonb,
+     note         text,
+     version      smallint NOT NULL DEFAULT 1,
+     looked_up_at timestamptz NOT NULL DEFAULT now()
+   )`,
+
   // Every spelling that leads to a profile: what you typed, the canonical name,
   // and its synonyms, all flattened to lowercase. A null slug records "we asked
   // once and it isn't a grape", so a stray word in the grapes field is only
