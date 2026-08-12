@@ -64,8 +64,8 @@ export default function WineFactsPanel({
   }, [initial]);
 
   return (
-    <section className="mx-auto mt-12 max-w-md border-t border-rule pt-7">
-      <div className="mb-5 flex items-baseline justify-between gap-4">
+    <section className="mx-auto mt-9 max-w-md border-t border-rule pt-6">
+      <div className="mb-4 flex items-baseline justify-between gap-4">
         <h2 className="eyebrow">About this bottle</h2>
         <button
           type="button"

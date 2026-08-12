@@ -27,7 +27,7 @@ function Paragraphs({ text, className }: { text: string; className: string }) {
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="eyebrow mb-2.5">{title}</h3>
+      <h3 className="eyebrow mb-2">{title}</h3>
       {children}
     </section>
   );
@@ -58,9 +58,9 @@ export default function WineFactsView({
             "Nothing turned up for this one. Supermarket own-label bottles usually have no coverage anywhere — it says nothing about the wine."}
         </p>
       ) : (
-        <div className="space-y-7">
+        <div className="space-y-5">
           {facts.summary && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <Paragraphs
                 text={facts.summary}
                 className="essay text-[1.0625rem] leading-[1.55] text-ink"
@@ -83,7 +83,7 @@ export default function WineFactsView({
             <Block title="Reviews">
               <ul className="divide-y divide-rule">
                 {facts.ratings.map((rating) => (
-                  <li key={`${rating.source}-${rating.score}`} className="py-3.5 first:pt-0 last:pb-0">
+                  <li key={`${rating.source}-${rating.score}`} className="py-2.5 first:pt-0 last:pb-0">
                     <div className="flex items-baseline justify-between gap-4">
                       <span className="text-[0.9375rem] text-ink-soft">{rating.source}</span>
                       <span className="shrink-0 text-right">
@@ -107,7 +107,7 @@ export default function WineFactsView({
 
           {facts.awards.length > 0 && (
             <Block title="Awards">
-              <ul className="space-y-2 text-[0.9375rem] leading-relaxed text-ink-soft">
+              <ul className="space-y-1.5 text-[0.9375rem] leading-relaxed text-ink-soft">
                 {facts.awards.map((award) => (
                   <li key={award} className="flex gap-2.5">
                     <span aria-hidden="true" className="shrink-0 leading-[1.4]">
@@ -142,7 +142,7 @@ export default function WineFactsView({
 
           {facts.sources.length > 0 && (
             <Block title="Where this came from">
-              <ul className="space-y-1.5">
+              <ul className="space-y-1">
                 {facts.sources.map((source) => (
                   <li key={source.url}>
                     <a
