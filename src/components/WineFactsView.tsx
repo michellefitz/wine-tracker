@@ -1,5 +1,6 @@
 import ScoreBar from "@/components/ScoreBar";
 import { paragraphs } from "@/lib/prose";
+import { siteName, sourceFor } from "@/lib/sources";
 import type { StoredFacts } from "@/lib/wine-facts";
 import { awardGlyph, foodGlyph } from "@/lib/wine-colours";
 
@@ -82,25 +83,55 @@ export default function WineFactsView({
           {facts.ratings.length > 0 && (
             <Block title="Reviews">
               <ul className="divide-y divide-rule">
-                {facts.ratings.map((rating) => (
-                  <li key={`${rating.source}-${rating.score}`} className="py-2.5 first:pt-0 last:pb-0">
-                    <div className="flex items-baseline justify-between gap-4">
-                      <span className="text-[0.9375rem] text-ink-soft">{rating.source}</span>
-                      <span className="shrink-0 text-right">
-                        <span className="text-[1.0625rem] tabular-nums text-ink">
-                          {rating.score}
+                {facts.ratings.map((rating) => {
+                  const href = sourceFor(rating.source, facts.sources);
+
+                  const body = (
+                    <>
+                      <div className="flex items-baseline justify-between gap-4">
+                        <span className="flex items-baseline gap-1.5 text-[0.9375rem] text-ink-soft">
+                          {rating.source}
+                          {href && (
+                            <span aria-hidden="true" className="text-[0.6875rem] text-muted">
+                              ↗
+                            </span>
+                          )}
                         </span>
-                        {rating.scale && (
-                          <span className="text-[0.8125rem] text-muted"> {rating.scale}</span>
-                        )}
-                      </span>
-                    </div>
-                    <ScoreBar rating={rating} />
-                    {rating.count && (
-                      <span className="mt-1.5 block text-[0.75rem] text-muted">{rating.count}</span>
-                    )}
-                  </li>
-                ))}
+                        <span className="shrink-0 text-right">
+                          <span className="text-[1.0625rem] tabular-nums text-ink">
+                            {rating.score}
+                          </span>
+                          {rating.scale && (
+                            <span className="text-[0.8125rem] text-muted"> {rating.scale}</span>
+                          )}
+                        </span>
+                      </div>
+                      <ScoreBar rating={rating} />
+                      {rating.count && (
+                        <span className="mt-1.5 block text-[0.75rem] text-muted">
+                          {rating.count}
+                        </span>
+                      )}
+                    </>
+                  );
+
+                  return (
+                    <li key={`${rating.source}-${rating.score}`}>
+                      {href ? (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="block py-2.5 transition-opacity active:opacity-60"
+                        >
+                          {body}
+                        </a>
+                      ) : (
+                        <div className="py-2.5">{body}</div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </Block>
           )}
@@ -149,10 +180,12 @@ export default function WineFactsView({
                       href={source.url}
                       target="_blank"
                       rel="noreferrer noopener"
-                      className="line-clamp-1 text-[0.8125rem] text-muted underline decoration-rule
-                        underline-offset-4 transition-colors hover:text-ink"
+                      className="line-clamp-1 text-[0.8125rem] transition-colors hover:text-ink"
                     >
-                      {source.title}
+                      <span className="text-ink-soft underline decoration-rule underline-offset-4">
+                        {siteName(source.url)}
+                      </span>
+                      <span className="text-muted"> · {source.title}</span>
                     </a>
                   </li>
                 ))}
