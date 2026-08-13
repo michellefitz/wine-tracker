@@ -63,24 +63,30 @@ export default function WineFactsView({
         </p>
       ) : (
         <div className="space-y-5">
-          {facts.summary && (
-            <div className="space-y-3">
-              <Paragraphs
-                text={facts.summary}
-                className="essay text-[1.0625rem] leading-[1.55] text-ink"
-              />
-            </div>
-          )}
-
+          {/*
+            What it tastes like goes first, and takes the lead type with it.
+            It's two lines where the summary is six, and it's the sentence you
+            actually want when you're standing in front of the bottle — the
+            history of the estate can wait until after it.
+          */}
           {facts.style && (
             <Block title="In the glass">
               <div className="space-y-2">
                 <Paragraphs
                   text={facts.style}
-                  className="text-[0.9375rem] leading-relaxed text-ink-soft"
+                  className="essay text-[1.0625rem] leading-[1.55] text-ink"
                 />
               </div>
             </Block>
+          )}
+
+          {facts.summary && (
+            <div className="space-y-3">
+              <Paragraphs
+                text={facts.summary}
+                className="text-[0.9375rem] leading-relaxed text-ink-soft"
+              />
+            </div>
           )}
 
           {facts.ratings.length > 0 && (
@@ -190,7 +196,7 @@ export default function WineFactsView({
           )}
 
           {facts.sources.length > 0 && (
-            <Block title="Where this came from">
+            <Block title="Reference links">
               <ul className="space-y-1">
                 {facts.sources.map((source) => (
                   <li key={source.url}>

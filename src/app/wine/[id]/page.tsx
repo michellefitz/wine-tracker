@@ -118,8 +118,17 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
   ].filter((row) => row.value !== "");
 
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-16 pt-[max(1.5rem,env(safe-area-inset-top))]">
-      <nav className="mb-6 flex items-center justify-between">
+    <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-16">
+      {/*
+        Stays put while you read. This page is the long one — a photo, a note, a
+        table and a write-up — and swiping back is a gesture you have to know
+        about. The top padding lives here rather than on <main> so the safe area
+        is still respected once it's stuck to the top of the screen, and it
+        bleeds past the page gutters so nothing scrolls up its sides.
+      */}
+      <nav className="sticky top-0 z-20 -mx-5 mb-6 flex items-center justify-between gap-4
+        bg-paper/92 px-5 pb-3 backdrop-blur-sm
+        pt-[max(1.5rem,env(safe-area-inset-top))]">
         <Link href="/" className="link-quiet">
           ← All wines
         </Link>
@@ -183,9 +192,15 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
         </blockquote>
       )}
 
-      <dl className="mx-auto mt-8 max-w-md border-t border-rule">
+      {/*
+        The table closes itself with a rule, and the panel below opens with one.
+        Two hairlines with a gap between them read as a seam rather than a
+        divider, so the rows are divided from the inside and the panel's own
+        rule is the only line between the two.
+      */}
+      <dl className="mx-auto mt-8 max-w-md divide-y divide-rule border-t border-rule">
         {rows.map((row) => (
-          <div key={row.term} className="flex justify-between gap-6 border-b border-rule py-2.5">
+          <div key={row.term} className="flex justify-between gap-6 py-2.5">
             <dt className="eyebrow pt-0.5">{row.term}</dt>
             <dd
               className={`text-right text-[0.9375rem] tabular-nums ${

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import StyleMark from "@/components/StyleMark";
 import { groupByStyle, mergeKnownSynonyms, otherSpellings, tallyGrapes } from "@/lib/grapes";
 import { withFoundGrapes } from "@/lib/wine-facts";
 import { listWines } from "@/lib/wines";
@@ -72,7 +73,10 @@ export default async function GrapesPage() {
       ) : (
         groupByStyle(grapes).map(({ style, grapes: inStyle }) => (
           <section key={style ?? "untyped"} className="mt-9">
-            <h2 className="eyebrow">{style ?? "Not typed yet"}</h2>
+            <h2 className="eyebrow flex items-center gap-2">
+              {style && <StyleMark style={style} />}
+              {style ?? "Not typed yet"}
+            </h2>
             <ul className="mt-3 border-t border-rule">
               {inStyle.map((grape) => (
                 <li key={grape.key}>

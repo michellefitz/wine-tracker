@@ -88,10 +88,16 @@ export default function HomePage() {
         <Collection loaded={loaded} />
       </Suspense>
 
-      {/* A soft paper fade so the button never sits awkwardly on a photo. */}
+      {/*
+        A soft paper fade so the button never sits awkwardly on a photo.
+        The midpoint sits low and stops well short of opaque: a band of solid
+        paper across the bottom of the grid reads as a panel the page is sitting
+        under, rather than as the page quietly running out. The button is solid
+        on its own account, so the fade owes it nothing.
+      */}
       <div className="pointer-events-none fixed inset-x-0 bottom-0 flex justify-center
-        bg-gradient-to-t from-paper via-paper/90 to-transparent pt-12
-        pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        bg-gradient-to-t from-paper/80 from-0% via-paper/40 via-30% to-transparent to-100%
+        pt-9 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         {/* The one rounded control in the app: it floats over the grid rather
             than sitting in it, and a square block here reads as another tile. */}
         <Link href="/add" className="btn-ink pointer-events-auto rounded-full px-8">
