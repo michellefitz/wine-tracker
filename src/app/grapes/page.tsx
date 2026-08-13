@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { groupByStyle, mergeKnownSynonyms, otherSpellings, tallyGrapes } from "@/lib/grapes";
+import { withFoundGrapes } from "@/lib/wine-facts";
 import { listWines } from "@/lib/wines";
 import type { Wine } from "@/lib/types";
 
@@ -24,7 +25,9 @@ export default async function GrapesPage() {
   let loadError: string | null = null;
 
   try {
-    wines = await listWines();
+    // Through withFoundGrapes, so a bottle whose grapes came from the web is
+    // counted the same as one you typed them into.
+    wines = await withFoundGrapes(await listWines());
   } catch (error) {
     console.error("grapes: could not load wines:", error);
     loadError = "Couldn't reach the database.";

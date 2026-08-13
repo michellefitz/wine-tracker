@@ -34,6 +34,18 @@ export default function WineFactsPanel({
   const [warning, setWarning] = useState<string | null>(null);
   const started = useRef(false);
 
+  /** What's already written down — one row, no searching. */
+  async function stored(): Promise<StoredFacts | null> {
+    try {
+      const response = await fetch(`/api/wines/${wineId}/facts`);
+      if (!response.ok) return null;
+      const body = (await response.json()) as { facts?: StoredFacts | null };
+      return body.facts ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   async function look() {
     setBusy(true);
     setError(null);
@@ -72,13 +84,58 @@ export default function WineFactsPanel({
     }
   }
 
-  // Look it up the first time you open a bottle, then never again unless asked.
+  /*
+   * Look it up the first time you open a bottle, then never again unless asked.
+   *
+   * Asking what's on file first isn't wasted: a search started on a previous
+   * visit runs to completion on the server whether or not you stayed to watch,
+   * so by the time you come back the answer is often already written down.
+   * Without this check, coming back started the same search over again.
+   */
   useEffect(() => {
     if (initial || started.current) return;
     started.current = true;
-    void look();
+
+    void (async () => {
+      const already = await stored();
+      if (already) {
+        setFacts(already);
+        router.refresh();
+        return;
+      }
+      await look();
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial]);
+
+  /*
+   * And collect one that landed while this screen was in the background. Coming
+   * back to a bottle you left mid-search is the case this exists for: the work
+   * finished without you, and the page has no other way to hear about it.
+   */
+  useEffect(() => {
+    if (busy) return;
+    if (facts && !error) return;
+
+    function collect() {
+      if (document.visibilityState !== "visible") return;
+      void (async () => {
+        const already = await stored();
+        if (!already) return;
+        setFacts(already);
+        setError(null);
+        router.refresh();
+      })();
+    }
+
+    document.addEventListener("visibilitychange", collect);
+    window.addEventListener("focus", collect);
+    return () => {
+      document.removeEventListener("visibilitychange", collect);
+      window.removeEventListener("focus", collect);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy, facts, error]);
 
   return (
     <section className="mx-auto mt-9 max-w-md border-t border-rule pt-6">

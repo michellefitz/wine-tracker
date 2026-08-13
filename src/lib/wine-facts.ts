@@ -44,6 +44,49 @@ export async function findFacts(wineId: string): Promise<StoredFacts | null> {
   return rows[0] ? toFacts(rows[0]) : null;
 }
 
+/**
+ * Grapes the lookup found, by wine.
+ *
+ * A bottle's grapes live in two places: the ones you typed, on the wine itself,
+ * and the ones a search turned up, over here. The wine's own page has always
+ * shown both, which made it look like every page did — but the grape index and
+ * the grape pages counted only what was typed, so a bottle you never filled the
+ * grapes in for was invisible to them. A Pet-Nat whose three grapes all came
+ * from the web took the whole Sparkling heading down with it.
+ */
+export async function foundGrapes(): Promise<Map<string, string[]>> {
+  const db = sql();
+  const rows = (await db.query(
+    `SELECT wine_id, grapes FROM wine_facts WHERE jsonb_array_length(grapes) > 0`,
+  )) as Record<string, unknown>[];
+
+  return new Map(rows.map((row) => [String(row.wine_id), (row.grapes as string[]) ?? []]));
+}
+
+/**
+ * The same wines, with looked-up grapes filled in where you didn't type any.
+ *
+ * What you wrote always wins. Anything that counts grapes across the whole log
+ * should read them through here, so the answer doesn't depend on which page is
+ * asking. Costs nothing when every bottle already has its grapes, and degrades
+ * to what was typed if the facts table can't be read.
+ */
+export async function withFoundGrapes(wines: Wine[]): Promise<Wine[]> {
+  if (wines.every((wine) => wine.grapes.length > 0)) return wines;
+
+  let found: Map<string, string[]>;
+  try {
+    found = await foundGrapes();
+  } catch (error) {
+    console.error("wine-facts: could not read looked-up grapes:", error);
+    return wines;
+  }
+
+  return wines.map((wine) =>
+    wine.grapes.length > 0 ? wine : { ...wine, grapes: found.get(wine.id) ?? [] },
+  );
+}
+
 async function saveFacts(facts: WineFacts): Promise<void> {
   const db = sql();
   await db.query(

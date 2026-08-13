@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import GrapeProfileView from "@/components/GrapeProfileView";
 import { getGrapeProfile, prettifyKey, profileKeys, slugToKey, winesWithGrape } from "@/lib/grapes";
+import { withFoundGrapes } from "@/lib/wine-facts";
 import { listWines } from "@/lib/wines";
 import type { Wine } from "@/lib/types";
 
@@ -76,7 +77,9 @@ function Message({ title, body }: { title: string; body: string }) {
 /** Kept off the critical path: a wine list you can't load shouldn't lose you the notes. */
 async function loadWines(): Promise<Wine[]> {
   try {
-    return await listWines();
+    // Same merge as the grape index: "your bottles of this grape" has to mean
+    // the same thing on both pages.
+    return await withFoundGrapes(await listWines());
   } catch (error) {
     console.error("grape: could not load your wines:", error);
     return [];
