@@ -62,38 +62,84 @@ export function siteName(url: string): string {
 
 /** Domains for reviewers whose site name isn't their own name. */
 const REVIEWER_DOMAINS: Record<string, RegExp> = {
-  "wine enthusiast": /winemag\.com/,
-  "wine advocate": /robertparker\.com/,
-  "robert parker": /robertparker\.com/,
+  wineenthusiast: /winemag\.com/,
+  wineadvocate: /robertparker\.com/,
+  robertparker: /robertparker\.com/,
+  winespectator: /winespectator\.com/,
 };
+
+/**
+ * Words that name no site on their own. "Wine" would match winemag.com,
+ * wine.com and wine-searcher.com equally, which is three wrong answers.
+ */
+const TOO_GENERIC = new Set([
+  "wine", "wines", "the", "and", "com", "review", "reviews", "rating", "ratings",
+  "vintage", "page", "community", "overall", "score", "scores", "points", "critic",
+  "guide", "tasting", "tastings", "notes", "official", "producer", "winery",
+]);
+
+/**
+ * The site names hiding inside a reviewer label.
+ *
+ * Reviewers don't arrive as bare brands. They arrive as "Vivino (2018 vintage
+ * page)" and "Tastings.com / BevTest (2016 vintage)" — the brand, then a
+ * qualifier saying which page it was. So the qualifier in brackets comes off
+ * first, then the rest splits on the separators that join two names, and the
+ * longest candidate is tried first because it's the most specific.
+ */
+function candidates(reviewer: string): string[] {
+  const unqualified = reviewer.replace(/\([^)]*\)/g, " ");
+
+  return unqualified
+    .split(/[/,;|]|—|–|\s-\s/)
+    .map((part) => flatten(part).replace(/ /g, ""))
+    .filter((part) => part.length >= 4 && !TOO_GENERIC.has(part))
+    .sort((a, b) => b.length - a.length);
+}
+
+/** The year a reviewer label is talking about, when it names one. */
+function vintageIn(text: string): string | null {
+  return text.match(/\b(19|20)\d{2}\b/)?.[0] ?? null;
+}
 
 /**
  * The page a given review came from, if the search actually returned it.
  *
  * Matching is by site, not by guesswork: a Vivino score links to the Vivino
  * page that was read, or to nothing at all. An invented link would be worse
- * than a score you have to look up yourself.
+ * than a score you have to look up yourself. Where a reviewer names a vintage
+ * and one of that site's pages carries the same year, that page wins — three
+ * Vivino rows for three vintages shouldn't all open the same one.
  */
 export function sourceFor(
   reviewer: string,
   sources: { title: string; url: string }[],
 ): string | null {
-  const name = flatten(reviewer);
-  if (!name) return null;
+  const wanted = candidates(reviewer);
+  if (wanted.length === 0) return null;
 
-  const domain = REVIEWER_DOMAINS[name];
-  const squashed = name.replace(/ /g, "");
-
-  const hit = sources.find((source) => {
-    let host: string;
+  const hosts = sources.map((source) => {
     try {
-      host = new URL(source.url).hostname.toLowerCase();
+      return { source, host: new URL(source.url).hostname.toLowerCase().replace(/[^a-z0-9]/g, "") };
     } catch {
-      return false;
+      return { source, host: "" };
     }
-    if (domain?.test(host)) return true;
-    return host.replace(/[^a-z0-9]/g, "").includes(squashed);
   });
 
-  return hit?.url ?? null;
+  for (const candidate of wanted) {
+    const domain = REVIEWER_DOMAINS[candidate];
+    const onSite = hosts.filter(({ source, host }) =>
+      domain ? domain.test(source.url) : host.includes(candidate),
+    );
+    if (onSite.length === 0) continue;
+
+    const year = vintageIn(reviewer);
+    const sameYear = year
+      ? onSite.find(({ source }) => `${source.url} ${source.title}`.includes(year))
+      : undefined;
+
+    return (sameYear ?? onSite[0]).source.url;
+  }
+
+  return null;
 }
