@@ -4,7 +4,8 @@ import BottlePlaceholder from "@/components/BottlePlaceholder";
 import DeleteWineButton from "@/components/DeleteWineButton";
 import WineFactsPanel from "@/components/WineFactsPanel";
 import RatingMark from "@/components/RatingMark";
-import { grapeSlug } from "@/lib/grapes";
+import StyleMark from "@/components/StyleMark";
+import { grapeSlug, styleOf } from "@/lib/grapes";
 import { countryFlag, placeLine } from "@/lib/places";
 import { tagLabel } from "@/lib/taxonomy";
 import { wineColour } from "@/lib/wine-colours";
@@ -95,14 +96,20 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
     { term: "Vintage", value: wine.vintage ? String(wine.vintage) : "" },
     {
       term: "Type",
+      // The glass drawn for this style on the grape index; the plain colour
+      // dot only for a type that has no glass.
       value: wine.wine_type ? (
         <span className="inline-flex items-center gap-2">
-          {accent && (
-            <span
-              aria-hidden="true"
-              className="inline-block size-2.5 rounded-full"
-              style={{ backgroundColor: accent }}
-            />
+          {styleOf(wine.wine_type) ? (
+            <StyleMark style={styleOf(wine.wine_type)!} />
+          ) : (
+            accent && (
+              <span
+                aria-hidden="true"
+                className="inline-block size-2.5 rounded-full"
+                style={{ backgroundColor: accent }}
+              />
+            )
           )}
           {wine.wine_type}
         </span>
@@ -193,12 +200,10 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
       )}
 
       {/*
-        The table closes itself with a rule, and the panel below opens with one.
-        Two hairlines with a gap between them read as a seam rather than a
-        divider, so the rows are divided from the inside and the panel's own
-        rule is the only line between the two.
+        The table closes itself top and bottom; the panel below opens with
+        whitespace alone, so there's exactly one line between the two.
       */}
-      <dl className="mx-auto mt-8 max-w-md divide-y divide-rule border-t border-rule">
+      <dl className="mx-auto mt-8 max-w-md divide-y divide-rule border-y border-rule">
         {rows.map((row) => (
           <div key={row.term} className="flex justify-between gap-6 py-2.5">
             <dt className="eyebrow pt-0.5">{row.term}</dt>
