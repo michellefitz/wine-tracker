@@ -83,7 +83,7 @@ export default async function GrapesPage() {
                   <Link
                     href={`/grape/${grape.slug}`}
                     className="flex items-baseline justify-between gap-5 border-b border-rule
-                      py-4 transition-colors hover:bg-tint/50"
+                      py-4 transition-colors hover:bg-tint/50 active:bg-tint"
                   >
                     <span>
                       <span className="essay text-[1.125rem] leading-snug text-ink">
