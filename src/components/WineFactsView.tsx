@@ -1,6 +1,6 @@
 import ScoreBar from "@/components/ScoreBar";
 import { paragraphs } from "@/lib/prose";
-import { siteName, sourceFor } from "@/lib/sources";
+import { searchFor, siteName, sourceFor } from "@/lib/sources";
 import type { StoredFacts } from "@/lib/wine-facts";
 import { awardGlyph, foodGlyph } from "@/lib/wine-colours";
 
@@ -43,9 +43,12 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
  */
 export default function WineFactsView({
   facts,
+  query = "",
   warning = null,
 }: {
   facts: StoredFacts;
+  /** The bottle as you logged it, for searching a reviewer's own site. */
+  query?: string;
   warning?: string | null;
 }) {
   const empty =
@@ -84,15 +87,29 @@ export default function WineFactsView({
             <Block title="Reviews">
               <ul className="divide-y divide-rule">
                 {facts.ratings.map((rating) => {
-                  const href = sourceFor(rating.source, facts.sources);
+                  // The page it was read from when the search returned it; the
+                  // site's own search for this bottle when it didn't. Vivino is
+                  // the reason for the second one — it blocks crawlers, so its
+                  // scores get quoted far more often than its pages come back.
+                  const page = sourceFor(rating.source, facts.sources);
+                  const href = page ?? searchFor(rating.source, query);
 
                   const body = (
                     <>
                       <div className="flex items-baseline justify-between gap-4">
                         <span className="flex items-baseline gap-1.5 text-[0.9375rem] text-ink-soft">
-                          {rating.source}
+                          <span
+                            className={
+                              href ? "underline decoration-rule underline-offset-4" : undefined
+                            }
+                          >
+                            {rating.source}
+                          </span>
                           {href && (
-                            <span aria-hidden="true" className="text-[0.6875rem] text-muted">
+                            <span
+                              aria-hidden="true"
+                              className="text-[0.875rem] leading-none text-wine"
+                            >
                               ↗
                             </span>
                           )}
@@ -122,6 +139,7 @@ export default function WineFactsView({
                           href={href}
                           target="_blank"
                           rel="noreferrer noopener"
+                          title={page ? "Open this review" : "Search this site for the bottle"}
                           className="block py-2.5 transition-opacity active:opacity-60"
                         >
                           {body}

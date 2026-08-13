@@ -177,7 +177,7 @@ function sourcesOf(content: Anthropic.ContentBlock[]): { title: string; url: str
   }
 
   return Array.from(seen.entries())
-    .slice(0, 6)
+    .slice(0, 12)
     .map(([url, title]) => ({ title: title.slice(0, 160), url }));
 }
 

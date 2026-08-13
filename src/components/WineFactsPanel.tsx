@@ -19,9 +19,12 @@ import type { StoredFacts } from "@/lib/wine-facts";
 export default function WineFactsPanel({
   wineId,
   initial,
+  query = "",
 }: {
   wineId: string;
   initial: StoredFacts | null;
+  /** The bottle as you logged it, so a review can link to its site's search. */
+  query?: string;
 }) {
   const router = useRouter();
   const [facts, setFacts] = useState<StoredFacts | null>(initial);
@@ -92,7 +95,7 @@ export default function WineFactsPanel({
         <p className="text-[0.9375rem] leading-relaxed text-wine">{error}</p>
       )}
 
-      {facts && !busy && <WineFactsView facts={facts} warning={warning} />}
+      {facts && !busy && <WineFactsView facts={facts} query={query} warning={warning} />}
     </section>
   );
 }

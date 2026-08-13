@@ -198,7 +198,11 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
         ))}
       </dl>
 
-      <WineFactsPanel wineId={wine.id} initial={stored} />
+      <WineFactsPanel
+        wineId={wine.id}
+        initial={stored}
+        query={[wine.producer, wine.name, wine.vintage].filter(Boolean).join(" ")}
+      />
 
       <div className="mt-10 text-center">
         <DeleteWineButton id={wine.id} name={wine.name} />

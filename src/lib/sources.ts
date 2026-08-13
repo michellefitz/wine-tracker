@@ -97,6 +97,37 @@ function candidates(reviewer: string): string[] {
     .sort((a, b) => b.length - a.length);
 }
 
+/**
+ * Sites whose search URL we know, for reviewers whose own pages don't come back
+ * as search results. Vivino is the case that forces this: its scores get quoted
+ * everywhere while the site itself blocks crawlers, so the page that score came
+ * from is frequently not in the results at all.
+ *
+ * A search URL is not an invented page. It makes no claim that a particular
+ * page exists — it asks the site the same question you would.
+ */
+const SITE_SEARCHES: [RegExp, (query: string) => string][] = [
+  [/^vivino$/i, (q) => `https://www.vivino.com/search/wines?q=${encodeURIComponent(q)}`],
+  [/^wine-searcher$/i, (q) => `https://www.wine-searcher.com/find/${encodeURIComponent(q)}`],
+  [/^wine enthusiast$/i, (q) => `https://www.winemag.com/?s=${encodeURIComponent(q)}`],
+  [/^cellartracker$/i, (q) => `https://www.cellartracker.com/list.asp?Table=List&iUserOverride=0&szSearch=${encodeURIComponent(q)}`],
+];
+
+/**
+ * Somewhere to look this reviewer up, when the exact page wasn't in the results.
+ *
+ * `query` is the bottle as it was logged. Returns null for any site we don't
+ * know how to search, rather than guessing at a URL shape.
+ */
+export function searchFor(reviewer: string, query: string): string | null {
+  if (!query.trim()) return null;
+
+  const brand = reviewer.replace(/\([^)]*\)/g, " ").split(/[/,;|]|—|–/)[0].trim();
+  const build = SITE_SEARCHES.find(([pattern]) => pattern.test(brand))?.[1];
+
+  return build ? build(query) : null;
+}
+
 /** The year a reviewer label is talking about, when it names one. */
 function vintageIn(text: string): string | null {
   return text.match(/\b(19|20)\d{2}\b/)?.[0] ?? null;
