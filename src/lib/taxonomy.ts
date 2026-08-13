@@ -34,7 +34,11 @@ export const WINE_TYPES = [
   "Fortified",
 ] as const;
 
-/** Where the bottle came from. Skewed to Irish supermarkets on purpose. */
+/**
+ * Where the bottle came from. Skewed to Irish shops on purpose — supermarkets
+ * first, then the wine merchants worth naming, then the catch-alls for
+ * everywhere else.
+ */
 export const SOURCES = [
   "Tesco",
   "Dunnes Stores",
@@ -43,6 +47,9 @@ export const SOURCES = [
   "Aldi",
   "Marks & Spencer",
   "Centra / Spar",
+  "O'Briens",
+  "Mitchell & Son",
+  "Ely",
   "Off-licence",
   "Wine shop",
   "Restaurant / bar",
