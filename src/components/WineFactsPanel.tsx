@@ -81,9 +81,15 @@ export default function WineFactsPanel({
         </button>
       </div>
 
-      {busy && !facts && (
+      {/*
+        Every wait, not just the first one. Guarding this on `!facts` meant a
+        Refresh on a bottle that already had something on file hid the old
+        content and showed nothing in its place — the one lookup you actually
+        sit and watch was the one with no sign of life in it.
+      */}
+      {busy && (
         <div className="py-2">
-          <PouringGlass caption="Searching the web…" />
+          <PouringGlass caption={facts ? "Searching again…" : "Searching the web…"} />
           <p className="mt-2 text-center text-[0.8125rem] text-muted">
             This takes a few seconds.
           </p>
