@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ViewTransition } from "react";
 import BottlePlaceholder from "@/components/BottlePlaceholder";
 import DeleteWineButton from "@/components/DeleteWineButton";
 import WineFactsPanel from "@/components/WineFactsPanel";
@@ -144,19 +145,23 @@ export default async function WinePage({ params }: { params: Promise<{ id: strin
         </Link>
       </nav>
 
-      <div className="mx-auto aspect-4/5 w-full max-w-[14rem] overflow-hidden bg-tint">
-        {wine.photo_id ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={`/api/photos/${wine.photo_id}?w=960`}
-            alt={`Label of ${wine.name}`}
-            decoding="async"
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <BottlePlaceholder />
-        )}
-      </div>
+      {/* The same transition name as this wine's card, so the photo morphs
+          from the shelf to the plate instead of cutting. */}
+      <ViewTransition name={`wine-photo-${wine.id}`}>
+        <div className="mx-auto aspect-4/5 w-full max-w-[14rem] overflow-hidden bg-tint">
+          {wine.photo_id ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`/api/photos/${wine.photo_id}?w=960`}
+              alt={`Label of ${wine.name}`}
+              decoding="async"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <BottlePlaceholder />
+          )}
+        </div>
+      </ViewTransition>
 
       {/* The wall label: producer, work, place, verdict. */}
       <header className="mt-6 text-center">
