@@ -25,9 +25,17 @@ function Paragraphs({ text, className }: { text: string; className: string }) {
  * that each drew their own border met as a double hairline, which read as a
  * seam between two tables nobody had named.
  */
-function Block({ title, children }: { title: string; children: React.ReactNode }) {
+function Block({
+  title,
+  children,
+  className = "",
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <section>
+    <section className={className}>
       <h3 className="eyebrow mb-2">{title}</h3>
       {children}
     </section>
@@ -69,9 +77,10 @@ export default function WineFactsView({
             actually want when you're standing in front of the bottle — the
             history of the estate can wait until after it.
           */}
+          {/* The one sentence that summarises the wine, so it gets the plate. */}
           {facts.style && (
             <Block title="In the glass">
-              <div className="space-y-2">
+              <div className="space-y-2 border border-rule bg-card px-4 py-4">
                 <Paragraphs
                   text={facts.style}
                   className="essay text-[1.0625rem] leading-[1.55] text-ink"
@@ -81,12 +90,14 @@ export default function WineFactsView({
           )}
 
           {facts.summary && (
-            <div className="space-y-3">
-              <Paragraphs
-                text={facts.summary}
-                className="text-[0.9375rem] leading-relaxed text-ink-soft"
-              />
-            </div>
+            <Block title="Background">
+              <div className="space-y-3">
+                <Paragraphs
+                  text={facts.summary}
+                  className="text-[0.9375rem] leading-relaxed text-ink-soft"
+                />
+              </div>
+            </Block>
           )}
 
           {facts.ratings.length > 0 && (
@@ -176,7 +187,7 @@ export default function WineFactsView({
           )}
 
           {facts.food.length > 0 && (
-            <Block title="Goes with">
+            <Block title="Goes with" className="pt-3">
               <ul className="flex flex-wrap gap-1.5">
                 {facts.food.map((food) => {
                   const glyph = foodGlyph(food);
@@ -195,9 +206,30 @@ export default function WineFactsView({
             </Block>
           )}
 
+          {/*
+            Collapsed by default: a dozen citations are provenance, not reading
+            material. A native <details> keeps this server-rendered and gives
+            the toggle for free; the plus turns into a cross by rotating.
+          */}
           {facts.sources.length > 0 && (
-            <Block title="Reference links">
-              <ul className="space-y-1">
+            <details className="group">
+              <summary
+                className="flex cursor-pointer list-none items-baseline justify-between
+                  gap-4 py-1 [&::-webkit-details-marker]:hidden"
+              >
+                <h3 className="eyebrow">
+                  Reference links · {facts.sources.length}
+                </h3>
+                <span
+                  aria-hidden="true"
+                  className="inline-block text-[1rem] leading-none text-muted
+                    transition-transform duration-[160ms] ease-out-strong
+                    group-open:rotate-45"
+                >
+                  +
+                </span>
+              </summary>
+              <ul className="mt-2 space-y-1">
                 {facts.sources.map((source) => (
                   <li key={source.url}>
                     <a
@@ -214,7 +246,7 @@ export default function WineFactsView({
                   </li>
                 ))}
               </ul>
-            </Block>
+            </details>
           )}
         </div>
       )}

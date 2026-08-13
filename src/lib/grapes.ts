@@ -269,7 +269,7 @@ const STYLE_BY_TYPE: Record<string, GrapeStyle> = {
   fortified: "Dessert",
 };
 
-function styleOf(wineType: string | null): GrapeStyle | null {
+export function styleOf(wineType: string | null): GrapeStyle | null {
   if (!wineType) return null;
   const key = wineType
     .normalize("NFD")

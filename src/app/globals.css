@@ -27,6 +27,30 @@ html {
   background-color: var(--color-paper);
   color-scheme: light;
   -webkit-text-size-adjust: 100%;
+  /* Our active states are the tap feedback; iOS's grey flash reads as "website". */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* No double-tap-to-zoom delay on anything pressable. */
+a,
+button,
+summary,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/* Long-pressing a control shouldn't select its label like page text. */
+button,
+summary {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Nor should a photo offer the save-image sheet mid-scroll. */
+img {
+  -webkit-touch-callout: none;
 }
 
 body {
