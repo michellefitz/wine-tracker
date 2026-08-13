@@ -53,6 +53,20 @@ img {
   -webkit-touch-callout: none;
 }
 
+/* Page transitions: quick, with the house easing — never the UA's lazy 400ms. */
+::view-transition-group(*) {
+  animation-duration: 260ms;
+  animation-timing-function: var(--ease-out-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 body {
   background-color: var(--color-paper);
   color: var(--color-ink);

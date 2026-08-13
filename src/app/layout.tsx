@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Spectral } from "next/font/google";
+import { ViewTransition } from "react";
 import ServiceWorker from "@/components/ServiceWorker";
 import "./globals.css";
 
@@ -63,7 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body>
         <ServiceWorker />
-        {children}
+        <ViewTransition>{children}</ViewTransition>
       </body>
     </html>
   );

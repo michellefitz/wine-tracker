@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Soft cross-fades between pages, and the card photo morphing into the
+    // wine page's plate. Safari 18+ / Chrome; older browsers just hard-cut.
+    viewTransition: true,
+  },
   async headers() {
     return [
       {
