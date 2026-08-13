@@ -13,7 +13,11 @@ export default function WineCard({ wine }: { wine: Wine }) {
     : placeLine(wine.region, wine.country);
 
   return (
-    <Link href={`/wine/${wine.id}`} className="group block">
+    <Link
+      href={`/wine/${wine.id}`}
+      className="group block transition-transform duration-[160ms] ease-out-strong
+        active:scale-[0.985]"
+    >
       <div className="aspect-4/5 w-full overflow-hidden bg-tint">
         {wine.photo_id ? (
           // 560px covers a 167 CSS px card at a phone's 3x density.
@@ -23,8 +27,8 @@ export default function WineCard({ wine }: { wine: Wine }) {
             alt=""
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-cover transition-transform duration-500
-              group-hover:scale-[1.03] group-active:scale-[1.03]"
+            className="h-full w-full object-cover transition-transform duration-200
+              ease-out-strong group-hover:scale-[1.03]"
           />
         ) : (
           <BottlePlaceholder />

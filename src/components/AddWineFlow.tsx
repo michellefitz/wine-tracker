@@ -155,15 +155,17 @@ export default function AddWineFlow() {
                 key={option.id}
                 type="button"
                 onClick={() => setUseArtwork(option.id === "artwork")}
-                className="text-left"
+                className="text-left transition-transform duration-[160ms]
+                  ease-out-strong active:scale-[0.98]"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={option.src}
                   alt={option.caption}
-                  className={`aspect-4/5 w-full bg-tint object-contain transition ${
-                    option.on ? "ring-1 ring-ink" : "opacity-55"
-                  }`}
+                  className={`aspect-4/5 w-full bg-tint object-contain transition-opacity
+                    duration-[160ms] ease-out-strong ${
+                      option.on ? "ring-1 ring-ink" : "opacity-55"
+                    }`}
                 />
                 <span
                   className={`mt-2 block text-[0.6875rem] font-medium uppercase tracking-[0.14em] ${

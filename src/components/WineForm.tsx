@@ -210,8 +210,8 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
                 key={rating.id}
                 type="button"
                 onClick={() => setScore(rating.score)}
-                className={`border px-3 py-3.5 text-[0.9375rem]
-                  transition active:scale-[0.98] ${
+                className={`border px-3 py-3.5 text-[0.9375rem] transition-transform
+                  duration-[160ms] ease-out-strong active:scale-[0.98] ${
                     chosen
                       ? "border-ink bg-ink text-paper"
                       : "border-rule text-ink-soft hover:border-muted"

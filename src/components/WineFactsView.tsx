@@ -55,7 +55,7 @@ export default function WineFactsView({
     !facts.found && !facts.summary && facts.ratings.length === 0 && facts.awards.length === 0;
 
   return (
-    <div>
+    <div className="rise-in">
       {empty ? (
         <p className="text-[0.9375rem] leading-relaxed text-muted">
           {facts.note ??
