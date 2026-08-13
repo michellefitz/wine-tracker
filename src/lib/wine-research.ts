@@ -15,7 +15,7 @@ import type { Wine, WineFacts } from "@/lib/types";
  *
  * Bump FACTS_VERSION to have every stored record rewritten on next view.
  */
-export const FACTS_VERSION = 2;
+export const FACTS_VERSION = 3;
 
 const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5";
 
@@ -27,7 +27,7 @@ const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5";
 const FILING_MODEL = process.env.ANTHROPIC_FILING_MODEL ?? "claude-sonnet-5";
 
 /** Cap the searching — but not at three, which wasn't enough to be wrong twice. */
-const MAX_SEARCHES = 5;
+const MAX_SEARCHES = 6;
 
 /**
  * Budgets, sized so the pair finishes inside a 60s function budget with room
@@ -37,10 +37,14 @@ const MAX_SEARCHES = 5;
  * RESEARCH_BUDGET_MS is wall clock across the whole search phase, resumes
  * included. It used to be a per-call timeout, which meant a paused turn could
  * quietly spend it twice and blow the function budget on its own.
+ *
+ * The pair adds up to 41s against a 60s function. The headroom is not spare —
+ * a run that finished, saved, and then got killed on the way out looks to the
+ * phone exactly like a lost connection, which is a lie about what happened.
  */
-const RESEARCH_BUDGET_MS = 38_000;
+const RESEARCH_BUDGET_MS = 30_000;
 const RESEARCH_MIN_MS = 8_000;
-const EXTRACT_TIMEOUT_MS = 13_000;
+const EXTRACT_TIMEOUT_MS = 11_000;
 
 const RESEARCH_SYSTEM = `You research one specific bottle of wine on the web for someone who
 keeps a log of what they've drunk. They already know whether they liked it; what they want is
@@ -206,6 +210,48 @@ function textOf(content: Anthropic.ContentBlock[]): string {
 }
 
 /**
+ * What the search tool said when it didn't return results.
+ *
+ * These were being skipped over as "an error object rather than results", which
+ * is exactly the information needed to tell a wine nobody has written about
+ * from a search that never ran. Getting the code in front of a person is the
+ * whole point — the last unexplained failure here was solved the moment the
+ * real message was visible instead of a summary of it.
+ */
+function searchErrors(content: Anthropic.ContentBlock[]): string[] {
+  const codes: string[] = [];
+
+  for (const block of content) {
+    if (block.type !== "web_search_tool_result") continue;
+    if (Array.isArray(block.content)) continue;
+
+    const code = (block.content as { error_code?: unknown } | null)?.error_code;
+    if (typeof code === "string" && !codes.includes(code)) codes.push(code);
+  }
+
+  return codes;
+}
+
+/** Plain English for the codes the search tool can come back with. */
+const SEARCH_TROUBLE: Record<string, string> = {
+  max_uses_exceeded: "it hit its limit on searches before anything came back",
+  too_many_requests: "the search service is rate-limiting this key right now",
+  unavailable: "the search service is down right now",
+  query_too_long: "the query sent was too long for it",
+  invalid_input: "the query sent was rejected",
+};
+
+function searchTrouble(codes: string[]): string {
+  const known = codes.map((code) => SEARCH_TROUBLE[code]).filter(Boolean);
+  const because = known.length > 0 ? ` — ${known.join("; ")}` : "";
+
+  return (
+    `The web search didn't run${because}. It reported: ${codes.join(", ")}. ` +
+    `Nothing was written from memory to cover the gap.`
+  );
+}
+
+/**
  * The pages the search actually returned, straight from the tool result.
  *
  * Never from the model's own text: a URL it typed out could be plausible and
@@ -324,6 +370,19 @@ export async function research(
 
     if (response.stop_reason === "refusal") {
       return { status: "unavailable", message: "The search was declined for this wine." };
+    }
+
+    /*
+     * Searching failed rather than came up empty. Say so and stop: resuming
+     * costs another turn to be told the same thing, and the write-up that comes
+     * out the other side reads like a verdict on the wine when it's really a
+     * verdict on the search. "Nothing is written about this bottle" and "the
+     * search never ran" are not the same sentence.
+     */
+    const codes = searchErrors(seen);
+    if (codes.length > 0 && sourcesOf(seen).length === 0) {
+      console.error("wine-research: web search returned only errors:", codes.join(", "));
+      return { status: "unavailable", message: searchTrouble(codes) };
     }
 
     if (response.stop_reason === "pause_turn") {

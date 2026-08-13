@@ -129,8 +129,13 @@ export async function getWineFacts(wine: Wine, refresh = false): Promise<FactsLo
   const researched = await researchWine(wine);
 
   if (researched.status === "unavailable") {
-    // Something already on file beats an error message.
-    if (cached) return { status: "ok", facts: cached, warning: null };
+    /*
+     * Something already on file beats an error message — but not silently.
+     * Swallowing the reason here is how a refresh that never searched at all
+     * came back looking like a refresh that found nothing new: the old write-up
+     * reappeared, the failure went to the logs, and the page said nothing.
+     */
+    if (cached) return { status: "ok", facts: cached, warning: researched.message };
     return researched;
   }
 
