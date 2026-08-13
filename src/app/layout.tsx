@@ -22,6 +22,15 @@ const serif = Spectral({
   display: "swap",
 });
 
+/**
+ * --color-paper in sRGB. The token is authored in OKLCH, which the manifest
+ * can't read and the browser can't paint until the stylesheet has arrived, so
+ * the same colour is spelled out here for the frames before that: the tab
+ * chrome, the installed app's splash, and the first paint of the document.
+ * If --color-paper in globals.css changes, change this and the manifest too.
+ */
+const PAPER = "#f5f2f1";
+
 export const metadata: Metadata = {
   title: "Cellar Notes",
   description: "A private log of the wines you've had, and what you thought of them.",
@@ -38,7 +47,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f5f4f1",
+  themeColor: PAPER,
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -47,7 +56,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-IE" className={`${grotesk.variable} ${serif.variable}`}>
+    <html
+      lang="en-IE"
+      className={`${grotesk.variable} ${serif.variable}`}
+      style={{ backgroundColor: PAPER }}
+    >
       <body>
         <ServiceWorker />
         {children}

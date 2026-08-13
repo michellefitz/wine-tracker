@@ -1,23 +1,65 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import CollectionSkeleton from "@/components/CollectionSkeleton";
 import WineList from "@/components/WineList";
 import { listWines } from "@/lib/wines";
 import type { Wine } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
-  let wines: Wine[] = [];
-  let loadError: string | null = null;
+type Loaded = { wines: Wine[]; error: string | null };
 
-  try {
-    wines = await listWines();
-  } catch (error) {
-    console.error("home: could not load wines:", error);
-    loadError =
-      "Couldn't reach the database. Check DATABASE_URL, and that you've run `npm run db:init`.";
+/**
+ * Never rejects, so both readers below can await it without a second try/catch
+ * between them.
+ */
+function loadWines(): Promise<Loaded> {
+  return listWines()
+    .then((wines) => ({ wines, error: null }))
+    .catch((error: unknown) => {
+      console.error("home: could not load wines:", error);
+      return {
+        wines: [] as Wine[],
+        error:
+          "Couldn't reach the database. Check DATABASE_URL, and that you've run `npm run db:init`.",
+      };
+    });
+}
+
+async function Count({ loaded }: { loaded: Promise<Loaded> }) {
+  const { wines } = await loaded;
+  const count = wines.length;
+
+  return (
+    <span className="eyebrow" style={{ fontVariantNumeric: "tabular-nums" }}>
+      {count > 0
+        ? `The collection · ${count} ${count === 1 ? "bottle" : "bottles"}`
+        : "The collection"}
+    </span>
+  );
+}
+
+async function Collection({ loaded }: { loaded: Promise<Loaded> }) {
+  const { wines, error } = await loaded;
+
+  if (error) {
+    return (
+      <p className="border border-rule bg-card p-5 text-[0.9375rem] text-wine">{error}</p>
+    );
   }
 
-  const count = wines.length;
+  return <WineList wines={wines} />;
+}
+
+export default function HomePage() {
+  /*
+   * Started, not awaited. The masthead and the nav owe the database nothing, so
+   * they go out with the first flush and the browser has something to paint
+   * while the query runs — the whole document used to wait on this one call,
+   * which is what made the app open on a white screen and then appear all at
+   * once. Both readers share the one promise, so it's still one query.
+   */
+  const loaded = loadWines();
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-32 pt-[max(2rem,env(safe-area-inset-top))]">
@@ -28,11 +70,9 @@ export default async function HomePage() {
           Cellar Notes
         </h1>
         <div className="mt-3 flex items-baseline justify-between gap-4">
-          <span className="eyebrow" style={{ fontVariantNumeric: "tabular-nums" }}>
-            {count > 0
-              ? `The collection · ${count} ${count === 1 ? "bottle" : "bottles"}`
-              : "The collection"}
-          </span>
+          <Suspense fallback={<span className="eyebrow">The collection</span>}>
+            <Count loaded={loaded} />
+          </Suspense>
           <nav className="flex shrink-0 items-baseline gap-4">
             <Link href="/grapes" className="link-quiet">
               Grapes
@@ -44,13 +84,9 @@ export default async function HomePage() {
         </div>
       </header>
 
-      {loadError ? (
-        <p className="border border-rule bg-card p-5 text-[0.9375rem] text-wine">
-          {loadError}
-        </p>
-      ) : (
-        <WineList wines={wines} />
-      )}
+      <Suspense fallback={<CollectionSkeleton />}>
+        <Collection loaded={loaded} />
+      </Suspense>
 
       {/* A soft paper fade so the button never sits awkwardly on a photo. */}
       <div className="pointer-events-none fixed inset-x-0 bottom-0 flex justify-center
