@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { PouringGlass } from "@/components/Loaders";
 import WineFactsView from "@/components/WineFactsView";
 import type { StoredFacts } from "@/lib/wine-facts";
 
@@ -81,12 +82,10 @@ export default function WineFactsPanel({
       </div>
 
       {busy && !facts && (
-        <div className="animate-pulse space-y-2.5" aria-live="polite">
-          <span className="block h-3.5 w-full bg-tint" />
-          <span className="block h-3.5 w-full bg-tint" />
-          <span className="block h-3.5 w-2/5 bg-tint" />
-          <p className="pt-1 text-[0.8125rem] text-muted">
-            Searching the web for this bottle — this takes a few seconds.
+        <div className="py-2">
+          <PouringGlass caption="Searching the web…" />
+          <p className="mt-2 text-center text-[0.8125rem] text-muted">
+            This takes a few seconds.
           </p>
         </div>
       )}

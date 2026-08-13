@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
+import { ReadingLabel } from "@/components/Loaders";
 import WineForm from "@/components/WineForm";
 import { fileToCompressedDataUrl } from "@/lib/image";
 import type { LabelReading } from "@/lib/types";
@@ -217,9 +218,9 @@ export default function AddWineFlow() {
       )}
 
       {stage === "reading" && (
-        <p className="border-t border-rule py-10 text-center eyebrow">
-          Reading the label…
-        </p>
+        <div className="border-t border-rule py-8">
+          <ReadingLabel caption="Reading the label…" />
+        </div>
       )}
 
       {notice && stage === "form" && (

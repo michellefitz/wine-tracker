@@ -122,3 +122,121 @@ textarea {
     @apply border-ink bg-ink text-paper hover:border-ink;
   }
 }
+
+/*
+ * The loading drawings in Loaders.tsx. Kept here rather than inline so the
+ * reduced-motion switch at the bottom can reach all of it at once: every one
+ * of these classes has a still pose to fall back to, and none of them is the
+ * empty first frame.
+ */
+
+/* The pour: mostly rising, a beat at the top, then a slow settle back. */
+@keyframes loader-fill {
+  0%,
+  100% {
+    transform: translateY(34px);
+  }
+  /* Stops well short of the rim — nobody fills a glass to the top. */
+  55%,
+  70% {
+    transform: translateY(11px);
+  }
+}
+
+/* One wave period sideways — the surface never stops moving. */
+@keyframes loader-wave {
+  to {
+    transform: translateX(-32px);
+  }
+}
+
+/* The drop stays inside the viewBox at both ends, or it gets clipped mid-fall. */
+@keyframes loader-drop {
+  0% {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  38% {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+}
+
+@keyframes loader-scan {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  12%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+}
+
+/* The writing appearing behind the sweep. */
+@keyframes loader-read {
+  0%,
+  18% {
+    opacity: 0;
+  }
+  34%,
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.loader-fill {
+  animation: loader-fill 3.4s ease-in-out infinite;
+}
+
+.loader-wave {
+  animation: loader-wave 2.6s linear infinite;
+}
+
+.loader-drop {
+  opacity: 0;
+  animation: loader-drop 3.4s ease-in infinite;
+}
+
+.loader-scan {
+  animation: loader-scan 1.9s ease-in-out infinite;
+}
+
+.loader-read {
+  opacity: 0;
+  animation: loader-read 1.9s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader-fill,
+  .loader-wave,
+  .loader-drop,
+  .loader-scan,
+  .loader-read {
+    animation: none;
+  }
+
+  /* Still poses: a glass part-filled and a label already read. */
+  .loader-fill {
+    transform: translateY(14px);
+  }
+
+  .loader-scan,
+  .loader-read {
+    opacity: 1;
+  }
+}
