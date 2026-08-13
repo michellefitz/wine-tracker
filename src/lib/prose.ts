@@ -40,3 +40,26 @@ export function paragraphs(text: string, per = 2): string[] {
     return out;
   });
 }
+
+/**
+ * Cuts prose to a length without cutting a word in half.
+ *
+ * A hard slice ends a paragraph on "…small volumes, no crit", which reads as a
+ * bug rather than as a limit. Prefer the last sentence that finished; failing
+ * that, the last whole word, with an ellipsis to admit there was more.
+ */
+export function clip(text: string, max: number): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= max) return trimmed;
+
+  const head = trimmed.slice(0, max);
+  const sentence = Math.max(
+    head.lastIndexOf(". "),
+    head.lastIndexOf("! "),
+    head.lastIndexOf("? "),
+  );
+  if (sentence > max * 0.6) return head.slice(0, sentence + 1);
+
+  const space = head.lastIndexOf(" ");
+  return `${(space > 0 ? head.slice(0, space) : head).replace(/[,;:]+$/, "")}…`;
+}

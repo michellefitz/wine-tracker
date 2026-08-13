@@ -90,8 +90,12 @@ export default function WineFactsPanel({
         </div>
       )}
 
+      {/* A failed refresh sits above what was found last time, so say so. */}
       {error && !busy && (
-        <p className="text-[0.9375rem] leading-relaxed text-wine">{error}</p>
+        <p className={`text-[0.9375rem] leading-relaxed text-wine ${facts ? "mb-5" : ""}`}>
+          {error}
+          {facts && " What's below is the last result."}
+        </p>
       )}
 
       {facts && !busy && <WineFactsView facts={facts} query={query} warning={warning} />}

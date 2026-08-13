@@ -1,4 +1,6 @@
 import Anthropic, { APIError } from "@anthropic-ai/sdk";
+import { clip } from "@/lib/prose";
+import { flatten } from "@/lib/text";
 import type { Wine, WineFacts } from "@/lib/types";
 
 /**
@@ -13,27 +15,47 @@ import type { Wine, WineFacts } from "@/lib/types";
  *
  * Bump FACTS_VERSION to have every stored record rewritten on next view.
  */
-export const FACTS_VERSION = 1;
+export const FACTS_VERSION = 2;
 
 const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5";
 
-/** Cap the searching. Most supermarket bottles are settled in two or three. */
-const MAX_SEARCHES = 3;
+/**
+ * Filing what the research found is a transcription job, not a research job:
+ * everything it may use is in the text in front of it. A quicker model does it
+ * just as well and hands the seconds back to the searching.
+ */
+const FILING_MODEL = process.env.ANTHROPIC_FILING_MODEL ?? "claude-sonnet-5";
+
+/** Cap the searching — but not at three, which wasn't enough to be wrong twice. */
+const MAX_SEARCHES = 5;
 
 /**
- * Per-call ceilings, chosen so the pair finishes inside a 60s function budget
- * with room left to return a message. A lookup that overruns has to fail
- * *visibly* — being killed mid-flight is the one outcome with nothing to show.
+ * Budgets, sized so the pair finishes inside a 60s function budget with room
+ * left to return a message. A lookup that overruns has to fail *visibly* —
+ * being killed mid-flight is the one outcome with nothing to show.
+ *
+ * RESEARCH_BUDGET_MS is wall clock across the whole search phase, resumes
+ * included. It used to be a per-call timeout, which meant a paused turn could
+ * quietly spend it twice and blow the function budget on its own.
  */
-const RESEARCH_TIMEOUT_MS = 32_000;
-const EXTRACT_TIMEOUT_MS = 14_000;
+const RESEARCH_BUDGET_MS = 38_000;
+const RESEARCH_MIN_MS = 8_000;
+const EXTRACT_TIMEOUT_MS = 13_000;
 
 const RESEARCH_SYSTEM = `You research one specific bottle of wine on the web for someone who
 keeps a log of what they've drunk. They already know whether they liked it; what they want is
 what the wider world knows about this exact bottle.
 
-Search for the producer, wine name and vintage together. Try the vintage, and also the wine
-without a vintage — a specific year is often missing while the wine itself is well covered.
+Search the way a person does. Your first search must be the short query given to you, exactly as
+written and nothing else: no vintage, no region, no country, no "Sparkling", no quotation marks.
+That query is the shortest phrase that names the wine, and short is what search engines are good
+at. Piling the label into one query is how a well-covered wine comes back with nothing.
+
+Only after that first search has told you what the wine is should you narrow — add the vintage to
+find that year's page, or the producer's name to separate two wines that share a word. If a
+search comes back thin, change tack rather than lengthening the query: try the producer's own
+site, an importer, a retailer, or the wine name with the word "review". Repeating a long query
+with one more word on the end never helps.
 
 Report only what you actually found in the search results, and say where each thing came from.
 The right answer is often "almost nothing": supermarket own-label bottles frequently have no
@@ -126,19 +148,46 @@ export type Researched =
   | { status: "ok"; facts: Omit<WineFacts, "wine_id"> }
   | { status: "unavailable"; message: string };
 
-/** What to search for: everything on the label that narrows it to one bottle. */
+/**
+ * The whole label, as context for telling one bottle from another.
+ *
+ * This is what the wine *is* — not what to type into a search box. Handing all
+ * of it to a search engine is what produced "no results" for a wine that
+ * answers on the first page of Google.
+ */
 export function describeBottle(wine: Wine): string {
   return [
-    wine.producer,
-    wine.name,
-    wine.vintage ? String(wine.vintage) : null,
-    wine.region,
-    wine.country,
-    wine.grapes.length > 0 ? wine.grapes.join(", ") : null,
-    wine.wine_type,
+    wine.producer ? `Producer: ${wine.producer}` : null,
+    `Wine: ${wine.name}`,
+    wine.vintage ? `Vintage: ${wine.vintage}` : null,
+    wine.region || wine.country
+      ? `From: ${[wine.region, wine.country].filter(Boolean).join(", ")}`
+      : null,
+    wine.grapes.length > 0 ? `Grapes: ${wine.grapes.join(", ")}` : null,
+    wine.wine_type ? `Type: ${wine.wine_type}` : null,
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join("\n");
+}
+
+/**
+ * The first thing to type into a search box: the shortest phrase that names
+ * this wine and nothing more.
+ *
+ * Producers repeat themselves — Quinta da Raza makes Raza Pet-Nat — and a
+ * query carrying the same word twice is a query a person would never type.
+ * So any word already in the wine's name is dropped from the producer.
+ */
+export function searchQuery(wine: Wine): string {
+  const inName = new Set(flatten(wine.name).split(" ").filter(Boolean));
+
+  const producer = (wine.producer ?? "")
+    .split(/\s+/)
+    .filter((word) => word && !inName.has(flatten(word)))
+    .join(" ")
+    .trim();
+
+  return [producer, wine.name.trim()].filter(Boolean).join(" ");
 }
 
 function apiDetail(error: unknown): string {
@@ -206,22 +255,51 @@ function trimmed(value: unknown, max: number): string | null {
   return text || null;
 }
 
+/** Prose fields, cut to length on a sentence or word rather than mid-syllable. */
+function clipped(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null;
+  const text = clip(value, max);
+  return text || null;
+}
+
+type Research = { text: string; sources: { title: string; url: string }[] };
+
 /**
  * Runs the search. Server-side tools pause when their own loop hits its limit,
  * so the turn is resumed rather than treated as finished — a paused turn looks
  * like a complete one apart from the stop reason.
+ *
+ * Everything the model produces is kept, turn by turn. Reading only the last
+ * response is how a lookup that searched four sites came back citing none of
+ * them: the pages were in the paused turn, and the paused turn was thrown away.
+ *
+ * Takes its client rather than making one, so the pause-and-resume path can be
+ * driven with a stub — it's the branch that broke, and the branch that never
+ * runs on an ordinary lookup.
  */
-async function research(client: Anthropic, bottle: string): Promise<string | Researched> {
+export async function research(
+  client: Anthropic,
+  bottle: string,
+  query: string,
+): Promise<Research | Researched> {
   const messages: Anthropic.MessageParam[] = [
     {
       role: "user",
-      content: `Find out what's known about this exact bottle. If the results are thin, say so.\n\n${bottle}`,
+      content:
+        `Find out what's known about this exact bottle. If the results are thin, say so.\n\n` +
+        `${bottle}\n\nStart with this search, exactly as written: ${query}`,
     },
   ];
 
-  // One resume at most: each pause costs another full turn of searching, and
-  // two of those is how a lookup runs past the function budget.
+  const seen: Anthropic.ContentBlock[] = [];
+  const deadline = Date.now() + RESEARCH_BUDGET_MS;
+
+  // One resume at most: each pause costs another turn of searching, and the
+  // budget below is what stops two of them from outliving the function.
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    const remaining = deadline - Date.now();
+    if (remaining < RESEARCH_MIN_MS) break;
+
     let response: Anthropic.Message;
     try {
       response = await client.messages.create(
@@ -234,13 +312,15 @@ async function research(client: Anthropic, bottle: string): Promise<string | Res
           tools: [{ type: "web_search_20260209", name: "web_search", max_uses: MAX_SEARCHES }],
           messages,
         },
-        { timeout: RESEARCH_TIMEOUT_MS, maxRetries: 0 },
+        { timeout: remaining, maxRetries: 0 },
       );
     } catch (error) {
       const detail = apiDetail(error);
       console.error("wine-research: search call failed:", detail);
       return { status: "unavailable", message: `Couldn't search for this wine. The API said: ${detail}` };
     }
+
+    seen.push(...response.content);
 
     if (response.stop_reason === "refusal") {
       return { status: "unavailable", message: "The search was declined for this wine." };
@@ -252,16 +332,18 @@ async function research(client: Anthropic, bottle: string): Promise<string | Res
       continue;
     }
 
-    const text = textOf(response.content);
-    if (!text) return { status: "unavailable", message: "The search came back empty." };
-
-    return JSON.stringify({ text, sources: sourcesOf(response.content) });
+    break;
   }
 
-  return {
-    status: "unavailable",
-    message: "The search ran long and was stopped. Try Refresh — it often lands second time.",
-  };
+  const text = textOf(seen);
+  if (!text) {
+    return {
+      status: "unavailable",
+      message: "The search ran long and was stopped. Try Refresh — it often lands second time.",
+    };
+  }
+
+  return { text, sources: sourcesOf(seen) };
 }
 
 /** Looks one bottle up. Never throws — a failure comes back as a status. */
@@ -273,15 +355,15 @@ export async function researchWine(wine: Wine): Promise<Researched> {
   const client = new Anthropic();
   const bottle = describeBottle(wine);
 
-  const found = await research(client, bottle);
-  if (typeof found !== "string") return found;
-  const { text, sources } = JSON.parse(found) as { text: string; sources: { title: string; url: string }[] };
+  const found = await research(client, bottle, searchQuery(wine));
+  if ("status" in found) return found;
+  const { text, sources } = found;
 
   let response: Anthropic.Message;
   try {
     response = await client.messages.create(
       {
-        model: MODEL,
+        model: FILING_MODEL,
         max_tokens: 4096,
         system: EXTRACT_SYSTEM,
         thinking: { type: "adaptive" },
@@ -343,7 +425,7 @@ export async function researchWine(wine: Wine): Promise<Researched> {
         .slice(0, 8)
     : [];
 
-  const summary = trimmed(raw.summary, 1200);
+  const summary = clipped(raw.summary, 1200);
   const anything = Boolean(summary) || ratings.length > 0 || details.length > 0;
 
   return {
@@ -351,14 +433,14 @@ export async function researchWine(wine: Wine): Promise<Researched> {
     facts: {
       found: raw.found === true && anything,
       summary,
-      style: trimmed(raw.style, 600),
+      style: clipped(raw.style, 600),
       grapes: strings(raw.grapes, 60, 6),
       ratings,
       details,
       awards: strings(raw.awards, 120, 5),
       food: strings(raw.food, 60, 6),
       sources,
-      note: trimmed(raw.note, 400),
+      note: clipped(raw.note, 400),
     },
   };
 }
