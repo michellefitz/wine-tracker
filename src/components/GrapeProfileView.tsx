@@ -69,7 +69,14 @@ export default function GrapeProfileView({
       <div className="mx-auto max-w-md">
         {scales.length > 0 && (
           <Section title="What it's like">
-            <div className="border-t border-rule">
+            {/*
+              Divided from the inside, with no rule of its own. Every list on
+              this page used to open with a rule right under its heading and
+              close with one right above the next heading — so each heading sat
+              in a box, and every section boundary was two hairlines and a gap.
+              The section's own rule is enough.
+            */}
+            <div className="divide-y divide-rule">
               {scales.map((scale) => (
                 <ScaleMeter
                   key={scale.id}
@@ -100,9 +107,9 @@ export default function GrapeProfileView({
 
         {profile.regions.length > 0 && (
           <Section title="Where it comes from">
-            <ul className="border-t border-rule">
+            <ul className="divide-y divide-rule">
               {profile.regions.map((region) => (
-                <li key={`${region.name}-${region.country}`} className="border-b border-rule py-3.5">
+                <li key={`${region.name}-${region.country}`} className="py-3.5">
                   <p className="text-[0.9375rem] text-ink">
                     {region.name}
                     {region.country && <span className="text-muted"> · {region.country}</span>}

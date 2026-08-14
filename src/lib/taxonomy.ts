@@ -69,32 +69,24 @@ export const GRAPE_SCALES = [
   {
     id: "acidity",
     label: "Acidity",
-    low: "Soft",
-    high: "Zippy",
     levels: ["Low", "Soft", "Medium", "Fresh", "High"],
     hint: "How much it makes your mouth water. High acidity tastes crisp and cuts through food; low acidity tastes round and soft.",
   },
   {
     id: "body",
     label: "Body",
-    low: "Light",
-    high: "Full",
     levels: ["Very light", "Light", "Medium", "Full", "Very full"],
     hint: "How much it fills your mouth — roughly the difference between skimmed milk and cream.",
   },
   {
     id: "tannin",
     label: "Tannin",
-    low: "Silky",
-    high: "Grippy",
     levels: ["None", "Light", "Medium", "Firm", "Grippy"],
     hint: "The drying grip on your gums, from the grape skins. Reds have it; whites almost never do.",
   },
   {
     id: "sweetness",
     label: "Sweetness",
-    low: "Bone dry",
-    high: "Sweet",
     levels: ["Bone dry", "Dry", "Off-dry", "Sweet", "Very sweet"],
     hint: "Nearly everything on a supermarket shelf is dry — the yeast ate all the sugar.",
   },
@@ -107,6 +99,20 @@ export type GrapeScaleId = GrapeScale["id"];
 export function scaleLevelWord(scale: GrapeScale, value: number | null): string | null {
   if (value === null || !Number.isInteger(value) || value < 1 || value > 5) return null;
   return scale.levels[value - 1];
+}
+
+/**
+ * What each end of an axis means, for printing under it.
+ *
+ * Taken from the levels rather than written separately. These scales used to
+ * carry their own pair of end words — acidity ran "Soft" to "Zippy" while its
+ * levels ran Low to High — and neither was ever drawn, so a grape read
+ * "Acidity: Fresh" with nothing to measure Fresh against. Two vocabularies for
+ * one axis is one more than it needs; the ends are simply its first and last
+ * words now, and can't drift from the value sitting between them.
+ */
+export function scaleEnds(scale: GrapeScale): [string, string] {
+  return [scale.levels[0], scale.levels[scale.levels.length - 1]];
 }
 
 export type TagGroup = "Sweetness" | "Body" | "Structure" | "Flavour" | "Finish" | "Overall";
