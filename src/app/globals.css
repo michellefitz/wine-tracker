@@ -18,12 +18,53 @@
 
   --font-grotesk: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-spectral), Georgia, "Times New Roman", serif;
+
+  /* The built-in easings are too weak; presses and reveals use this instead. */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 html {
   background-color: var(--color-paper);
   color-scheme: light;
   -webkit-text-size-adjust: 100%;
+  /* Our active states are the tap feedback; iOS's grey flash reads as "website". */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* No double-tap-to-zoom delay on anything pressable. */
+a,
+button,
+summary,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/* Long-pressing a control shouldn't select its label like page text. */
+button,
+summary {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Nor should a photo offer the save-image sheet mid-scroll. */
+img {
+  -webkit-touch-callout: none;
+}
+
+/* Page transitions: quick, with the house easing — never the UA's lazy 400ms. */
+::view-transition-group(*) {
+  animation-duration: 260ms;
+  animation-timing-function: var(--ease-out-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
 
 body {
@@ -95,7 +136,8 @@ textarea {
   .btn-ink {
     @apply inline-flex items-center justify-center gap-2 border border-ink
       bg-ink px-6 py-3.5 text-[0.75rem] font-medium uppercase
-      tracking-[0.16em] text-paper transition active:scale-[0.98]
+      tracking-[0.16em] text-paper transition-transform duration-[160ms]
+      ease-out-strong active:scale-[0.98]
       disabled:border-rule disabled:bg-transparent disabled:text-muted
       disabled:active:scale-100;
   }
@@ -103,7 +145,8 @@ textarea {
   .btn-outline {
     @apply inline-flex items-center justify-center gap-2 border border-rule
       bg-transparent px-6 py-3.5 text-[0.75rem] font-medium uppercase
-      tracking-[0.16em] text-ink transition active:scale-[0.98]
+      tracking-[0.16em] text-ink transition-[transform,border-color]
+      duration-[160ms] ease-out-strong active:scale-[0.98]
       hover:border-ink disabled:opacity-40;
   }
 
@@ -115,11 +158,36 @@ textarea {
   /* Tag chips: hairline pills, ink fill when chosen. */
   .chip {
     @apply rounded-full border border-rule px-3.5 py-1.5 text-[0.8125rem] text-ink-soft
-      transition active:scale-95 hover:border-muted;
+      transition-[transform,border-color] duration-[160ms] ease-out-strong
+      active:scale-95 hover:border-muted;
   }
 
   .chip-on {
     @apply border-ink bg-ink text-paper hover:border-ink;
+  }
+
+  /*
+   * A one-time entrance for content that arrives after a real wait (the web
+   * lookup). Content that swaps on every keystroke should never use this.
+   */
+  .rise-in {
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity 200ms var(--ease-out-strong),
+      transform 200ms var(--ease-out-strong);
+
+    @starting-style {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rise-in {
+      transition: opacity 200ms ease;
+      transform: none;
+    }
   }
 }
 
