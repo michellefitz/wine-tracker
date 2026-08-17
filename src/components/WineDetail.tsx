@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ViewTransition } from "react";
 import BottlePlaceholder from "@/components/BottlePlaceholder";
 import DeleteWineButton from "@/components/DeleteWineButton";
 import WineFactsPanel from "@/components/WineFactsPanel";
@@ -24,11 +23,10 @@ function formatDate(iso: string): string {
 /**
  * One bottle, rendered the same whether it arrived as a page or as a sheet.
  *
- * `sheet` only changes what surrounds it. Inside a sheet there is no "All
- * wines" link, because the way out is the sheet itself — a back link under a
- * grab handle is two answers to one question. The photo also stops claiming a
- * view-transition name there: the sheet's own slide is the transition, and two
- * animations for one navigation read as a glitch rather than as polish.
+ * `sheet` only changes what surrounds it: no "All wines" link, because the way
+ * out is the sheet itself — a back link under a grab handle is two answers to
+ * one question — and a smaller photo, because a sheet has less height to spend
+ * than a page.
  */
 export default function WineDetail({
   wine,
@@ -119,7 +117,6 @@ export default function WineDetail({
     { term: "Drank", value: formatDate(wine.drank_on) },
   ].filter((row) => row.value !== "");
 
-
   // A sheet has less height to spend than a page, and the first screen is
   // better spent on the verdict and the table than on a bigger picture.
   const photo = (
@@ -176,9 +173,8 @@ export default function WineDetail({
         </nav>
       )}
 
-      {/* The same transition name as this wine's card, so the photo morphs
-          from the shelf to the plate instead of cutting. */}
-      {sheet ? photo : <ViewTransition name={`wine-photo-${wine.id}`}>{photo}</ViewTransition>}
+      {photo}
+
       {/* The wall label: producer, work, place, verdict. */}
       <header className="mt-6 text-center">
         {wine.producer && <p className="eyebrow">{wine.producer}</p>}

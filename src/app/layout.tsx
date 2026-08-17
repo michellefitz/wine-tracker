@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Spectral } from "next/font/google";
-import { ViewTransition } from "react";
 import ServiceWorker from "@/components/ServiceWorker";
 import "./globals.css";
 
@@ -57,9 +56,14 @@ export const viewport: Viewport = {
 
 /**
  * `sheet` is a parallel slot, filled only when a route is intercepted into it.
- * It sits outside the ViewTransition on purpose: the page underneath doesn't
- * change when a sheet opens, and a sheet that both slides up and cross-fades is
- * two answers to one navigation.
+ *
+ * Nothing here wraps the app in a view transition any more. Opening a sheet is
+ * a navigation, so the router put every one of them inside
+ * document.startViewTransition — which freezes a snapshot of the whole page for
+ * the length of the transition. Measured at 390ms, during which the sheet's own
+ * slide was running underneath a still image and then appearing in its final
+ * position. The cross-fade cost more than it was worth once the main navigation
+ * in the app became a sheet.
  */
 export default function RootLayout({
   children,
@@ -76,7 +80,7 @@ export default function RootLayout({
     >
       <body>
         <ServiceWorker />
-        <ViewTransition>{children}</ViewTransition>
+        {children}
         {sheet}
       </body>
     </html>
