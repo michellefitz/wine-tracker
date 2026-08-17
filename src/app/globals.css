@@ -192,6 +192,48 @@ textarea {
 }
 
 /*
+ * The bottom sheet. Entrance and exit only — everything between them is the
+ * finger, handled in Sheet.tsx.
+ */
+@keyframes sheet-in {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.sheet-panel {
+  animation: sheet-in 320ms var(--ease-out-strong);
+}
+
+.sheet-scrim {
+  animation: scrim-in 320ms var(--ease-out-strong);
+}
+
+/* Reversed on the way out, and quicker — leaving should never feel laboured. */
+.sheet-leaving .sheet-panel {
+  animation: sheet-in 220ms var(--ease-out-strong) reverse forwards;
+}
+
+.sheet-leaving .sheet-scrim {
+  animation: scrim-in 220ms var(--ease-out-strong) reverse forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-panel,
+  .sheet-scrim,
+  .sheet-leaving .sheet-panel,
+  .sheet-leaving .sheet-scrim {
+    animation: scrim-in 120ms ease;
+  }
+}
+
+/*
  * The loading drawings in Loaders.tsx. Kept here rather than inline so the
  * reduced-motion switch at the bottom can reach all of it at once: every one
  * of these classes has a still pose to fall back to, and none of them is the

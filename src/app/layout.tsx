@@ -55,7 +55,19 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+/**
+ * `sheet` is a parallel slot, filled only when a route is intercepted into it.
+ * It sits outside the ViewTransition on purpose: the page underneath doesn't
+ * change when a sheet opens, and a sheet that both slides up and cross-fades is
+ * two answers to one navigation.
+ */
+export default function RootLayout({
+  children,
+  sheet,
+}: {
+  children: React.ReactNode;
+  sheet: React.ReactNode;
+}) {
   return (
     <html
       lang="en-IE"
@@ -65,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ServiceWorker />
         <ViewTransition>{children}</ViewTransition>
+        {sheet}
       </body>
     </html>
   );
