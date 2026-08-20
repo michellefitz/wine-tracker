@@ -55,7 +55,7 @@ export default function AddWineFlow() {
 
   async function onPhotoChosen(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    event.target.value = ""; // let the same file be re-picked after a retake
+    event.target.value = ""; // let the same file be re-picked after a change
     if (!file) return;
 
     setNotice(null);
@@ -102,11 +102,18 @@ export default function AddWineFlow() {
 
   return (
     <div className="space-y-7">
+      {/*
+        No `capture` attribute on purpose. It forces the camera straight open,
+        which is wrong when the bottle is already in your camera roll — you
+        photographed it in the shop and are logging it at home. Without it, iOS
+        and Android put up their own chooser offering the library, the camera
+        and files, which is a better menu than anything drawn here and one
+        people already know how to use.
+      */}
       <input
         ref={fileInput}
         type="file"
         accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={onPhotoChosen}
       />
@@ -116,7 +123,7 @@ export default function AddWineFlow() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={photo}
-            alt="The label you photographed"
+            alt="The label you chose"
             className="aspect-4/5 w-28 shrink-0 bg-tint object-cover"
           />
           <div className="flex flex-col items-start gap-2 pb-1">
@@ -125,7 +132,7 @@ export default function AddWineFlow() {
               onClick={() => fileInput.current?.click()}
               className="link-quiet"
             >
-              Retake
+              Change photo
             </button>
             <button
               type="button"
@@ -186,7 +193,7 @@ export default function AddWineFlow() {
             onClick={() => fileInput.current?.click()}
             className="link-quiet mt-3"
           >
-            Retake
+            Change photo
           </button>
         </div>
       )}
@@ -194,18 +201,19 @@ export default function AddWineFlow() {
       {stage === "capture" && (
         <div className="border-t border-rule pt-10 text-center">
           <p className="mx-auto max-w-xs essay text-[1.5rem] leading-snug text-ink">
-            Photograph the label.
+            Start with the label.
           </p>
           <p className="mx-auto mt-3 max-w-xs text-[0.9375rem] leading-relaxed text-muted">
-            The producer, vintage and region get filled in for you. Anything that comes
-            back wrong is yours to fix.
+            Take a photo now, or pick one you already have. The producer, vintage
+            and region get filled in for you; anything that comes back wrong is
+            yours to fix.
           </p>
           <button
             type="button"
             className="btn-ink mt-7 w-full max-w-xs"
             onClick={() => fileInput.current?.click()}
           >
-            Take a photo
+            Add a photo
           </button>
           <p className="mt-5">
             <button
