@@ -1,5 +1,5 @@
 import Link from "next/link";
-import BottlePlaceholder from "@/components/BottlePlaceholder";
+import LabelPhoto from "@/components/LabelPhoto";
 import RatingMark from "@/components/RatingMark";
 import { countryFlag, placeLine } from "@/lib/places";
 import type { Wine } from "@/lib/types";
@@ -19,20 +19,14 @@ export default function WineCard({ wine }: { wine: Wine }) {
         active:scale-[0.985]"
     >
       <div className="aspect-4/5 w-full overflow-hidden bg-tint">
-        {wine.photo_id ? (
-          // 560px covers a 167 CSS px card at a phone's 3x density.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={`/api/photos/${wine.photo_id}?w=560`}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="h-full w-full object-cover transition-transform duration-200
-              ease-out-strong group-hover:scale-[1.03]"
-          />
-        ) : (
-          <BottlePlaceholder />
-        )}
+        {/* 560px covers a 167 CSS px card at a phone's 3x density. */}
+        <LabelPhoto
+          photoId={wine.photo_id}
+          alt=""
+          width={560}
+          className="h-full w-full object-cover transition-transform duration-200
+            ease-out-strong group-hover:scale-[1.03]"
+        />
       </div>
 
       <div className="pt-3">

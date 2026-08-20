@@ -10,7 +10,7 @@
  */
 
 const CACHE = "cellar-shell-v1";
-const PHOTOS = "cellar-photos-v1";
+const PHOTOS = "cellar-photos-v2";
 const KEEP = [CACHE, PHOTOS];
 const OFFLINE_URL = "/offline.html";
 
@@ -53,23 +53,50 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
+/**
+ * Every step here is optional except the fetch.
+ *
+ * This handler owns the response for every photo in the app, so anything it
+ * throws becomes a network error and the browser draws a broken image — even
+ * though the server answered perfectly and the bytes were in hand. Cache
+ * Storage throws for ordinary reasons: a full quota on iOS, eviction
+ * mid-write, a private window. None of those are reasons to lose the picture.
+ */
 async function photoFromCache(request) {
-  const cache = await caches.open(PHOTOS);
-
-  const hit = await cache.match(request);
-  if (hit) return hit;
+  let cache = null;
+  try {
+    cache = await caches.open(PHOTOS);
+    const hit = await cache.match(request);
+    if (hit) return hit;
+  } catch (error) {
+    cache = null; // Read straight from the network instead.
+  }
 
   const response = await fetch(request);
 
   // Only ever store an actual image. When the passcode session has expired the
   // request is redirected to the login page, and fetch follows that quietly —
   // caching the resulting HTML would leave a permanently broken picture.
-  if (response.ok && (response.headers.get("content-type") ?? "").startsWith("image/")) {
-    await cache.put(request, response.clone());
-    await trim(cache);
+  if (
+    cache &&
+    response.ok &&
+    (response.headers.get("content-type") ?? "").startsWith("image/")
+  ) {
+    // Deliberately not awaited into the response path: a failed write costs
+    // the caching, never the photo.
+    const copy = response.clone();
+    inBackground(async () => {
+      await cache.put(request, copy);
+      await trim(cache);
+    });
   }
 
   return response;
+}
+
+/** Runs cache housekeeping without letting it reach the response. */
+function inBackground(work) {
+  work().catch(() => {});
 }
 
 /** Drops the oldest entries once the cache grows past its cap. */

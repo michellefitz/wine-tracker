@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { RATINGS, SOURCES, TAG_GROUPS, WINE_TYPES, tagsInGroup } from "@/lib/taxonomy";
@@ -55,6 +56,8 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
 
   const [showDetails, setShowDetails] = useState(mode === "edit");
   const [error, setError] = useState<string | null>(null);
+  /** Set when the bottle saved but its photo didn't — see the notice below. */
+  const [photoTrouble, setPhotoTrouble] = useState<{ message: string; wineId?: string } | null>(null);
   const [saving, setSaving] = useState(false);
 
   function toggleTag(id: string) {
@@ -79,6 +82,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
     setSaving(true);
     try {
       let photoId = wine?.photo_id ?? null;
+      let photoFailed: string | null = null;
 
       if (photoDataUrl) {
         const upload = await fetch("/api/photos", {
@@ -86,10 +90,22 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ dataUrl: photoDataUrl }),
         });
+
         if (upload.ok) {
           photoId = ((await upload.json()) as { id: string }).id;
+        } else {
+          /*
+           * A failed photo upload shouldn't lose the tasting note, so the save
+           * still goes ahead — but it used to go ahead in silence, and a bottle
+           * that quietly arrives without its label looks like the app lost the
+           * picture. Say what happened and let the note through.
+           */
+          const payload = (await upload.json().catch(() => ({}))) as { error?: string };
+          console.error("wine-form: photo upload failed:", upload.status, payload.error);
+          photoFailed = payload.error
+            ? `The photo didn't upload: ${payload.error.toLowerCase()}.`
+            : "The photo didn't upload.";
         }
-        // A failed photo upload shouldn't lose the tasting note — save anyway.
       }
 
       const body = {
@@ -129,6 +145,16 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
       }
 
       const saved = (await response.json()) as { wine: Wine };
+
+      // Everything but the picture. Navigating now would take the notice with
+      // it and the bottle would just quietly turn up without its label.
+      if (photoFailed) {
+        setPhotoTrouble({ message: photoFailed, wineId: saved.wine.id });
+        setSaving(false);
+        router.refresh();
+        return;
+      }
+
       router.replace(`/wine/${saved.wine.id}`);
       router.refresh();
     } catch {
@@ -371,6 +397,28 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
       </section>
 
       {error && <p className="text-[0.9375rem] text-wine">{error}</p>}
+
+      {/*
+        Saved, minus the photo. This stays put rather than navigating on, so the
+        one thing that went wrong is read before the bottle is opened.
+      */}
+      {photoTrouble && (
+        <div className="border border-rule bg-card p-5">
+          <p className="text-[0.9375rem] leading-relaxed text-ink">
+            {photoTrouble.message} Everything else was saved.
+          </p>
+          {photoTrouble.wineId && (
+            <p className="mt-3 flex items-baseline gap-5">
+              <Link href={`/wine/${photoTrouble.wineId}`} className="link-quiet">
+                Open the bottle
+              </Link>
+              <Link href={`/wine/${photoTrouble.wineId}/edit`} className="link-quiet">
+                Try the photo again
+              </Link>
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="sticky bottom-0 -mx-5 border-t border-rule bg-paper/95 px-5 py-4
         pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">

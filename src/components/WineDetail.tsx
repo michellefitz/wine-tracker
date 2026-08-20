@@ -1,5 +1,5 @@
 import Link from "next/link";
-import BottlePlaceholder from "@/components/BottlePlaceholder";
+import LabelPhoto from "@/components/LabelPhoto";
 import DeleteWineButton from "@/components/DeleteWineButton";
 import WineFactsPanel from "@/components/WineFactsPanel";
 import RatingMark from "@/components/RatingMark";
@@ -125,17 +125,13 @@ export default function WineDetail({
         sheet ? "max-w-[11rem]" : "max-w-[14rem]"
       }`}
     >
-      {wine.photo_id ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={`/api/photos/${wine.photo_id}?w=960`}
-          alt={`Label of ${wine.name}`}
-          decoding="async"
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <BottlePlaceholder />
-      )}
+      <LabelPhoto
+        photoId={wine.photo_id}
+        alt={`Label of ${wine.name}`}
+        width={960}
+        eager
+        className="h-full w-full object-cover"
+      />
     </div>
   );
 

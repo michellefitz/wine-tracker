@@ -33,9 +33,18 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const db = sql();
-  const rows = await db.query(`SELECT mime, data FROM photos WHERE id = $1`, [id]);
-  const photo = (rows as { mime: string; data: string }[])[0];
+  let photo: { mime: string; data: string } | undefined;
+  try {
+    const db = sql();
+    const rows = await db.query(`SELECT mime, data FROM photos WHERE id = $1`, [id]);
+    photo = (rows as { mime: string; data: string }[])[0];
+  } catch (error) {
+    // An unhandled throw here becomes a 500 HTML page, which an <img> renders
+    // as a broken picture and nobody ever sees the reason for.
+    console.error("photos: could not read photo:", error instanceof Error ? error.message : error);
+    return NextResponse.json({ error: "Could not read that photo" }, { status: 503 });
+  }
+
   if (!photo) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
