@@ -32,13 +32,12 @@ const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5";
 const FILING_MODEL = process.env.ANTHROPIC_FILING_MODEL ?? "claude-sonnet-5";
 
 /*
- * Every search is a real round trip to the web, so this is the single biggest
- * lever on how long a lookup takes. It went to six while I was chasing empty
- * results, whose actual causes were a query nobody would type and a paused
- * turn being thrown away — both fixed. With a sensible first query, four is
- * room to be wrong once and recover.
+ * Every search is a real round trip, and the API call doesn't return until the
+ * model has finished all of them — so this is the single biggest lever on how
+ * long a lookup takes. A well-known bottle is answered by the first search;
+ * the other two are there to recover from a bad one, not to be thorough.
  */
-const MAX_SEARCHES = 4;
+const MAX_SEARCHES = 3;
 
 /**
  * Ceilings, not targets. Nothing waits for these — they only decide when a run
@@ -51,7 +50,7 @@ const MAX_SEARCHES = 4;
  * included. It used to be a per-call timeout, which meant a paused turn could
  * quietly spend it twice and blow the function budget on its own.
  */
-const RESEARCH_BUDGET_MS = 40_000;
+const RESEARCH_BUDGET_MS = 45_000;
 const RESEARCH_MIN_MS = 10_000;
 const EXTRACT_TIMEOUT_MS = 15_000;
 
@@ -64,11 +63,13 @@ written and nothing else: no vintage, no region, no country, no "Sparkling", no 
 That query is the shortest phrase that names the wine, and short is what search engines are good
 at. Piling the label into one query is how a well-covered wine comes back with nothing.
 
-Only after that first search has told you what the wine is should you narrow — add the vintage to
-find that year's page, or the producer's name to separate two wines that share a word. If a
-search comes back thin, change tack rather than lengthening the query: try the producer's own
-site, an importer, a retailer, or the wine name with the word "review". Repeating a long query
-with one more word on the end never helps.
+Stop searching the moment you can write the summary. A well-known bottle is usually answered by
+that first search, and searching again to be thorough costs the person real seconds in front of a
+spinner. Only search again if the first one genuinely didn't tell you what the wine is.
+
+When you do search again, change tack rather than lengthening the query: add the vintage to find
+that year's page, or try the producer's own site, an importer, a retailer, or the wine name with
+the word "review". Repeating a long query with one more word on the end never helps.
 
 Report only what you actually found in the search results, and say where each thing came from.
 The right answer is often "almost nothing": supermarket own-label bottles frequently have no
@@ -227,6 +228,11 @@ function textOf(content: Anthropic.ContentBlock[]): string {
  * whole point — the last unexplained failure here was solved the moment the
  * real message was visible instead of a summary of it.
  */
+/** How many searches actually ran — the main thing a slow lookup spent time on. */
+function searchCount(content: Anthropic.ContentBlock[]): number {
+  return content.filter((block) => block.type === "web_search_tool_result").length;
+}
+
 function searchErrors(content: Anthropic.ContentBlock[]): string[] {
   const codes: string[] = [];
 
@@ -347,7 +353,9 @@ export async function research(
   ];
 
   const seen: Anthropic.ContentBlock[] = [];
-  const deadline = Date.now() + RESEARCH_BUDGET_MS;
+  const startedAt = Date.now();
+  const deadline = startedAt + RESEARCH_BUDGET_MS;
+  let turns = 0;
 
   // One resume at most: each pause costs another turn of searching, and the
   // budget below is what stops two of them from outliving the function.
@@ -362,9 +370,11 @@ export async function research(
           model: MODEL,
           // Three short paragraphs and some bullets. The ceiling was 8192,
           // which bought nothing and paid for it in seconds.
-          max_tokens: 2500,
+          max_tokens: 3000,
           system: RESEARCH_SYSTEM,
-          thinking: { type: "adaptive" },
+          // No extended thinking: reading search results and summarising them
+          // is not a reasoning problem, and thinking time is time in front of
+          // a spinner.
           output_config: { effort: "low" },
           tools: [{ type: "web_search_20260209", name: "web_search", max_uses: MAX_SEARCHES }],
           messages,
@@ -388,6 +398,7 @@ export async function research(
     }
 
     seen.push(...response.content);
+    turns += 1;
 
     if (response.stop_reason === "refusal") {
       return { status: "unavailable", message: "The search was declined for this wine." };
@@ -416,6 +427,18 @@ export async function research(
   }
 
   const text = textOf(seen);
+
+  /*
+   * Timing, because this is the part nobody can see. It shows up in the
+   * platform's log for the request, which is the only way to tell a slow search
+   * from a slow model without guessing at it.
+   */
+  console.log(
+    `wine-research: searched in ${Date.now() - startedAt}ms ` +
+      `(${searchCount(seen)} searches, ${turns} turn${turns === 1 ? "" : "s"}, ` +
+      `${sourcesOf(seen).length} pages)`,
+  );
+
   if (!text) {
     return {
       status: "unavailable",
@@ -434,10 +457,15 @@ export async function researchWine(wine: Wine): Promise<Researched> {
 
   const client = new Anthropic();
   const bottle = describeBottle(wine);
+  const startedAt = Date.now();
 
   const found = await research(client, bottle, searchQuery(wine));
-  if ("status" in found) return found;
+  if ("status" in found) {
+    console.log(`wine-research: gave up after ${Date.now() - startedAt}ms`);
+    return found;
+  }
   const { text, sources } = found;
+  const filingFrom = Date.now();
 
   let response: Anthropic.Message;
   try {
@@ -446,7 +474,7 @@ export async function researchWine(wine: Wine): Promise<Researched> {
         model: FILING_MODEL,
         max_tokens: 4096,
         system: EXTRACT_SYSTEM,
-        thinking: { type: "adaptive" },
+        // Transcription from the text above into a shape. Nothing to think about.
         output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
         messages: [
           {
@@ -504,6 +532,11 @@ export async function researchWine(wine: Wine): Promise<Researched> {
         .filter(worthShowing)
         .slice(0, 8)
     : [];
+
+  console.log(
+    `wine-research: filed in ${Date.now() - filingFrom}ms, ` +
+      `${Date.now() - startedAt}ms all in`,
+  );
 
   const summary = clipped(raw.summary, 1200);
   const anything = Boolean(summary) || ratings.length > 0 || details.length > 0;
