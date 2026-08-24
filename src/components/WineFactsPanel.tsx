@@ -50,7 +50,7 @@ export default function WineFactsPanel({
     }
   }
 
-  async function look() {
+  async function look({ refresh = false } = {}) {
     setBusy(true);
     setError(null);
 
@@ -76,6 +76,8 @@ export default function WineFactsPanel({
 
       const response = await fetch(`/api/wines/${wineId}/facts`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh }),
         signal: controller.signal,
       });
       const body = (await response.json().catch(() => ({}))) as {
@@ -106,24 +108,16 @@ export default function WineFactsPanel({
   /*
    * Look it up the first time you open a bottle, then never again unless asked.
    *
-   * Asking what's on file first isn't wasted: a search started on a previous
-   * visit runs to completion on the server whether or not you stayed to watch,
-   * so by the time you come back the answer is often already written down.
-   * Without this check, coming back started the same search over again.
+   * One request, not two. This used to ask what was on file first, because the
+   * lookup endpoint always forced a fresh search and would otherwise repeat one
+   * that had already finished. The endpoint answers from storage by default
+   * now, so that question — and the round trip it cost before any searching
+   * could begin — is gone.
    */
   useEffect(() => {
     if (initial || started.current) return;
     started.current = true;
-
-    void (async () => {
-      const already = await stored();
-      if (already) {
-        setFacts(already);
-        router.refresh();
-        return;
-      }
-      await look();
-    })();
+    void look();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial]);
 
@@ -198,7 +192,7 @@ export default function WineFactsPanel({
         <h2 className="eyebrow">About this bottle</h2>
         <button
           type="button"
-          onClick={look}
+          onClick={() => look({ refresh: true })}
           disabled={busy}
           className="link-quiet shrink-0 disabled:opacity-50"
         >
