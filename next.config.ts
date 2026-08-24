@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  /*
+   * sharp is a native module and must be required at runtime rather than
+   * bundled into the function, or the binary it needs isn't there beside it.
+   */
+  serverExternalPackages: ["sharp"],
+
   async headers() {
     return [
       {

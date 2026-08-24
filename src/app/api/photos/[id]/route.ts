@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import sharp from "sharp";
 import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -18,7 +17,8 @@ function respond(bytes: Buffer, mime: string, vary = false) {
   return new NextResponse(new Uint8Array(bytes), {
     headers: {
       "Content-Type": mime,
-      "Content-Length": String(bytes.length),
+      // Content-Length is deliberately not set: the platform may compress the
+      // body after this returns, and a stale length is a truncated picture.
       // Photo bytes never change once written, and the ID is unguessable. The
       // width is part of the URL, so each variant caches independently.
       "Cache-Control": "private, max-age=31536000, immutable",
@@ -56,18 +56,28 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     return respond(original, photo.mime);
   }
 
-  // A label photo off a phone is ~1100px wide; a card shows it at a third of
-  // that. Sending the full thing is most of what makes the log slow to paint.
+  /*
+   * A label photo off a phone is ~1100px wide; a card shows it at a third of
+   * that. Sending the full thing is most of what makes the log slow to paint.
+   *
+   * Resizing is an optimisation, and an optimisation may never be the reason a
+   * photo doesn't appear. sharp is loaded here rather than at the top of the
+   * file for exactly that reason: a native module that won't load on the
+   * serverless runtime would otherwise take the whole route down with it, and
+   * a route that throws returns an HTML error page, which an <img> shows as a
+   * broken picture. Either way — can't load, or can't encode — the stored
+   * photo goes out as it is.
+   */
   const acceptsWebp = (request.headers.get("accept") ?? "").includes("image/webp");
   try {
+    const sharp = (await import("sharp")).default;
     const pipeline = sharp(original).resize({ width: requested, withoutEnlargement: true });
     const bytes = acceptsWebp
       ? await pipeline.webp({ quality: 72 }).toBuffer()
       : await pipeline.jpeg({ quality: 76, mozjpeg: true }).toBuffer();
     return respond(bytes, acceptsWebp ? "image/webp" : "image/jpeg", true);
   } catch (error) {
-    // A photo we can't re-encode is still a photo — send it as it was stored.
-    console.error("photos: resize failed:", error instanceof Error ? error.message : error);
+    console.error("photos: could not resize:", error instanceof Error ? error.message : error);
     return respond(original, photo.mime);
   }
 }
