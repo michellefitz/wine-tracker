@@ -47,6 +47,31 @@ const FILING_MODEL = process.env.ANTHROPIC_FILING_MODEL ?? "claude-sonnet-5";
 const FIRST_PASS_SEARCHES = 2;
 const DEEPER_SEARCHES = 4;
 
+/*
+ * The plain search tool, not the dynamic-filtering one.
+ *
+ * web_search_20260209 filters results by running code execution under the
+ * hood, and that machinery is what a lookup was actually paying for: one
+ * search measured 28.6s and three measured 23.1s, both returning ten pages.
+ * The count never mattered because the cost isn't per query.
+ *
+ * Filtering search results is not worth twenty seconds here. Reading a few
+ * wine pages is what the plain tool has always been for.
+ */
+/** Both are in the SDK's tool-type union, so either is a valid choice here. */
+type SearchTool = "web_search_20250305" | "web_search_20260209";
+
+const PLAIN_SEARCH: SearchTool = "web_search_20250305";
+const FILTERING_SEARCH: SearchTool = "web_search_20260209";
+
+/*
+ * Flips permanently if the plain tool is ever refused for this model, so a
+ * wrong guess about which variants a model accepts costs one failed lookup
+ * rather than every lookup. Module scope: the correction outlives the request
+ * that discovered it, for as long as the instance lives.
+ */
+let searchTool: SearchTool = PLAIN_SEARCH;
+
 /**
  * Ceilings, not targets. Nothing waits for these — they only decide when a run
  * that has gone wrong is called off, and the function's own 120s limit costs
@@ -398,13 +423,17 @@ export async function research(
           // which bought nothing and paid for it in seconds.
           max_tokens: 3000,
           system: RESEARCH_SYSTEM,
-          // No extended thinking: reading search results and summarising them
-          // is not a reasoning problem, and thinking time is time in front of
-          // a spinner.
+          /*
+           * Off, explicitly. Leaving `thinking` out doesn't disable it on this
+           * model — it runs adaptive by default — so the earlier attempt to
+           * drop it changed nothing. Reading search results and summarising
+           * them isn't a reasoning problem.
+           */
+          thinking: { type: "disabled" },
           output_config: { effort: "low" },
           tools: [
             {
-              type: "web_search_20260209",
+              type: searchTool,
               name: "web_search",
               max_uses: attempt === 0 ? FIRST_PASS_SEARCHES : DEEPER_SEARCHES,
             },
@@ -416,6 +445,15 @@ export async function research(
     } catch (error) {
       const detail = apiDetail(error);
       console.error("wine-research: search call failed:", detail);
+
+      // The plain search tool isn't accepted here after all: take the slower
+      // one from now on rather than failing every lookup over it.
+      if (searchTool === PLAIN_SEARCH && /web_search|tool/i.test(detail) && /400/.test(detail)) {
+        console.error(`wine-research: ${PLAIN_SEARCH} refused, falling back to ${FILTERING_SEARCH}`);
+        searchTool = FILTERING_SEARCH;
+        attempt -= 1; // this attempt didn't happen
+        continue;
+      }
 
       // The one failure worth wording for a person rather than quoting the SDK
       // at them: it means try again, not something is broken.
@@ -480,7 +518,7 @@ export async function research(
   console.log(
     `wine-research: searched in ${Date.now() - startedAt}ms ` +
       `(${searchCount(seen)} searches, ${turns} turn${turns === 1 ? "" : "s"}, ` +
-      `${sourcesOf(seen).length} pages)`,
+      `${sourcesOf(seen).length} pages, ${searchTool})`,
   );
 
   if (!text) {
@@ -519,6 +557,7 @@ export async function researchWine(wine: Wine): Promise<Researched> {
         max_tokens: 4096,
         system: EXTRACT_SYSTEM,
         // Transcription from the text above into a shape. Nothing to think about.
+        thinking: { type: "disabled" },
         output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
         messages: [
           {
