@@ -32,12 +32,18 @@ const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5";
 const FILING_MODEL = process.env.ANTHROPIC_FILING_MODEL ?? "claude-sonnet-5";
 
 /*
- * Every search is a real round trip, and the API call doesn't return until the
- * model has finished all of them — so this is the single biggest lever on how
- * long a lookup takes. A well-known bottle is answered by the first search;
- * the other two are there to recover from a bad one, not to be thorough.
+ * One search, then more only if that one came back with nothing.
+ *
+ * Measured: three searches took 28.7s of a 36.9s lookup — about 9.5s each —
+ * and returned ten pages, which the first search almost certainly had on its
+ * own. The prompt had already asked it to stop early and it searched three
+ * times anyway, because a prompt is a request and this needs to be a rule.
+ *
+ * So the allowance is the rule. The deeper pass only happens when the first
+ * one genuinely found no pages at all, which is the case that needs it.
  */
-const MAX_SEARCHES = 3;
+const FIRST_PASS_SEARCHES = 1;
+const DEEPER_SEARCHES = 3;
 
 /**
  * Ceilings, not targets. Nothing waits for these — they only decide when a run
@@ -88,9 +94,11 @@ pin it down: the word on the label that says which one it is, like Brut, Extra D
 A page of true, useful things about the range beats a paragraph explaining why nothing can be
 said.
 
-Write the summary as two or three short paragraphs with a blank line between them, not one
-block: what the wine is, then what it tastes like, then anything notable about where it comes
-from. Short paragraphs are the point — this is read on a phone.
+Write the summary as two short paragraphs with a blank line between them, and keep the whole
+thing under about ninety words: what the wine is, then anything notable about where it comes
+from. This is read on a phone, held in one hand, in a shop or at a table — and every word of it
+gets written twice, once by you and once by the step that files it, so length costs seconds as
+well as attention. What it tastes like goes in "style", not here.
 
 Cover, where the results support it:
 - What this wine is and what it tastes like, in plain words.
@@ -387,7 +395,13 @@ export async function research(
           // is not a reasoning problem, and thinking time is time in front of
           // a spinner.
           output_config: { effort: "low" },
-          tools: [{ type: "web_search_20260209", name: "web_search", max_uses: MAX_SEARCHES }],
+          tools: [
+            {
+              type: "web_search_20260209",
+              name: "web_search",
+              max_uses: attempt === 0 ? FIRST_PASS_SEARCHES : DEEPER_SEARCHES,
+            },
+          ],
           messages,
         },
         { timeout: remaining, maxRetries: 0 },
@@ -431,6 +445,18 @@ export async function research(
     if (response.stop_reason === "pause_turn") {
       // Resume where it left off; no extra user turn, the API picks it up.
       messages.push({ role: "assistant", content: response.content });
+      continue;
+    }
+
+    // One search was enough, or it wasn't. Only the second case costs more time.
+    if (attempt === 0 && sourcesOf(seen).length === 0) {
+      messages.push({ role: "assistant", content: response.content });
+      messages.push({
+        role: "user",
+        content:
+          "That search returned nothing usable. Try a different angle — the producer's own " +
+          "site, an importer or a retailer — and then write up whatever you find.",
+      });
       continue;
     }
 
