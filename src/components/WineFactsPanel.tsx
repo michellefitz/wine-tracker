@@ -50,15 +50,29 @@ export default function WineFactsPanel({
     setBusy(true);
     setError(null);
 
-    // Longer than the server gives itself, so this only fires when the request
-    // never came back at all — and when it does, say that rather than blaming
-    // the connection.
-    const giveUp = AbortSignal.timeout(75_000);
+    /*
+     * AbortController rather than AbortSignal.timeout, and everything inside
+     * the try. The timeout helper needs iOS 16.4, and it was being called
+     * before the try — so on an older phone it threw before the request went
+     * out, the finally never ran, and the panel sat on "Searching the web"
+     * with no error and no way back. A convenience that can strand the screen
+     * isn't a convenience.
+     */
+    const controller = new AbortController();
+    let expired = false;
+    let timer = 0;
 
     try {
+      // Longer than the server gives itself, so this only fires when the
+      // request never came back at all.
+      timer = window.setTimeout(() => {
+        expired = true;
+        controller.abort();
+      }, 75_000);
+
       const response = await fetch(`/api/wines/${wineId}/facts`, {
         method: "POST",
-        signal: giveUp,
+        signal: controller.signal,
       });
       const body = (await response.json().catch(() => ({}))) as {
         facts?: StoredFacts;
@@ -75,11 +89,12 @@ export default function WineFactsPanel({
       router.refresh();
     } catch {
       setError(
-        giveUp.aborted
+        expired
           ? "The search took too long and never came back. Try Refresh."
           : "Lost the connection while searching.",
       );
     } finally {
+      window.clearTimeout(timer);
       setBusy(false);
     }
   }

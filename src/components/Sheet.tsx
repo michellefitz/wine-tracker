@@ -19,6 +19,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
  *     of your finger once you're past the threshold, the way a rubber band does.
  *   - A fast flick closes it regardless of distance. Everyone flicks.
  *   - Let go too early and it springs back rather than sitting where dropped.
+ *
+ * Above all of that: a sheet on its way out must never be able to hold the app
+ * hostage. It covers the whole screen and locks the page behind it, so every
+ * exit path here gives both of those up immediately and unconditionally — see
+ * `close`. Getting that wrong froze the app until it was force-quit.
  */
 
 /** Past this much, or this fast, and letting go closes it. */
@@ -27,6 +32,24 @@ const DISMISS_VELOCITY = 0.55; // px per ms
 
 /** How much of a slow drag actually shows on screen, past the first 40px. */
 const RESISTANCE = 0.36;
+
+/**
+ * Counted, not a flag. Opening a grape from inside a bottle swaps one sheet for
+ * another, and React can mount the new one before unmounting the old — so the
+ * new sheet reads "hidden" as the value to restore and puts it back on the way
+ * out, locking the page for good. Counting survives the overlap.
+ */
+let scrollLocks = 0;
+
+function lockScroll() {
+  scrollLocks += 1;
+  document.body.style.overflow = "hidden";
+}
+
+function releaseScroll() {
+  scrollLocks = Math.max(0, scrollLocks - 1);
+  if (scrollLocks === 0) document.body.style.overflow = "";
+}
 
 export default function Sheet({
   children,
@@ -39,7 +62,13 @@ export default function Sheet({
   const router = useRouter();
   const panel = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
+
   const [leaving, setLeaving] = useState(false);
+  /** Set when the route never took us away — see `close`. */
+  const [gone, setGone] = useState(false);
+
+  const closing = useRef(false);
+  const holdsLock = useRef(false);
 
   const drag = useRef({
     active: false,
@@ -50,27 +79,57 @@ export default function Sheet({
     velocity: 0,
   });
 
-  const close = useCallback(() => {
-    if (leaving) return;
-    setLeaving(true);
-    // Let the exit animation run before the route changes underneath it.
-    window.setTimeout(() => router.back(), 220);
-  }, [leaving, router]);
+  useEffect(() => {
+    lockScroll();
+    holdsLock.current = true;
 
-  // Escape closes it, and the page underneath doesn't scroll while it's up.
+    return () => {
+      if (!holdsLock.current) return;
+      holdsLock.current = false;
+      releaseScroll();
+    };
+  }, []);
+
+  const close = useCallback(() => {
+    if (closing.current) return;
+    closing.current = true;
+    setLeaving(true);
+
+    /*
+     * Hand the page back before anything else. Everything below this line can
+     * fail — the history entry may not exist, the route may not change — and
+     * none of it may leave the page scroll-locked under an invisible full
+     * screen button. `leaving` also turns off pointer events on the way out.
+     */
+    if (holdsLock.current) {
+      holdsLock.current = false;
+      releaseScroll();
+    }
+
+    // Let the exit animation run before the route changes underneath it.
+    const back = window.setTimeout(() => router.back(), 220);
+
+    /*
+     * And a way out of the way out. router.back() does nothing when there's no
+     * entry behind this one — opening the installed app straight onto a bottle,
+     * say — which used to leave the sheet mounted and latched shut. If we're
+     * still here well after the animation, stop rendering rather than sit on
+     * top of the app.
+     */
+    const giveUp = window.setTimeout(() => setGone(true), 1200);
+
+    return () => {
+      window.clearTimeout(back);
+      window.clearTimeout(giveUp);
+    };
+  }, [router]);
+
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") close();
     }
     document.addEventListener("keydown", onKey);
-
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = previous;
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, [close]);
 
   function offsetTo(y: number) {
@@ -141,12 +200,14 @@ export default function Sheet({
     offsetTo(0);
   }
 
+  if (gone) return null;
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={label}
-      className={`fixed inset-0 z-50 ${leaving ? "sheet-leaving" : ""}`}
+      className={`fixed inset-0 z-50 ${leaving ? "sheet-leaving pointer-events-none" : ""}`}
     >
       {/* Tapping the strip of page still showing puts the sheet away. */}
       <button
