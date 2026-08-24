@@ -15,7 +15,7 @@ import type { Wine, WineFacts } from "@/lib/types";
  *
  * Bump FACTS_VERSION to have every stored record rewritten on next view.
  */
-export const FACTS_VERSION = 3;
+export const FACTS_VERSION = 4;
 
 /*
  * Sonnet, not Opus. This job is reading a handful of search results and
@@ -76,6 +76,17 @@ The right answer is often "almost nothing": supermarket own-label bottles freque
 coverage at all, and saying so plainly is more useful than padding. Never supply a rating, score,
 award or tasting note from memory — if it isn't in the results you read, it doesn't exist for
 this purpose.
+
+Sometimes what's logged names a producer or a house rather than one bottling — "Mionetto" is a
+range of Proseccos, not a wine. Don't answer that with a refusal. Say in one line which it is,
+then give everything that holds right across that producer's core range: the grape, the region,
+the style, the usual alcohol, what it goes with. Those are facts about what's in the glass and
+they don't change from bottling to bottling, so they're worth having. Keep out only what really
+does vary — scores, awards, a particular vintage's tasting note. Then close by naming what would
+pin it down: the word on the label that says which one it is, like Brut, Extra Dry or Rosé.
+
+A page of true, useful things about the range beats a paragraph explaining why nothing can be
+said.
 
 Write the summary as two or three short paragraphs with a blank line between them, not one
 block: what the wine is, then what it tastes like, then anything notable about where it comes
