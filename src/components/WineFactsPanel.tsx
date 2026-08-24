@@ -33,6 +33,10 @@ export default function WineFactsPanel({
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const started = useRef(false);
+  /** Mirrors `busy` for the listeners below, which outlive any one render. */
+  const busyRef = useRef(false);
+  const leftMidSearch = useRef(false);
+  busyRef.current = busy;
 
   /** What's already written down — one row, no searching. */
   async function stored(): Promise<StoredFacts | null> {
@@ -124,30 +128,66 @@ export default function WineFactsPanel({
   }, [initial]);
 
   /*
-   * And collect one that landed while this screen was in the background. Coming
-   * back to a bottle you left mid-search is the case this exists for: the work
-   * finished without you, and the page has no other way to hear about it.
+   * Coming back to the app, in the two states that need it.
+   *
+   * A search outlives the screen that started it, so the answer is often
+   * already written down by the time you return — that's the easy half.
+   *
+   * The hard half is that iOS freezes a backgrounded page, timers included. A
+   * request that was in flight when you left can simply never settle: it
+   * neither resolves nor rejects, the abort timer never fires, and `busy`
+   * stays true for good. This listener used to begin `if (busy) return`, which
+   * switched off the only thing that could have rescued it — so the panel sat
+   * on "Searching the web" until the app was force-quit. Being busy is now the
+   * reason to look, not the reason not to.
    */
   useEffect(() => {
-    if (busy) return;
-    if (facts && !error) return;
-
-    function collect() {
+    async function collect() {
       if (document.visibilityState !== "visible") return;
-      void (async () => {
-        const already = await stored();
-        if (!already) return;
+
+      const wasAway = leftMidSearch.current;
+      leftMidSearch.current = false;
+
+      // Nothing to collect: we already have an answer and aren't waiting.
+      if (!busyRef.current && facts && !error) return;
+
+      const already = await stored();
+      if (already) {
         setFacts(already);
         setError(null);
+        setBusy(false);
         router.refresh();
-      })();
+        return;
+      }
+
+      // Still waiting, and we were away while it ran. Give it a moment to
+      // prove it's alive, then let go rather than spin for ever.
+      if (busyRef.current && wasAway) {
+        window.setTimeout(() => {
+          if (!busyRef.current) return;
+          setBusy(false);
+          setError("That search stopped when the app went to the background. Try Refresh.");
+        }, 2500);
+      }
     }
 
-    document.addEventListener("visibilitychange", collect);
-    window.addEventListener("focus", collect);
+    function onVisibility() {
+      if (document.visibilityState === "hidden") {
+        if (busyRef.current) leftMidSearch.current = true;
+        return;
+      }
+      void collect();
+    }
+
+    function onFocus() {
+      void collect();
+    }
+
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", onFocus);
     return () => {
-      document.removeEventListener("visibilitychange", collect);
-      window.removeEventListener("focus", collect);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", onFocus);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busy, facts, error]);
