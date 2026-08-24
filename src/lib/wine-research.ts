@@ -17,7 +17,12 @@ import type { Wine, WineFacts } from "@/lib/types";
  */
 export const FACTS_VERSION = 3;
 
-const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5";
+/*
+ * Sonnet, not Opus. This job is reading a handful of search results and
+ * writing four sentences about a bottle of wine — it is not the kind of
+ * problem Opus is worth waiting for, and the waiting was the complaint.
+ */
+const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5";
 
 /**
  * Filing what the research found is a transcription job, not a research job:
@@ -26,23 +31,29 @@ const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5";
  */
 const FILING_MODEL = process.env.ANTHROPIC_FILING_MODEL ?? "claude-sonnet-5";
 
-/** Cap the searching — but not at three, which wasn't enough to be wrong twice. */
-const MAX_SEARCHES = 6;
+/*
+ * Every search is a real round trip to the web, so this is the single biggest
+ * lever on how long a lookup takes. It went to six while I was chasing empty
+ * results, whose actual causes were a query nobody would type and a paused
+ * turn being thrown away — both fixed. With a sensible first query, four is
+ * room to be wrong once and recover.
+ */
+const MAX_SEARCHES = 4;
 
 /**
- * Budgets. These were originally cut to fit a 60s function, which is the free
- * tier's ceiling — this project is on a plan that allows far more, so a search
- * with six web lookups in it was being stopped at thirty seconds for no reason
- * and reported as "Request timed out". The route now asks for 120s and the pair
- * below can use 80 of it, leaving room to return a message either way.
+ * Ceilings, not targets. Nothing waits for these — they only decide when a run
+ * that has gone wrong is called off, and the function's own 120s limit costs
+ * nothing when it isn't used. What a lookup actually feels like is set by the
+ * model, the number of searches and how much it is allowed to write, all of
+ * which came down alongside these.
  *
  * RESEARCH_BUDGET_MS is wall clock across the whole search phase, resumes
  * included. It used to be a per-call timeout, which meant a paused turn could
  * quietly spend it twice and blow the function budget on its own.
  */
-const RESEARCH_BUDGET_MS = 60_000;
+const RESEARCH_BUDGET_MS = 40_000;
 const RESEARCH_MIN_MS = 10_000;
-const EXTRACT_TIMEOUT_MS = 20_000;
+const EXTRACT_TIMEOUT_MS = 15_000;
 
 const RESEARCH_SYSTEM = `You research one specific bottle of wine on the web for someone who
 keeps a log of what they've drunk. They already know whether they liked it; what they want is
@@ -349,7 +360,9 @@ export async function research(
       response = await client.messages.create(
         {
           model: MODEL,
-          max_tokens: 8192,
+          // Three short paragraphs and some bullets. The ceiling was 8192,
+          // which bought nothing and paid for it in seconds.
+          max_tokens: 2500,
           system: RESEARCH_SYSTEM,
           thinking: { type: "adaptive" },
           output_config: { effort: "low" },

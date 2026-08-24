@@ -72,7 +72,7 @@ export default function WineFactsPanel({
       timer = window.setTimeout(() => {
         expired = true;
         controller.abort();
-      }, 110_000);
+      }, 70_000);
 
       const response = await fetch(`/api/wines/${wineId}/facts`, {
         method: "POST",
