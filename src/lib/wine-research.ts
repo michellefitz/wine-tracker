@@ -30,21 +30,19 @@ const FILING_MODEL = process.env.ANTHROPIC_FILING_MODEL ?? "claude-sonnet-5";
 const MAX_SEARCHES = 6;
 
 /**
- * Budgets, sized so the pair finishes inside a 60s function budget with room
- * left to return a message. A lookup that overruns has to fail *visibly* —
- * being killed mid-flight is the one outcome with nothing to show.
+ * Budgets. These were originally cut to fit a 60s function, which is the free
+ * tier's ceiling — this project is on a plan that allows far more, so a search
+ * with six web lookups in it was being stopped at thirty seconds for no reason
+ * and reported as "Request timed out". The route now asks for 120s and the pair
+ * below can use 80 of it, leaving room to return a message either way.
  *
  * RESEARCH_BUDGET_MS is wall clock across the whole search phase, resumes
  * included. It used to be a per-call timeout, which meant a paused turn could
  * quietly spend it twice and blow the function budget on its own.
- *
- * The pair adds up to 41s against a 60s function. The headroom is not spare —
- * a run that finished, saved, and then got killed on the way out looks to the
- * phone exactly like a lost connection, which is a lie about what happened.
  */
-const RESEARCH_BUDGET_MS = 30_000;
-const RESEARCH_MIN_MS = 8_000;
-const EXTRACT_TIMEOUT_MS = 11_000;
+const RESEARCH_BUDGET_MS = 60_000;
+const RESEARCH_MIN_MS = 10_000;
+const EXTRACT_TIMEOUT_MS = 20_000;
 
 const RESEARCH_SYSTEM = `You research one specific bottle of wine on the web for someone who
 keeps a log of what they've drunk. They already know whether they liked it; what they want is
@@ -363,6 +361,16 @@ export async function research(
     } catch (error) {
       const detail = apiDetail(error);
       console.error("wine-research: search call failed:", detail);
+
+      // The one failure worth wording for a person rather than quoting the SDK
+      // at them: it means try again, not something is broken.
+      if (/timed? ?out/i.test(detail)) {
+        return {
+          status: "unavailable",
+          message: "The search ran out of time. Try Refresh — a second attempt usually lands.",
+        };
+      }
+
       return { status: "unavailable", message: `Couldn't search for this wine. The API said: ${detail}` };
     }
 

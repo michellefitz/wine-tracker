@@ -5,8 +5,12 @@ import { getWine } from "@/lib/wines";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Searching the web and filing the result runs well past the default budget. */
-export const maxDuration = 60;
+/**
+ * Searching the web and filing the result runs well past the default budget.
+ * 120s is comfortably inside this plan's ceiling and leaves 40s of headroom
+ * over what the two model calls can spend between them.
+ */
+export const maxDuration = 120;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

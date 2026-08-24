@@ -67,12 +67,12 @@ export default function WineFactsPanel({
     let timer = 0;
 
     try {
-      // Longer than the server gives itself, so this only fires when the
-      // request never came back at all.
+      // Longer than the server's own ceiling, so the server's error wins and
+      // this only fires when the request never came back at all.
       timer = window.setTimeout(() => {
         expired = true;
         controller.abort();
-      }, 75_000);
+      }, 110_000);
 
       const response = await fetch(`/api/wines/${wineId}/facts`, {
         method: "POST",
