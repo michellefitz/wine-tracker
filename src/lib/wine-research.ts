@@ -15,7 +15,7 @@ import type { Wine, WineFacts } from "@/lib/types";
  *
  * Bump FACTS_VERSION to have every stored record rewritten on next view.
  */
-export const FACTS_VERSION = 4;
+export const FACTS_VERSION = 5;
 
 /*
  * Sonnet, not Opus. This job is reading a handful of search results and
@@ -32,18 +32,20 @@ const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5";
 const FILING_MODEL = process.env.ANTHROPIC_FILING_MODEL ?? "claude-sonnet-5";
 
 /*
- * One search, then more only if that one came back with nothing.
+ * Two searches, then more only if those came back with nothing.
  *
- * Measured: three searches took 28.7s of a 36.9s lookup — about 9.5s each —
- * and returned ten pages, which the first search almost certainly had on its
- * own. The prompt had already asked it to stop early and it searched three
- * times anyway, because a prompt is a request and this needs to be a rule.
+ * Measured at three searches: 28.7s of a 36.9s lookup, about 9.5s each. One
+ * was then tried and was too tight — not because one search isn't enough to
+ * answer with, but because running out mid-turn is a *refusal*, and a refusal
+ * reads to the model like an empty web. Le Piane came back as "the search tool
+ * hit its usage limit before returning results, so nothing could be
+ * confirmed", when it had already read a page.
  *
- * So the allowance is the rule. The deeper pass only happens when the first
- * one genuinely found no pages at all, which is the case that needs it.
+ * Two leaves room to follow up on the first without hitting that wall, and the
+ * prompt below says what to do if the wall is hit anyway.
  */
-const FIRST_PASS_SEARCHES = 1;
-const DEEPER_SEARCHES = 3;
+const FIRST_PASS_SEARCHES = 2;
+const DEEPER_SEARCHES = 4;
 
 /**
  * Ceilings, not targets. Nothing waits for these — they only decide when a run
@@ -76,6 +78,11 @@ spinner. Only search again if the first one genuinely didn't tell you what the w
 When you do search again, change tack rather than lengthening the query: add the vintage to find
 that year's page, or try the producer's own site, an importer, a retailer, or the wine name with
 the word "review". Repeating a long query with one more word on the end never helps.
+
+If a search comes back refused because the allowance is spent, that is the end of the searching,
+not a finding. Write up what you already read and say nothing about the limit — it's a fact about
+this tool, not about the wine, and reporting it as though nothing could be established wastes
+everything the earlier searches did return.
 
 Report only what you actually found in the search results, and say where each thing came from.
 The right answer is often "almost nothing": supermarket own-label bottles frequently have no
