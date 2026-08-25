@@ -99,7 +99,14 @@ export default function WineDetail({
   const statedTemperature = (stored?.details ?? []).find((detail) =>
     /^serv(ing|e)\b/i.test(detail.label.trim()),
   )?.value;
-  const serving = servingFor(wine.wine_type, grapes, statedTemperature);
+  const serving = servingFor({
+    wineType: wine.wine_type,
+    grapes,
+    // Producer, name and region together: how a sparkling wine was made is the
+    // thing that most changes how you serve it, and it's never in the grapes.
+    label: [wine.producer, wine.name, wine.region].filter(Boolean).join(" "),
+    statedTemperature,
+  });
 
   const rows: { term: string; value: React.ReactNode; found?: boolean }[] = [
     { term: "Vintage", value: wine.vintage ? String(wine.vintage) : "" },
@@ -247,7 +254,7 @@ export default function WineDetail({
         ))}
       </dl>
 
-      {serving && <ServingGuide serving={serving} wineType={wine.wine_type} />}
+      {serving && <ServingGuide serving={serving} mark={styleOf(wine.wine_type)} />}
 
       <WineFactsPanel
         wineId={wine.id}

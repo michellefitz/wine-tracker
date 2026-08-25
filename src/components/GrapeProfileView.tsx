@@ -1,7 +1,9 @@
 import Link from "next/link";
 import ScaleMeter from "@/components/ScaleMeter";
+import ServingGuide from "@/components/ServingGuide";
 import WineCard from "@/components/WineCard";
 import { grapeSlug } from "@/lib/grapes";
+import { servingForGrape } from "@/lib/serving";
 import { GRAPE_SCALES } from "@/lib/taxonomy";
 import type { GrapeProfile, Wine } from "@/lib/types";
 
@@ -47,6 +49,11 @@ export default function GrapeProfileView({
 }) {
   const scales = GRAPE_SCALES.filter((scale) => profile[scale.id] !== null);
   const liked = yourWines.filter((wine) => wine.score > 0).length;
+
+  // The same advice a bottle of it would give you, minus whatever the label
+  // would have added — a grape page knows the name and the colour, which is
+  // exactly what the serving rules read.
+  const serving = servingForGrape(profile.name, profile.colour);
 
   return (
     <div>
@@ -124,6 +131,8 @@ export default function GrapeProfileView({
             </ul>
           </Section>
         )}
+
+        {serving && <ServingGuide serving={serving} variant="section" />}
 
         {profile.pairings.length > 0 && (
           <Section title="Goes with">
