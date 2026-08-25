@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import LabelPhoto from "@/components/LabelPhoto";
+import { fileToCompressedDataUrl } from "@/lib/image";
 import { RATINGS, SOURCES, TAG_GROUPS, WINE_TYPES, tagsInGroup } from "@/lib/taxonomy";
 import type { LabelReading, Wine } from "@/lib/types";
 
@@ -54,11 +56,40 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
   const [source, setSource] = useState(wine?.source ?? "");
   const [drankOn, setDrankOn] = useState(wine?.drank_on ?? today());
 
+  /*
+   * The picture, on a bottle that already has one.
+   *
+   * Two values rather than one, because "the photo I want to end up with" and
+   * "the photo that's currently stored" only differ until you save. Keeping the
+   * stored id means a failed upload falls back to the label you already had
+   * instead of quietly leaving the bottle bare.
+   *
+   * Adding a wine doesn't come through here — that flow owns its own picker, so
+   * it can offer the product shot it found alongside the photo you took.
+   */
+  const [storedPhoto, setStoredPhoto] = useState(wine?.photo_id ?? null);
+  const [newPhoto, setNewPhoto] = useState<string | null>(null);
+  const [photoNotice, setPhotoNotice] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
   const [showDetails, setShowDetails] = useState(mode === "edit");
   const [error, setError] = useState<string | null>(null);
   /** Set when the bottle saved but its photo didn't — see the notice below. */
   const [photoTrouble, setPhotoTrouble] = useState<{ message: string; wineId?: string } | null>(null);
   const [saving, setSaving] = useState(false);
+
+  async function onPhotoChosen(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // let the same file be re-picked after a change
+    if (!file) return;
+
+    setPhotoNotice(null);
+    try {
+      setNewPhoto(await fileToCompressedDataUrl(file));
+    } catch (error) {
+      setPhotoNotice(error instanceof Error ? error.message : "Couldn't read that photo.");
+    }
+  }
 
   function toggleTag(id: string) {
     setTags((current) =>
@@ -81,14 +112,17 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
 
     setSaving(true);
     try {
-      let photoId = wine?.photo_id ?? null;
+      // Editing tracks its own; adding is handed one by the flow around it.
+      let photoId = mode === "edit" ? storedPhoto : (wine?.photo_id ?? null);
       let photoFailed: string | null = null;
 
-      if (photoDataUrl) {
+      const pendingPhoto = mode === "edit" ? newPhoto : photoDataUrl;
+
+      if (pendingPhoto) {
         const upload = await fetch("/api/photos", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ dataUrl: photoDataUrl }),
+          body: JSON.stringify({ dataUrl: pendingPhoto }),
         });
 
         if (upload.ok) {
@@ -163,8 +197,80 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
     }
   }
 
+  const photo = newPhoto ? (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img src={newPhoto} alt="The photo you just chose" className="h-full w-full object-cover" />
+  ) : (
+    <LabelPhoto
+      photoId={storedPhoto}
+      alt={`Label of ${wine?.name ?? "this bottle"}`}
+      width={560}
+      className="h-full w-full object-cover"
+    />
+  );
+
   return (
     <form onSubmit={onSubmit} className="space-y-8">
+      {/*
+        Changing the picture on a bottle you already logged. The product shot
+        the app finds for you is a guess, and a guess you accepted once is not a
+        guess you're stuck with — it can be soft, or the wrong vintage, or just
+        not the bottle you remember drinking.
+
+        No `capture` attribute, same as the add flow: it would force the camera
+        open, and the photo you want is usually already in the camera roll.
+        Without it the phone puts up its own chooser — library, camera, files —
+        which is a better menu than anything drawn here.
+      */}
+      {mode === "edit" && (
+        <section>
+          <p className="eyebrow mb-4">Photo</p>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onPhotoChosen}
+          />
+
+          <div className="flex items-end gap-5">
+            <div className="aspect-4/5 w-28 shrink-0 overflow-hidden bg-tint">{photo}</div>
+
+            <div className="flex flex-col items-start gap-2 pb-1">
+              <button
+                type="button"
+                onClick={() => fileInput.current?.click()}
+                className="link-quiet"
+              >
+                {storedPhoto || newPhoto ? "Change photo" : "Add a photo"}
+              </button>
+
+              {(storedPhoto || newPhoto) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStoredPhoto(null);
+                    setNewPhoto(null);
+                    setPhotoNotice(null);
+                  }}
+                  className="link-quiet"
+                >
+                  Remove
+                </button>
+              )}
+
+              {newPhoto && <span className="eyebrow">New — saves with the rest</span>}
+            </div>
+          </div>
+
+          {photoNotice && (
+            <p className="mt-4 bg-tint px-4 py-3 text-[0.9375rem] leading-relaxed text-ink-soft">
+              {photoNotice}
+            </p>
+          )}
+        </section>
+      )}
+
       <section className="space-y-5">
         <div>
           <label className="eyebrow mb-1 block" htmlFor="name">

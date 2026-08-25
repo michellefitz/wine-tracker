@@ -54,10 +54,22 @@ function releaseScroll() {
 export default function Sheet({
   children,
   label,
+  dismiss = "anywhere",
 }: {
   children: React.ReactNode;
   /** What the sheet is, for anyone not looking at it. */
   label: string;
+  /**
+   * Where the closing drag may start.
+   *
+   * "anywhere" is right for something you read: the whole surface is inert, so
+   * the whole surface can be grabbed. "handle" is for a sheet holding a form,
+   * where a downward swipe over a text field is far more likely to be a thumb
+   * missing its target than a decision to throw away what you typed. There is
+   * no undo behind this — the handle and the scrim are deliberate acts, and a
+   * form should need one.
+   */
+  dismiss?: "anywhere" | "handle";
 }) {
   const router = useRouter();
   const panel = useRef<HTMLDivElement>(null);
@@ -139,8 +151,12 @@ export default function Sheet({
 
   function onPointerDown(event: React.PointerEvent) {
     if (event.pointerType === "mouse" && event.button !== 0) return;
-    // Only from the top of the scroll: mid-article, a downward swipe is reading.
-    if ((scroller.current?.scrollTop ?? 0) > 0) return;
+    /*
+     * Only from the top of the scroll: mid-article, a downward swipe is
+     * reading. Doesn't apply to the handle, which is above the scroller and
+     * never competing with it — grabbing it means the same thing at any depth.
+     */
+    if (dismiss === "anywhere" && (scroller.current?.scrollTop ?? 0) > 0) return;
 
     drag.current = {
       active: false,
@@ -150,6 +166,17 @@ export default function Sheet({
       lastAt: event.timeStamp,
       velocity: 0,
     };
+
+    /*
+     * The handle is a 26px strip, and the first move of any real drag is
+     * already past the bottom of it. Waiting to claim the pointer until the
+     * drag proves itself — which is right when the whole panel is listening,
+     * since the pointer can't leave it — means the move that would have proved
+     * it is delivered somewhere else, and the sheet can be pressed but never
+     * pulled. Claim it on contact instead; there's nothing else in the strip to
+     * take it from.
+     */
+    if (dismiss === "handle") event.currentTarget.setPointerCapture(event.pointerId);
   }
 
   function onPointerMove(event: React.PointerEvent) {
@@ -165,7 +192,16 @@ export default function Sheet({
         return;
       }
       state.active = true;
-      panel.current?.setPointerCapture(event.pointerId);
+      /*
+       * Capture on whatever is carrying these handlers, not on the panel:
+       * capturing retargets every later pointer event to the capturing element,
+       * and events don't bubble downwards, so capturing on the panel while the
+       * listeners sat on a child inside it would send the release somewhere it
+       * could never be heard. Already held when the drag started at the handle.
+       */
+      if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
       // Freeze the scroll while dragging, or the two fight over the finger.
       if (scroller.current) scroller.current.style.overflowY = "hidden";
       if (panel.current) panel.current.style.transition = "none";
@@ -202,6 +238,13 @@ export default function Sheet({
 
   if (gone) return null;
 
+  const handlers = {
+    onPointerDown,
+    onPointerMove,
+    onPointerUp: endDrag,
+    onPointerCancel: endDrag,
+  };
+
   return (
     <div
       role="dialog"
@@ -221,14 +264,21 @@ export default function Sheet({
         ref={panel}
         className="sheet-panel absolute inset-x-0 bottom-0 flex h-[92dvh] flex-col
           overflow-hidden rounded-t-[1.25rem] bg-paper shadow-[0_-1px_24px_rgba(0,0,0,0.14)]"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
+        {...(dismiss === "anywhere" ? handlers : {})}
         style={{ touchAction: "pan-y" }}
       >
-        {/* The handle says "this one moves" without a line of text. */}
-        <div className="flex shrink-0 justify-center pb-1 pt-2.5">
+        {/*
+          The handle says "this one moves" without a line of text — and when
+          it's the only thing that moves, it's also the whole hit area, so it
+          gets the room to be hit.
+        */}
+        <div
+          className={`flex shrink-0 justify-center pb-1 pt-2.5 ${
+            dismiss === "handle" ? "cursor-grab pb-3" : ""
+          }`}
+          {...(dismiss === "handle" ? handlers : {})}
+          style={dismiss === "handle" ? { touchAction: "none" } : undefined}
+        >
           <span aria-hidden="true" className="h-1 w-9 rounded-full bg-rule" />
         </div>
 
