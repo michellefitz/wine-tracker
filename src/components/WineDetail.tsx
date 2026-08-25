@@ -1,5 +1,6 @@
 import Link from "next/link";
 import LabelPhoto from "@/components/LabelPhoto";
+import ServingGuide from "@/components/ServingGuide";
 import DeleteWineButton from "@/components/DeleteWineButton";
 import WineFactsPanel from "@/components/WineFactsPanel";
 import RatingMark from "@/components/RatingMark";
@@ -7,6 +8,7 @@ import StyleMark from "@/components/StyleMark";
 import { grapeSlug, styleOf } from "@/lib/grapes";
 import { countryFlag, placeLine } from "@/lib/places";
 import { tagLabel } from "@/lib/taxonomy";
+import { servingFor } from "@/lib/serving";
 import { wineColour } from "@/lib/wine-colours";
 import type { StoredFacts } from "@/lib/wine-facts";
 import type { Wine } from "@/lib/types";
@@ -80,10 +82,24 @@ export default function WineDetail({
    * rather than entered sits in the softer ink — quietly, without a footnote,
    * but the distinction is still there to be noticed.
    */
-  const own = new Set(["vintage", "type", "grapes", "bought at", "price", "drank"]);
+  const own = new Set([
+    "vintage", "type", "grapes", "bought at", "price", "drank",
+    // Stated once, below, next to what to do about it.
+    "serving temperature", "serve at", "serving",
+  ]);
   const looked = (stored?.details ?? []).filter(
     (detail) => !own.has(detail.label.trim().toLowerCase()),
   );
+
+  /*
+   * Known rather than looked up, so it's here for every bottle — including the
+   * ones the web has nothing to say about. The producer's own temperature wins
+   * when the lookup found one.
+   */
+  const statedTemperature = (stored?.details ?? []).find((detail) =>
+    /^serv(ing|e)\b/i.test(detail.label.trim()),
+  )?.value;
+  const serving = servingFor(wine.wine_type, grapes, statedTemperature);
 
   const rows: { term: string; value: React.ReactNode; found?: boolean }[] = [
     { term: "Vintage", value: wine.vintage ? String(wine.vintage) : "" },
@@ -230,6 +246,8 @@ export default function WineDetail({
           </div>
         ))}
       </dl>
+
+      {serving && <ServingGuide serving={serving} wineType={wine.wine_type} />}
 
       <WineFactsPanel
         wineId={wine.id}
