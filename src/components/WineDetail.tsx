@@ -156,7 +156,7 @@ export default function WineDetail({
       <LabelPhoto
         photoId={wine.photo_id}
         alt={`Label of ${wine.name}`}
-        width={960}
+        width={sheet ? 560 : 960}
         eager
         className="h-full w-full object-cover"
       />
