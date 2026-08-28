@@ -49,7 +49,7 @@ export default function LabelPhoto({
       src={`/api/photos/${photoId}?w=${width}`}
       alt={alt}
       loading={eager ? "eager" : "lazy"}
-      decoding="async"
+      decoding={eager ? "sync" : "async"}
       onError={() => setFailed(true)}
       className={className}
     />
