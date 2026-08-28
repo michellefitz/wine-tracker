@@ -32,26 +32,18 @@ function groupWines(wines: Wine[]): Map<SimpleType, Wine[]> {
 
 function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
   return (
-    <section className="mt-6 first:mt-0">
-      <div className="flex items-baseline justify-between">
-        <h2 className="eyebrow">{label}</h2>
-        <span className="text-[0.6875rem] tabular-nums text-muted">
-          {wines.length}
-        </span>
-      </div>
-
-      {/* The shelf edge */}
-      <div className="mt-2 border-b border-rule" />
+    <section className="mt-8 first:mt-0">
+      <h2 className="essay text-[1.375rem] leading-none text-ink-soft">{label}</h2>
 
       <div
-        className="hide-scrollbar -mt-px flex overflow-x-auto pb-1"
+        className="hide-scrollbar mt-3 flex overflow-x-auto"
         style={{ touchAction: "pan-x" }}
       >
         {wines.map((wine) => (
           <Link
             key={wine.id}
             href={`/wine/${wine.id}`}
-            className="group relative shrink-0 px-1.5 pt-1 active:scale-[0.97]
+            className="shrink-0 px-1 active:scale-[0.97]
               transition-transform duration-[120ms] ease-out-strong"
             style={{ width: `${100 / Math.min(wines.length, 4)}%`, maxWidth: "25%" }}
           >
@@ -66,9 +58,6 @@ function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
           </Link>
         ))}
       </div>
-
-      {/* Bottom shelf edge */}
-      <div className="border-b border-rule" />
     </section>
   );
 }
@@ -77,7 +66,7 @@ export default function WineRolodex({ wines }: { wines: Wine[] }) {
   const groups = groupWines(wines);
 
   return (
-    <div className="px-5 py-2">
+    <div className="py-2">
       {GROUP_ORDER.filter((type) => groups.has(type)).map((type) => (
         <Shelf key={type} wines={groups.get(type)!} label={type} />
       ))}

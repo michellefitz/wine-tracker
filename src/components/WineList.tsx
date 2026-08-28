@@ -88,7 +88,8 @@ export default function WineList({ wines }: { wines: Wine[] }) {
       <div className="mb-5 flex items-end gap-3">
         <input
           type="search"
-          className="field flex-1 text-[0.9375rem]"
+          className="flex-1 bg-transparent py-2.5 text-[0.9375rem] text-ink
+            outline-none placeholder:text-muted/60"
           placeholder="Search name, grape, region, note…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}

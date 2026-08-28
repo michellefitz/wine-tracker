@@ -52,12 +52,23 @@ export default function HomePage() {
             leading-none text-ink">
             Cellar Notes
           </h1>
-          <nav className="flex shrink-0 items-baseline gap-4">
-            <Link href="/grapes" className="link-quiet">
+          <nav className="flex shrink-0 items-baseline">
+            <Link
+              href="/grapes"
+              className="flex items-center gap-1.5 text-[0.8125rem] text-muted
+                transition-colors pointer-hover:hover:text-ink"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="10" r="2.5" />
+                <circle cx="8" cy="14" r="2.5" />
+                <circle cx="16" cy="14" r="2.5" />
+                <circle cx="10" cy="18" r="2.5" />
+                <circle cx="14" cy="18" r="2.5" />
+                <path d="M12 2 v5" />
+                <path d="M12 2 c3-1 5 0 6 2" />
+              </svg>
               Grapes
-            </Link>
-            <Link href="/labels" className="link-quiet">
-              Labels
             </Link>
           </nav>
         </div>
