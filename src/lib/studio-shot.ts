@@ -56,12 +56,14 @@ text on the label. Do not invent a producer, a vintage, a region or an award. If
 is blurred, creased or cut off in the photograph, leave it as it is rather than filling it in.
 
 Change only the photography around it. Stand the bottle upright and square to the camera, centred,
-whole, with the base a little above the bottom edge. Put it on a plain seamless background of the
-exact colour ${STUDIO_GROUND} — a warm cream — filling the frame edge to edge with no horizon line,
-no vignette, no gradient, and no darkening towards the corners. No props, no glasses, no hands, no
-table, no text and no reflections of a room. Light it with a soft box from the front left so there
-is a gentle highlight down the glass and a soft shadow beneath the bottle. Nothing else in the
-frame.`;
+whole, with the base a little above the bottom edge. Put it on a plain seamless background that is a
+very light, pale, cool cream — close to off-white with only the faintest warm tint. The exact hex is
+${STUDIO_GROUND}. The background must be uniform and flat, filling the frame edge to edge with no
+horizon line, no vignette, no gradient, no shadow on the background, and no darkening or warming
+towards the corners or edges. Do not make the background orange, tan, beige or noticeably warm. No
+props, no glasses, no hands, no table, no text and no reflections of a room. Light it with a soft
+box from the front left so there is a gentle highlight down the glass and a soft shadow directly
+beneath the bottle only. Nothing else in the frame.`;
 
 export type StudioShot = { base64: string; mime: string };
 
