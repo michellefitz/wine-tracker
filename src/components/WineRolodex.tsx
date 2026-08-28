@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import LabelPhoto from "@/components/LabelPhoto";
 import RatingMark from "@/components/RatingMark";
@@ -37,6 +37,7 @@ function groupWines(wines: Wine[]): Map<SimpleType, Wine[]> {
 function RolodexRow({ wines, label }: { wines: Wine[]; label: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef(0);
+  const [focusedIndex, setFocusedIndex] = useState(0);
 
   const updateScales = useCallback(() => {
     const container = scrollRef.current;
@@ -44,22 +45,29 @@ function RolodexRow({ wines, label }: { wines: Wine[]; label: string }) {
 
     const center = container.scrollLeft + container.clientWidth / 2;
     const cards = container.children;
+    let closest = 0;
+    let closestDist = Infinity;
 
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i] as HTMLElement;
       const cardCenter = card.offsetLeft + card.offsetWidth / 2;
       const distance = Math.abs(center - cardCenter);
-      const maxDistance = container.clientWidth * 0.6;
+      const maxDistance = container.clientWidth * 0.5;
 
-      // Continuous scale: 1.0 at center, 0.85 at the edges
+      if (distance < closestDist) {
+        closestDist = distance;
+        closest = i;
+      }
+
       const t = Math.min(distance / maxDistance, 1);
-      const scale = 1 - t * 0.15;
-      // Opacity: 1.0 at center, 0.55 at the edges
-      const opacity = 1 - t * 0.45;
+      const scale = 1 - t * 0.12;
+      const opacity = 1 - t * 0.5;
 
       card.style.transform = `scale(${scale})`;
       card.style.opacity = String(opacity);
     }
+
+    setFocusedIndex(closest);
   }, []);
 
   const onScroll = useCallback(() => {
@@ -77,8 +85,11 @@ function RolodexRow({ wines, label }: { wines: Wine[]; label: string }) {
     };
   }, [updateScales]);
 
+  const focusedWine = wines[focusedIndex];
+  const flag = focusedWine ? countryFlag(focusedWine.country) : null;
+
   return (
-    <section className="mt-8 first:mt-0">
+    <section className="mt-7 first:mt-0">
       <div className="flex items-baseline justify-between px-5">
         <h2 className="eyebrow">{label}</h2>
         <span className="text-[0.6875rem] tabular-nums text-muted">
@@ -89,49 +100,49 @@ function RolodexRow({ wines, label }: { wines: Wine[]; label: string }) {
       <div
         ref={scrollRef}
         onScroll={onScroll}
-        className="hide-scrollbar mt-3 flex snap-x snap-mandatory gap-4 overflow-x-auto
-          px-[calc(50%-7rem)] pb-4"
+        className="hide-scrollbar mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto
+          px-[calc(50%-4.5rem)] pb-2"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
-        {wines.map((wine) => {
-          const flag = countryFlag(wine.country);
-          return (
-            <Link
-              key={wine.id}
-              href={`/wine/${wine.id}`}
-              className="w-56 shrink-0 snap-center transition-transform
-                duration-[60ms] ease-out active:scale-[0.97]"
-              style={{ willChange: "transform, opacity" }}
-            >
-              <div className="photo-bleed relative aspect-4/5 w-full overflow-hidden bg-tint">
-                <LabelPhoto
-                  photoId={wine.photo_id}
-                  alt=""
-                  width={560}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              <div className="pt-3 text-center">
-                <RatingMark score={wine.score} />
-                <h3 className="essay mt-1.5 text-[1.0625rem] leading-snug text-ink">
-                  {wine.name}
-                </h3>
-                {(wine.producer || wine.vintage) && (
-                  <p className="mt-1 truncate text-[0.8125rem] text-ink-soft">
-                    {[wine.producer, wine.vintage].filter(Boolean).join(", ")}
-                  </p>
-                )}
-                {flag && (
-                  <p className="mt-0.5 text-[0.8125rem] text-muted">
-                    <span aria-hidden="true">{flag}</span>{" "}
-                    {wine.region ?? wine.country}
-                  </p>
-                )}
-              </div>
-            </Link>
-          );
-        })}
+        {wines.map((wine) => (
+          <Link
+            key={wine.id}
+            href={`/wine/${wine.id}`}
+            className="w-36 shrink-0 snap-center active:scale-[0.97]"
+            style={{ willChange: "transform, opacity" }}
+          >
+            <div className="photo-bleed relative aspect-4/5 w-full overflow-hidden bg-tint">
+              <LabelPhoto
+                photoId={wine.photo_id}
+                alt=""
+                width={560}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          </Link>
+        ))}
       </div>
+
+      {/* Caption for the focused card only */}
+      {focusedWine && (
+        <div className="mt-2 min-h-16 px-5 text-center">
+          <RatingMark score={focusedWine.score} />
+          <h3 className="essay mt-1 text-[1.0625rem] leading-snug text-ink">
+            {focusedWine.name}
+          </h3>
+          {(focusedWine.producer || focusedWine.vintage) && (
+            <p className="mt-0.5 truncate text-[0.8125rem] text-ink-soft">
+              {[focusedWine.producer, focusedWine.vintage].filter(Boolean).join(", ")}
+            </p>
+          )}
+          {flag && (
+            <p className="mt-0.5 text-[0.8125rem] text-muted">
+              <span aria-hidden="true">{flag}</span>{" "}
+              {focusedWine.region ?? focusedWine.country}
+            </p>
+          )}
+        </div>
+      )}
     </section>
   );
 }
