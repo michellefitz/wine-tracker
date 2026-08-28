@@ -45,7 +45,7 @@ function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
             href={`/wine/${wine.id}`}
             className="shrink-0 px-1 active:scale-[0.97]
               transition-transform duration-[120ms] ease-out-strong"
-            style={{ width: `${100 / Math.min(wines.length, 4)}%`, maxWidth: "25%" }}
+            style={{ width: `${100 / Math.min(wines.length, 3)}%`, maxWidth: "33.333%" }}
           >
             <div className="photo-bleed relative aspect-[3/5] w-full overflow-hidden">
               <LabelPhoto
