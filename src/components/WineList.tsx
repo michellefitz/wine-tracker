@@ -5,13 +5,7 @@ import WineCard from "@/components/WineCard";
 import WineRolodex from "@/components/WineRolodex";
 import type { Wine } from "@/lib/types";
 
-type Filter = "all" | "liked" | "disliked";
-
-const FILTERS: { id: Filter; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "liked", label: "Liked" },
-  { id: "disliked", label: "Didn't like" },
-];
+type View = "grid" | "gallery";
 
 /** Everything a search box should reasonably match on. */
 function haystack(wine: Wine): string {
@@ -31,19 +25,47 @@ function haystack(wine: Wine): string {
     .toLowerCase();
 }
 
+function GridIcon({ active }: { active: boolean }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 18 18"
+      fill="none"
+      className={active ? "text-ink" : "text-muted"}
+    >
+      <rect x="1" y="1" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="10" y="1" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="1" y="10" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="10" y="10" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function GalleryIcon({ active }: { active: boolean }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 18 18"
+      fill="none"
+      className={active ? "text-ink" : "text-muted"}
+    >
+      <rect x="1" y="3" width="16" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="1" y="10" width="16" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
 export default function WineList({ wines }: { wines: Wine[] }) {
-  const [filter, setFilter] = useState<Filter>("all");
+  const [view, setView] = useState<View>("gallery");
   const [query, setQuery] = useState("");
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return wines.filter((wine) => {
-      if (filter === "liked" && wine.score < 1) return false;
-      if (filter === "disliked" && wine.score > -1) return false;
-      if (needle && !haystack(wine).includes(needle)) return false;
-      return true;
-    });
-  }, [wines, filter, query]);
+    if (!needle) return wines;
+    return wines.filter((wine) => haystack(wine).includes(needle));
+  }, [wines, query]);
 
   if (wines.length === 0) {
     return (
@@ -59,33 +81,35 @@ export default function WineList({ wines }: { wines: Wine[] }) {
     );
   }
 
+  const searching = query.trim().length > 0;
+
   return (
     <div>
-      <div className="mb-5">
+      <div className="mb-5 flex items-end gap-3">
         <input
           type="search"
-          className="field text-[0.9375rem]"
+          className="field flex-1 text-[0.9375rem]"
           placeholder="Search name, grape, region, note…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-
-        <div className="mt-3 flex gap-6">
-          {FILTERS.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => setFilter(option.id)}
-              className={`py-2 text-[0.6875rem] font-medium uppercase tracking-[0.16em]
-                transition-colors ${
-                  filter === option.id
-                    ? "border-b border-ink text-ink"
-                    : "border-b border-transparent text-muted pointer-hover:hover:text-ink-soft"
-                }`}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="flex gap-1 pb-2.5">
+          <button
+            type="button"
+            onClick={() => setView("grid")}
+            className="rounded p-1.5 transition-colors"
+            aria-label="Grid view"
+          >
+            <GridIcon active={view === "grid"} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("gallery")}
+            className="rounded p-1.5 transition-colors"
+            aria-label="Gallery view"
+          >
+            <GalleryIcon active={view === "gallery"} />
+          </button>
         </div>
       </div>
 
@@ -93,26 +117,18 @@ export default function WineList({ wines }: { wines: Wine[] }) {
         <p className="border-t border-rule py-16 text-center text-[0.9375rem] text-muted">
           Nothing matches that.
         </p>
+      ) : view === "gallery" && !searching ? (
+        <div className="-mx-5">
+          <WineRolodex wines={visible} />
+        </div>
       ) : (
-        <>
-          {/* Rolodex on mobile when browsing unfiltered */}
-          {!query.trim() && filter === "all" && (
-            <div className="-mx-5 sm:hidden">
-              <WineRolodex wines={visible} />
-            </div>
-          )}
-
-          {/* Grid on desktop, or when searching/filtering on mobile */}
-          <ul className={`grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 ${
-            !query.trim() && filter === "all" ? "hidden sm:grid" : ""
-          }`}>
-            {visible.map((wine) => (
-              <li key={wine.id}>
-                <WineCard wine={wine} />
-              </li>
-            ))}
-          </ul>
-        </>
+        <ul className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10">
+          {visible.map((wine) => (
+            <li key={wine.id}>
+              <WineCard wine={wine} />
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

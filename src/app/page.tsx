@@ -9,10 +9,6 @@ export const dynamic = "force-dynamic";
 
 type Loaded = { wines: Wine[]; error: string | null };
 
-/**
- * Never rejects, so both readers below can await it without a second try/catch
- * between them.
- */
 function loadWines(): Promise<Loaded> {
   return listWines()
     .then((wines) => ({ wines, error: null }))
@@ -24,19 +20,6 @@ function loadWines(): Promise<Loaded> {
           "Couldn't reach the database. Check DATABASE_URL, and that you've run `npm run db:init`.",
       };
     });
-}
-
-async function Count({ loaded }: { loaded: Promise<Loaded> }) {
-  const { wines } = await loaded;
-  const count = wines.length;
-
-  return (
-    <span className="eyebrow" style={{ fontVariantNumeric: "tabular-nums" }}>
-      {count > 0
-        ? `The collection · ${count} ${count === 1 ? "bottle" : "bottles"}`
-        : "The collection"}
-    </span>
-  );
 }
 
 async function Collection({ loaded }: { loaded: Promise<Loaded> }) {
@@ -64,15 +47,11 @@ export default function HomePage() {
   return (
     <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-32 pt-[max(2rem,env(safe-area-inset-top))]">
       <header className="mb-5">
-        {/* Scales with the viewport so it stays on one line down to a 320px phone. */}
-        <h1 className="masthead whitespace-nowrap text-[clamp(1.75rem,9vw,2.25rem)]
-          leading-none text-ink">
-          Cellar Notes
-        </h1>
-        <div className="mt-3 flex items-baseline justify-between gap-4">
-          <Suspense fallback={<span className="eyebrow">The collection</span>}>
-            <Count loaded={loaded} />
-          </Suspense>
+        <div className="flex items-baseline justify-between gap-4">
+          <h1 className="masthead whitespace-nowrap text-[clamp(1.75rem,9vw,2.25rem)]
+            leading-none text-ink">
+            Cellar Notes
+          </h1>
           <nav className="flex shrink-0 items-baseline gap-4">
             <Link href="/grapes" className="link-quiet">
               Grapes
