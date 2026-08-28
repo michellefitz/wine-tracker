@@ -1,12 +1,16 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { buildQuery, fetchImage, findCandidates } from "@/lib/artwork";
+import { shotsFromPages } from "@/lib/product-shot";
+import { findFacts } from "@/lib/wine-facts";
+import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5";
-const MAX_CANDIDATES = 3;
+const MAX_CANDIDATES = 4;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_BASE64_LENGTH = 2_000_000;
 
@@ -18,8 +22,10 @@ const MAX_BASE64_LENGTH = 2_000_000;
 const SYSTEM_PROMPT = `You compare a photograph of a wine bottle against candidate product shots
 and decide whether any of them is the same wine.
 
-The first image is the photograph the user took. The images after it are candidates from a
-product database, each preceded by its catalogue name.
+The first image is the photograph the user took. The images after it are candidates — some from a
+product database, some the main image of a web page about a wine — each preceded by its name or
+the page's title. A page's main image is not always the bottle: it may be a vineyard, a cellar, a
+person, a region, a logo, or a photograph of several different wines. None of those are matches.
 
 Say a candidate matches only if it is the same wine: same producer and same specific cuvée or
 range. Judge on the label — its wording, layout, typography, colours and crest — not on the
@@ -52,24 +58,59 @@ const SCHEMA = {
 
 type Verdict = { match_index: number | null; confidence: string; reason: string };
 
+/** The pages the write-up cited for this bottle, if it has been looked up. */
+async function citedPages(wineId: string | null): Promise<{ title: string; url: string }[]> {
+  if (!wineId) return [];
+  try {
+    return (await findFacts(wineId))?.sources ?? [];
+  } catch (error) {
+    console.error("artwork: could not read sources:", error instanceof Error ? error.message : error);
+    return [];
+  }
+}
+
 export async function POST(request: Request) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ found: false, reason: "Label matching is not configured." });
   }
 
-  let body: { dataUrl?: unknown; producer?: unknown; name?: unknown };
+  let body: { dataUrl?: unknown; photoId?: unknown; producer?: unknown; name?: unknown; wineId?: unknown };
   try {
     body = (await request.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "Expected a JSON body" }, { status: 400 });
   }
 
-  const dataUrl = typeof body.dataUrl === "string" ? body.dataUrl : "";
-  const match = dataUrl.match(/^data:([\w/+.-]+);base64,(.+)$/);
-  if (!match) {
-    return NextResponse.json({ error: "Expected a base64 data URL" }, { status: 400 });
+  /*
+   * Adding a wine sends the photo it just took; going back to fix a picture on
+   * a bottle already in the log sends its id, and the photo is read here rather
+   * than pulled down and posted straight back a third larger for the trip.
+   */
+  let userMime: string;
+  let userBase64: string;
+
+  if (typeof body.photoId === "string" && UUID.test(body.photoId)) {
+    let stored: { mime: string; data: string } | undefined;
+    try {
+      const db = sql();
+      const rows = await db.query(`SELECT mime, data FROM photos WHERE id = $1`, [body.photoId]);
+      stored = (rows as { mime: string; data: string }[])[0];
+    } catch (error) {
+      console.error("artwork: could not read photo:", error instanceof Error ? error.message : error);
+      return NextResponse.json({ found: false, reason: "Couldn't read your photo." });
+    }
+    if (!stored) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    userMime = stored.mime;
+    userBase64 = stored.data;
+  } else {
+    const dataUrl = typeof body.dataUrl === "string" ? body.dataUrl : "";
+    const match = dataUrl.match(/^data:([\w/+.-]+);base64,(.+)$/);
+    if (!match) {
+      return NextResponse.json({ error: "Expected a base64 data URL or a photo id" }, { status: 400 });
+    }
+    [, userMime, userBase64] = match;
   }
-  const [, userMime, userBase64] = match;
+
   if (!ALLOWED_MIME.has(userMime) || userBase64.length > MAX_BASE64_LENGTH) {
     return NextResponse.json({ error: "Unsupported or oversized image" }, { status: 415 });
   }
@@ -82,7 +123,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ found: false, reason: "Not enough label text to search on." });
   }
 
-  const candidates = (await findCandidates(query)).slice(0, MAX_CANDIDATES);
+  /*
+   * Two places to look, and the second is usually the better one.
+   *
+   * Open Food Facts is a food database: its wine coverage is thin and its
+   * pictures are photographs people took in shops, which is how a "product
+   * shot" ends up blurrier than the one you took yourself. The pages the
+   * write-up already cited — the producer, a merchant, a wine site — carry a
+   * studio shot of the bottle far more often, and cost no new search because
+   * that lookup has already run.
+   */
+  const [database, pages] = await Promise.all([
+    findCandidates(query).catch(() => []),
+    citedPages(typeof body.wineId === "string" ? body.wineId : null).then(shotsFromPages).catch(() => []),
+  ]);
+
+  const candidates = [...pages, ...database].slice(0, MAX_CANDIDATES);
   if (candidates.length === 0) {
     return NextResponse.json({ found: false, reason: "No product shots found for that wine." });
   }

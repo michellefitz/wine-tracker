@@ -71,6 +71,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
   const [newPhoto, setNewPhoto] = useState<string | null>(null);
   const [photoNotice, setPhotoNotice] = useState<string | null>(null);
   const [tidying, setTidying] = useState(false);
+  const [hunting, setHunting] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [showDetails, setShowDetails] = useState(mode === "edit");
@@ -122,6 +123,49 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
       setPhotoNotice("Couldn't reach the server to tidy that photo.");
     }
     setTidying(false);
+  }
+
+  /**
+   * Go looking for a proper product shot of this bottle.
+   *
+   * Explicit rather than automatic, because it's the fix for a picture you've
+   * already decided you don't like — including one of these the app chose for
+   * you when you added the wine. Whatever comes back is verified against your
+   * own photo before it's offered, and nothing is saved until you save.
+   */
+  async function findPicture() {
+    setHunting(true);
+    setPhotoNotice(null);
+    try {
+      const response = await fetch("/api/artwork", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(newPhoto ? { dataUrl: newPhoto } : { photoId: storedPhoto }),
+          producer: producer.trim() || null,
+          name: name.trim() || null,
+          wineId: wine?.id,
+        }),
+      });
+      const payload = (await response.json()) as {
+        found?: boolean;
+        dataUrl?: string;
+        label?: string;
+        reason?: string;
+        error?: string;
+      };
+      if (payload.found && payload.dataUrl) {
+        setNewPhoto(payload.dataUrl);
+        setPhotoNotice(
+          `Found a product shot for “${payload.label ?? "this wine"}”. Keep it, or change the photo again.`,
+        );
+      } else {
+        setPhotoNotice(payload.reason ?? payload.error ?? "Nothing turned up for this bottle.");
+      }
+    } catch {
+      setPhotoNotice("Couldn't reach the server to look for a picture.");
+    }
+    setHunting(false);
   }
 
   function toggleTag(id: string) {
@@ -282,10 +326,21 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
                 <button
                   type="button"
                   onClick={tidyPhoto}
-                  disabled={tidying}
+                  disabled={tidying || hunting}
                   className="link-quiet disabled:opacity-50"
                 >
                   {tidying ? "Tidying…" : "Tidy up"}
+                </button>
+              )}
+
+              {(storedPhoto || newPhoto) && (
+                <button
+                  type="button"
+                  onClick={findPicture}
+                  disabled={tidying || hunting}
+                  className="link-quiet disabled:opacity-50"
+                >
+                  {hunting ? "Looking…" : "Find a product shot"}
                 </button>
               )}
 

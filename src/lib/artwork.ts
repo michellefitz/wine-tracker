@@ -1,3 +1,4 @@
+import { safeUrl } from "@/lib/product-shot";
 /**
  * Looks for a clean product shot of a wine to stand in for a hurried camera
  * photo.
@@ -93,17 +94,29 @@ export async function findCandidates(query: string, limit = 4): Promise<Candidat
 export async function fetchImage(
   imageUrl: string,
 ): Promise<{ mime: string; base64: string } | null> {
-  let parsed: URL;
+  /*
+   * Open Food Facts is trusted by name because we constructed the search that
+   * produced it. Anything else arrived by way of a page found on the web, so it
+   * goes through the address check first — the same reasoning as product-shot.ts:
+   * these URLs are not ours, and a bottle picture is not worth a request to
+   * something inside the network.
+   */
+  let parsed: URL | null;
   try {
     parsed = new URL(imageUrl);
   } catch {
     return null;
   }
-  if (parsed.protocol !== "https:" || parsed.hostname !== IMAGE_HOST) return null;
+  if (parsed.protocol !== "https:") return null;
+  if (parsed.hostname !== IMAGE_HOST) {
+    parsed = await safeUrl(imageUrl);
+    if (!parsed) return null;
+  }
 
+  const url = parsed;
   try {
     return await withTimeout(IMAGE_TIMEOUT_MS, async (signal) => {
-      const response = await fetch(parsed, {
+      const response = await fetch(url, {
         headers: { "User-Agent": USER_AGENT },
         signal,
         redirect: "error",
