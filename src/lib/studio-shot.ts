@@ -67,9 +67,11 @@ export async function studioShot(
   const interaction = await ai.interactions.create(
     {
       model: MODEL,
+      // Text first, then the image — the order the documented editing example
+      // uses. Probably immaterial, but it is one less thing to be wrong about.
       input: [
-        { type: "image", mime_type: photo.mime, data: photo.base64 },
         { type: "text", text: INSTRUCTION },
+        { type: "image", mime_type: photo.mime, data: photo.base64 },
       ],
       // 4:5 is the card, so the frame comes back already the right shape.
       response_format: { type: "image", aspect_ratio: "4:5", image_size: "1K" },

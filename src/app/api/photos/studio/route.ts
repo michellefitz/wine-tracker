@@ -46,13 +46,39 @@ export async function POST(request: Request) {
       dataUrl: `data:${shot.mime};base64,${shot.base64}`,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("studio: generation failed:", message);
-    return NextResponse.json({
-      generated: false,
-      reason: /abort|timeout/i.test(message)
-        ? "The studio shot took too long and was given up on."
-        : "That photo couldn't be restaged.",
-    });
+    console.error("studio: generation failed:", error);
+    return NextResponse.json({ generated: false, reason: explain(error) });
   }
+}
+
+/** Anything that looks like a credential, gone before it reaches a screen. */
+function redact(text: string): string {
+  return text
+    .replace(/AIza[0-9A-Za-z_-]{10,}/g, "AIza…")
+    .replace(/sk-[A-Za-z0-9_-]{10,}/g, "sk-…")
+    .replace(/(key=)[^&\s"']+/gi, "$1…");
+}
+
+/**
+ * What actually went wrong, in the reply rather than only in the logs.
+ *
+ * This used to return "That photo couldn't be restaged." for everything, which
+ * is a sentence with no next step in it: a model your key can't reach, a
+ * rejected field and a dead network all looked identical from the outside, and
+ * the only way to tell them apart was a Vercel log nobody was watching. On a
+ * private single-user app the API's own words are the most useful thing that
+ * can be on screen — minus anything key-shaped, and minus the volume.
+ */
+function explain(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/abort|timeout|timed out/i.test(message)) {
+    return "The studio shot took too long and was given up on.";
+  }
+
+  const status = (error as { status?: unknown; statusCode?: unknown } | null)?.status ??
+    (error as { statusCode?: unknown } | null)?.statusCode;
+
+  const detail = redact(message).replace(/\s+/g, " ").trim().slice(0, 400);
+  const code = typeof status === "number" ? ` (HTTP ${status})` : "";
+  return detail ? `The image API said${code}: ${detail}` : `The image API failed${code}.`;
 }
