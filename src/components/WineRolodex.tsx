@@ -60,11 +60,12 @@ function RolodexRow({ wines, label }: { wines: Wine[]; label: string }) {
       }
 
       const t = Math.min(distance / maxDistance, 1);
-      const scale = 1.15 - t * 0.4;
+      const scale = 1 - t * 0.3;
       const opacity = 1 - t * 0.55;
 
       card.style.transform = `scale(${scale})`;
       card.style.opacity = String(opacity);
+      card.style.zIndex = distance < 10 ? "1" : "0";
     }
 
     setFocusedIndex(closest);
@@ -101,15 +102,15 @@ function RolodexRow({ wines, label }: { wines: Wine[]; label: string }) {
         ref={scrollRef}
         onScroll={onScroll}
         className="hide-scrollbar mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto
-          px-[calc(50%-4.5rem)] pb-2"
+          overflow-y-visible px-[calc(50%-5.5rem)] py-4"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {wines.map((wine) => (
           <Link
             key={wine.id}
             href={`/wine/${wine.id}`}
-            className="w-36 shrink-0 snap-center active:scale-[0.97]"
-            style={{ willChange: "transform, opacity" }}
+            className="relative w-44 shrink-0 snap-center active:scale-[0.97]"
+            style={{ willChange: "transform, opacity", transformOrigin: "center center" }}
           >
             <div className="photo-bleed relative aspect-4/5 w-full overflow-hidden bg-tint">
               <LabelPhoto
