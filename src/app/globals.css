@@ -2,16 +2,26 @@
 
 @theme {
   /*
-   * Bone/stone gallery neutrals in OKLCH, every one tinted faintly toward the
-   * wine hue (~20) so surfaces and accent cohere. Mineral, not creamy.
+   * Cream, and a specific one: oklch(92.7% 0.018 81) is #ede6da, the median
+   * background across the studio shots already in the log. The point of
+   * matching rather than choosing is that a bottle photographed against cream,
+   * sitting on cream, has no edges — the page stops being a grid of tiles and
+   * becomes a shelf. STUDIO_GROUND in lib/studio-shot.ts names the same hex to
+   * the model, so new bottles land on it too.
+   *
+   * The rest of the family keeps its old relationships — card a little lighter,
+   * tint and rule progressively deeper — moved onto the cream hue and given the
+   * chroma cream needs. `muted` is a shade darker than it was: on the old near
+   * white it cleared 4.5:1, and on cream it landed at 4.46:1, which is small
+   * grey type failing the line by a rounding error.
    */
-  --color-paper: oklch(96.4% 0.004 45);
-  --color-card: oklch(98.8% 0.002 45);
-  --color-tint: oklch(93.2% 0.006 45);
+  --color-paper: oklch(92.7% 0.018 81);
+  --color-card: oklch(95.1% 0.008 81);
+  --color-tint: oklch(89.5% 0.024 81);
   --color-ink: oklch(23% 0.012 30);
   --color-ink-soft: oklch(41% 0.012 32);
-  --color-muted: oklch(52% 0.011 38);
-  --color-rule: oklch(87.5% 0.007 45);
+  --color-muted: oklch(49.5% 0.013 45);
+  --color-rule: oklch(83.8% 0.028 81);
   --color-wine: oklch(43% 0.135 18);
   /* Warm gold, for scores and medals — the one accent that isn't a verdict. */
   --color-gold: oklch(72% 0.115 82);
@@ -101,6 +111,44 @@ textarea {
 
   .rule {
     @apply border-0 border-t border-rule;
+  }
+
+  /*
+   * A photo with no edges.
+   *
+   * Every studio shot is a bottle on cream and the page is the same cream, so
+   * the only thing marking a picture out as a rectangle is the seam where one
+   * cream meets the other — and the model's cream drifts a few points from
+   * bottle to bottle, which is exactly enough to see. This lays the page's own
+   * colour over the outside of the frame, so the join is page-coloured
+   * whatever the photo behind it is doing. It does the work naming a hex to
+   * the model can't: two bottles whose backgrounds don't quite agree stop
+   * disagreeing at the edge, where it would show.
+   *
+   * The ellipse is deliberately narrow — 40% of the width, all of the height.
+   * A bottle is a tall thin thing in the middle of a tall thin frame, so the
+   * room to fade is at the sides; a circular vignette would take the capsule
+   * and the base with it. The linear pass then handles the top and bottom,
+   * which the ellipse leaves alone, at a gentler 8%.
+   *
+   * An overlay rather than a mask, because it has to be the page's colour and
+   * not merely transparent: these sit over `bg-tint` while the photo loads,
+   * and a mask would fade to that instead.
+   */
+  .photo-bleed::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        to bottom,
+        var(--color-paper) 0%,
+        transparent 8%,
+        transparent 92%,
+        var(--color-paper) 100%
+      ),
+      radial-gradient(40% 100% at 50% 50%, transparent 58%, var(--color-paper) 100%);
   }
 
   /* Underlined fields rather than boxes: fewer edges, calmer page. */

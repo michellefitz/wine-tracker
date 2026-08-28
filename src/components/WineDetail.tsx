@@ -149,7 +149,7 @@ export default function WineDetail({
    */
   const photo = (
     <div
-      className={`mx-auto aspect-4/5 w-full overflow-hidden bg-tint ${
+      className={`photo-bleed relative mx-auto aspect-4/5 w-full overflow-hidden bg-tint ${
         sheet ? "max-w-[17rem]" : "max-w-[22rem]"
       }`}
     >

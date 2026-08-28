@@ -29,7 +29,7 @@ const serif = Spectral({
  * chrome, the installed app's splash, and the first paint of the document.
  * If --color-paper in globals.css changes, change this and the manifest too.
  */
-const PAPER = "#f5f2f1";
+const PAPER = "#ede6da";
 
 export const metadata: Metadata = {
   title: "Cellar Notes",

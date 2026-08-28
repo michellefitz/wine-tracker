@@ -18,7 +18,7 @@ export default function WineCard({ wine }: { wine: Wine }) {
       className="group block transition-transform duration-[160ms] ease-out-strong
         active:scale-[0.985]"
     >
-      <div className="aspect-4/5 w-full overflow-hidden bg-tint">
+      <div className="photo-bleed relative aspect-4/5 w-full overflow-hidden bg-tint">
         {/* 560px covers a 167 CSS px card at a phone's 3x density. */}
         <LabelPhoto
           photoId={wine.photo_id}

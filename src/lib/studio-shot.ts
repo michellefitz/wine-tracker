@@ -25,6 +25,20 @@ import { GoogleGenAI } from "@google/genai";
  */
 
 const MODEL = process.env.GEMINI_IMAGE_MODEL ?? "gemini-3.1-flash-image";
+
+/**
+ * The cream the app is painted in, named to the model so bottles land on the
+ * page rather than on a rectangle of their own.
+ *
+ * A diffusion model will not hit a hex exactly, and it doesn't have to: the
+ * cards fade their edges into the page, so the last thing anyone sees is the
+ * page's own colour and a few points of drift disappears under it. Naming the
+ * value still narrows the spread a lot — left to itself the model wandered
+ * between #ede7db and #f5f3f0 across four bottles.
+ *
+ * If --color-paper in globals.css changes, change this with it.
+ */
+const STUDIO_GROUND = "#EDE6DA";
 const TIMEOUT_MS = 60_000;
 
 /**
@@ -42,10 +56,12 @@ text on the label. Do not invent a producer, a vintage, a region or an award. If
 is blurred, creased or cut off in the photograph, leave it as it is rather than filling it in.
 
 Change only the photography around it. Stand the bottle upright and square to the camera, centred,
-whole, with the base a little above the bottom edge. Put it on a plain warm off-white background
-with no horizon line, no props, no glasses, no hands, no table, no text and no reflections of a
-room. Light it with a soft box from the front left so there is a gentle highlight down the glass
-and a soft shadow beneath the bottle. Nothing else in the frame.`;
+whole, with the base a little above the bottom edge. Put it on a plain seamless background of the
+exact colour ${STUDIO_GROUND} — a warm cream — filling the frame edge to edge with no horizon line,
+no vignette, no gradient, and no darkening towards the corners. No props, no glasses, no hands, no
+table, no text and no reflections of a room. Light it with a soft box from the front left so there
+is a gentle highlight down the glass and a soft shadow beneath the bottle. Nothing else in the
+frame.`;
 
 export type StudioShot = { base64: string; mime: string };
 
