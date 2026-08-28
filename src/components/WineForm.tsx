@@ -72,6 +72,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
   const [photoNotice, setPhotoNotice] = useState<string | null>(null);
   const [tidying, setTidying] = useState(false);
   const [hunting, setHunting] = useState(false);
+  const [staging, setStaging] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [showDetails, setShowDetails] = useState(mode === "edit");
@@ -166,6 +167,44 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
       setPhotoNotice("Couldn't reach the server to look for a picture.");
     }
     setHunting(false);
+  }
+
+  /**
+   * Restage the bottle under studio lighting, starting from your own photo.
+   *
+   * A generated picture, and offered as one. It keeps the label because it
+   * starts from the photograph rather than from the wine's name — but it is
+   * still a rendering, small print on the label may not survive it, and it
+   * costs a generation every time it's pressed. All three are reasons it only
+   * happens when you ask.
+   */
+  async function makeStudioShot() {
+    setStaging(true);
+    setPhotoNotice(null);
+    try {
+      const response = await fetch("/api/photos/studio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPhoto ? { dataUrl: newPhoto } : { photoId: storedPhoto }),
+      });
+      const payload = (await response.json()) as {
+        generated?: boolean;
+        dataUrl?: string;
+        reason?: string;
+        error?: string;
+      };
+      if (payload.generated && payload.dataUrl) {
+        setNewPhoto(payload.dataUrl);
+        setPhotoNotice(
+          "This is a generated picture, made from your photo. Check the label still reads right before you save it.",
+        );
+      } else {
+        setPhotoNotice(payload.reason ?? payload.error ?? "That photo couldn't be restaged.");
+      }
+    } catch {
+      setPhotoNotice("Couldn't reach the server to make a studio shot.");
+    }
+    setStaging(false);
   }
 
   function toggleTag(id: string) {
@@ -274,6 +313,8 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
     }
   }
 
+  const busyWithPhoto = tidying || hunting || staging;
+
   const photo = newPhoto ? (
     /* eslint-disable-next-line @next/next/no-img-element */
     <img src={newPhoto} alt="The photo you just chose" className="h-full w-full object-cover" />
@@ -326,7 +367,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
                 <button
                   type="button"
                   onClick={tidyPhoto}
-                  disabled={tidying || hunting}
+                  disabled={busyWithPhoto}
                   className="link-quiet disabled:opacity-50"
                 >
                   {tidying ? "Tidying…" : "Tidy up"}
@@ -337,10 +378,21 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
                 <button
                   type="button"
                   onClick={findPicture}
-                  disabled={tidying || hunting}
+                  disabled={busyWithPhoto}
                   className="link-quiet disabled:opacity-50"
                 >
                   {hunting ? "Looking…" : "Find a product shot"}
+                </button>
+              )}
+
+              {(storedPhoto || newPhoto) && (
+                <button
+                  type="button"
+                  onClick={makeStudioShot}
+                  disabled={busyWithPhoto}
+                  className="link-quiet disabled:opacity-50"
+                >
+                  {staging ? "Restaging…" : "Make a studio shot"}
                 </button>
               )}
 

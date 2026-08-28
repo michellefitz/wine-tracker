@@ -1,33 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { tidyBottle, type Box } from "@/lib/bottle-image";
-import { sql } from "@/lib/db";
+import { readPhoto } from "@/lib/photo-input";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5";
-const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
-const MAX_BASE64_LENGTH = 2_000_000;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/**
- * The photo already on a bottle, for tidying one you logged a while ago.
- *
- * Read here rather than sent up by the browser: the client would have to pull
- * the picture down and post it straight back, a third larger for having been
- * base64-encoded, over the phone connection the photo is being tidied on.
- */
-async function stored(id: string): Promise<{ mime: string; base64: string } | null> {
-  if (!UUID.test(id)) return null;
-  const db = sql();
-  const rows = (await db.query(`SELECT mime, data FROM photos WHERE id = $1`, [id])) as {
-    mime: string;
-    data: string;
-  }[];
-  return rows[0] ? { mime: rows[0].mime, base64: rows[0].data } : null;
-}
-
 /**
  * Two questions, and the second one is the interesting one.
  *
@@ -99,31 +78,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Expected a JSON body" }, { status: 400 });
   }
 
-  let mime: string;
-  let base64: string;
-
-  if (typeof body.photoId === "string") {
-    let photo: { mime: string; base64: string } | null;
-    try {
-      photo = await stored(body.photoId);
-    } catch (error) {
-      console.error("tidy: could not read photo:", error instanceof Error ? error.message : error);
-      return NextResponse.json({ error: "Could not read that photo" }, { status: 503 });
-    }
-    if (!photo) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    ({ mime, base64 } = photo);
-  } else {
-    const dataUrl = typeof body.dataUrl === "string" ? body.dataUrl : "";
-    const parsed = dataUrl.match(/^data:([\w/+.-]+);base64,(.+)$/);
-    if (!parsed) {
-      return NextResponse.json({ error: "Expected a base64 data URL or a photo id" }, { status: 400 });
-    }
-    [, mime, base64] = parsed;
+  const input = await readPhoto(body);
+  if (!input.ok) {
+    return NextResponse.json({ error: input.error }, { status: input.status });
   }
+  const { mime, base64 } = input.photo;
 
-  if (!ALLOWED_MIME.has(mime) || base64.length > MAX_BASE64_LENGTH) {
-    return NextResponse.json({ error: "Unsupported or oversized image" }, { status: 415 });
-  }
   const original = Buffer.from(base64, "base64");
 
   /*

@@ -3,16 +3,13 @@ import { NextResponse } from "next/server";
 import { buildQuery, fetchImage, findCandidates } from "@/lib/artwork";
 import { shotsFromPages } from "@/lib/product-shot";
 import { findFacts } from "@/lib/wine-facts";
-import { sql } from "@/lib/db";
+import { readPhoto } from "@/lib/photo-input";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5";
 const MAX_CANDIDATES = 4;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
-const MAX_BASE64_LENGTH = 2_000_000;
 
 /**
  * The whole feature rests on this prompt saying "none" often enough. A product
@@ -81,39 +78,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Expected a JSON body" }, { status: 400 });
   }
 
-  /*
-   * Adding a wine sends the photo it just took; going back to fix a picture on
-   * a bottle already in the log sends its id, and the photo is read here rather
-   * than pulled down and posted straight back a third larger for the trip.
-   */
-  let userMime: string;
-  let userBase64: string;
-
-  if (typeof body.photoId === "string" && UUID.test(body.photoId)) {
-    let stored: { mime: string; data: string } | undefined;
-    try {
-      const db = sql();
-      const rows = await db.query(`SELECT mime, data FROM photos WHERE id = $1`, [body.photoId]);
-      stored = (rows as { mime: string; data: string }[])[0];
-    } catch (error) {
-      console.error("artwork: could not read photo:", error instanceof Error ? error.message : error);
-      return NextResponse.json({ found: false, reason: "Couldn't read your photo." });
-    }
-    if (!stored) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    userMime = stored.mime;
-    userBase64 = stored.data;
-  } else {
-    const dataUrl = typeof body.dataUrl === "string" ? body.dataUrl : "";
-    const match = dataUrl.match(/^data:([\w/+.-]+);base64,(.+)$/);
-    if (!match) {
-      return NextResponse.json({ error: "Expected a base64 data URL or a photo id" }, { status: 400 });
-    }
-    [, userMime, userBase64] = match;
+  const input = await readPhoto(body);
+  if (!input.ok) {
+    return NextResponse.json({ error: input.error }, { status: input.status });
   }
-
-  if (!ALLOWED_MIME.has(userMime) || userBase64.length > MAX_BASE64_LENGTH) {
-    return NextResponse.json({ error: "Unsupported or oversized image" }, { status: 415 });
-  }
+  const { mime: userMime, base64: userBase64 } = input.photo;
 
   const query = buildQuery({
     producer: typeof body.producer === "string" ? body.producer : null,
