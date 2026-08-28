@@ -104,7 +104,6 @@ function RolodexRow({ wines, label }: { wines: Wine[]; label: string }) {
         className="hide-scrollbar mt-3 flex snap-x snap-mandatory overflow-x-auto
           overflow-y-hidden px-[calc(50%-8rem)] py-4"
         style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}
-        style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}
       >
         {wines.map((wine) => (
           <Link
