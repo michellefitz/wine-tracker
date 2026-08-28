@@ -21,7 +21,12 @@ export default function AddWineFlow() {
   // A cleaner product shot, if one can be found and verified against the photo.
   const [artwork, setArtwork] = useState<Artwork | null>(null);
   const [lookingUp, setLookingUp] = useState(false);
-  const [useArtwork, setUseArtwork] = useState(true);
+
+  // Your own photo, cropped to the bottle and lifted off its background.
+  const [tidy, setTidy] = useState<string | null>(null);
+  const [tidying, setTidying] = useState(false);
+
+  const [pick, setPick] = useState<"artwork" | "tidy" | "mine">("artwork");
 
   /** Runs after the label is read, in the background — it must never block saving. */
   async function lookUpArtwork(dataUrl: string, result: LabelReading) {
@@ -53,6 +58,33 @@ export default function AddWineFlow() {
     setLookingUp(false);
   }
 
+  /**
+   * Runs alongside the product-shot lookup, on the photo you took.
+   *
+   * Independent of it on purpose: the lookup finds nothing for most small
+   * growers, and this works on every bottle because it only needs the picture
+   * already in your hand.
+   */
+  async function tidyUp(dataUrl: string) {
+    setTidying(true);
+    try {
+      const response = await fetch("/api/photos/tidy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataUrl }),
+      });
+      if (response.ok) {
+        const payload = (await response.json()) as { dataUrl?: string; cutOut?: boolean };
+        // A crop alone isn't worth a third thumbnail to choose between; the
+        // background coming off is a visibly different picture.
+        if (payload.dataUrl && payload.cutOut) setTidy(payload.dataUrl);
+      }
+    } catch {
+      // Not being able to tidy up is a normal outcome, not an error to report.
+    }
+    setTidying(false);
+  }
+
   async function onPhotoChosen(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = ""; // let the same file be re-picked after a change
@@ -69,7 +101,11 @@ export default function AddWineFlow() {
     }
 
     setPhoto(dataUrl);
+    setArtwork(null);
+    setTidy(null);
+    setPick("artwork");
     setStage("reading");
+    void tidyUp(dataUrl);
 
     try {
       const response = await fetch("/api/identify", {
@@ -100,6 +136,17 @@ export default function AddWineFlow() {
     setStage("form");
   }
 
+  /*
+   * What's actually selected. Held as a fallback chain rather than corrected
+   * in an effect, because both pictures arrive on their own schedule after the
+   * form is already on screen: preferring the product shot when there is one
+   * means the default doesn't jump around as the lookups land.
+   */
+  const chosen: "artwork" | "tidy" | "mine" =
+    pick === "artwork" && artwork ? "artwork" : pick === "tidy" && tidy ? "tidy" : pick === "mine" ? "mine" : artwork ? "artwork" : tidy ? "tidy" : "mine";
+
+  const chosenPhoto = chosen === "artwork" ? (artwork?.dataUrl ?? photo) : chosen === "tidy" ? (tidy ?? photo) : photo;
+
   return (
     <div className="space-y-7">
       {/*
@@ -118,7 +165,7 @@ export default function AddWineFlow() {
         onChange={onPhotoChosen}
       />
 
-      {photo && !artwork && (
+      {photo && !artwork && !tidy && (
         <div className="flex items-end gap-5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -140,61 +187,79 @@ export default function AddWineFlow() {
                 setPhoto(null);
                 setReading(null);
                 setArtwork(null);
+                setTidy(null);
               }}
               className="link-quiet"
             >
               Remove
             </button>
-            {lookingUp && <span className="eyebrow">Looking for a product shot…</span>}
+            {(lookingUp || tidying) && (
+              <span className="eyebrow">{lookingUp ? "Looking for a product shot…" : "Tidying up…"}</span>
+            )}
           </div>
         </div>
       )}
 
-      {photo && artwork && (
+      {/*
+        Whichever pictures we managed to come up with, side by side at the size
+        they'll actually be seen. A product shot is only offered once it's been
+        checked against your photo, and a tidied version only once the
+        background actually came off — a plain crop isn't a different enough
+        picture to be worth a decision.
+      */}
+      {photo && (artwork || tidy) && (
         <div>
           <p className="eyebrow mb-3">Which picture?</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className={`grid gap-3 ${artwork && tidy ? "grid-cols-3" : "grid-cols-2"}`}>
             {[
-              { id: "artwork", src: artwork.dataUrl, caption: "Product shot", on: useArtwork },
-              { id: "mine", src: photo, caption: "Your photo", on: !useArtwork },
-            ].map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => setUseArtwork(option.id === "artwork")}
-                className="text-left transition-transform duration-[160ms]
-                  ease-out-strong active:scale-[0.98]"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={option.src}
-                  alt={option.caption}
-                  className={`aspect-4/5 w-full bg-tint object-contain transition-opacity
-                    duration-[160ms] ease-out-strong ${
-                      option.on ? "ring-1 ring-ink" : "opacity-55"
-                    }`}
-                />
-                <span
-                  className={`mt-2 block text-[0.6875rem] font-medium uppercase tracking-[0.14em] ${
-                    option.on ? "text-ink" : "text-muted"
-                  }`}
+              artwork ? { id: "artwork" as const, src: artwork.dataUrl, caption: "Product shot" } : null,
+              tidy ? { id: "tidy" as const, src: tidy, caption: "Yours, tidied" } : null,
+              { id: "mine" as const, src: photo, caption: "Your photo" },
+            ]
+              .filter((option) => option !== null)
+              .map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setPick(option.id)}
+                  className="text-left transition-transform duration-[160ms]
+                    ease-out-strong active:scale-[0.98]"
                 >
-                  {option.caption}
-                </span>
-              </button>
-            ))}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={option.src}
+                    alt={option.caption}
+                    className={`aspect-4/5 w-full bg-tint object-contain transition-opacity
+                      duration-[160ms] ease-out-strong ${
+                        chosen === option.id ? "ring-1 ring-ink" : "opacity-55"
+                      }`}
+                  />
+                  <span
+                    className={`mt-2 block text-[0.6875rem] font-medium uppercase tracking-[0.14em] ${
+                      chosen === option.id ? "text-ink" : "text-muted"
+                    }`}
+                  >
+                    {option.caption}
+                  </span>
+                </button>
+              ))}
           </div>
-          <p className="mt-3 text-[0.8125rem] leading-relaxed text-muted">
-            Matched to “{artwork.label}” from Open Food Facts. If that isn&apos;t your
-            bottle, keep your own photo.
+
+          {artwork && (
+            <p className="mt-3 text-[0.8125rem] leading-relaxed text-muted">
+              The product shot is matched to “{artwork.label}” from Open Food Facts. If that
+              isn&apos;t your bottle, keep one of your own.
+            </p>
+          )}
+
+          <p className="mt-3 flex items-baseline gap-5">
+            <button type="button" onClick={() => fileInput.current?.click()} className="link-quiet">
+              Change photo
+            </button>
+            {(lookingUp || tidying) && (
+              <span className="eyebrow">{lookingUp ? "Still looking…" : "Tidying up…"}</span>
+            )}
           </p>
-          <button
-            type="button"
-            onClick={() => fileInput.current?.click()}
-            className="link-quiet mt-3"
-          >
-            Change photo
-          </button>
         </div>
       )}
 
@@ -240,11 +305,7 @@ export default function AddWineFlow() {
       )}
 
       {stage === "form" && (
-        <WineForm
-          mode="create"
-          reading={reading}
-          photoDataUrl={artwork && useArtwork ? artwork.dataUrl : photo}
-        />
+        <WineForm mode="create" reading={reading} photoDataUrl={chosenPhoto} />
       )}
 
       {stage !== "form" && (

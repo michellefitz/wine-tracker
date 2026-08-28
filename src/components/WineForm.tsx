@@ -70,6 +70,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
   const [storedPhoto, setStoredPhoto] = useState(wine?.photo_id ?? null);
   const [newPhoto, setNewPhoto] = useState<string | null>(null);
   const [photoNotice, setPhotoNotice] = useState<string | null>(null);
+  const [tidying, setTidying] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [showDetails, setShowDetails] = useState(mode === "edit");
@@ -89,6 +90,38 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
     } catch (error) {
       setPhotoNotice(error instanceof Error ? error.message : "Couldn't read that photo.");
     }
+  }
+
+  /**
+   * Crop the picture to the bottle, and lift it off its background when that
+   * can be done cleanly. Always offered, never automatic: it changes what the
+   * photo looks like, and the result is a judgement you can only make by
+   * seeing it. Nothing is saved until you save.
+   */
+  async function tidyPhoto() {
+    setTidying(true);
+    setPhotoNotice(null);
+    try {
+      const response = await fetch("/api/photos/tidy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPhoto ? { dataUrl: newPhoto } : { photoId: storedPhoto }),
+      });
+      const payload = (await response.json()) as {
+        dataUrl?: string;
+        note?: string | null;
+        error?: string;
+      };
+      if (!response.ok || !payload.dataUrl) {
+        setPhotoNotice(payload.error ?? "That photo couldn't be tidied up.");
+      } else {
+        setNewPhoto(payload.dataUrl);
+        setPhotoNotice(payload.note ?? null);
+      }
+    } catch {
+      setPhotoNotice("Couldn't reach the server to tidy that photo.");
+    }
+    setTidying(false);
   }
 
   function toggleTag(id: string) {
@@ -244,6 +277,17 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
               >
                 {storedPhoto || newPhoto ? "Change photo" : "Add a photo"}
               </button>
+
+              {(storedPhoto || newPhoto) && (
+                <button
+                  type="button"
+                  onClick={tidyPhoto}
+                  disabled={tidying}
+                  className="link-quiet disabled:opacity-50"
+                >
+                  {tidying ? "Tidying…" : "Tidy up"}
+                </button>
+              )}
 
               {(storedPhoto || newPhoto) && (
                 <button
