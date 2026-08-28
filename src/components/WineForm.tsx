@@ -64,14 +64,13 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
    * stored id means a failed upload falls back to the label you already had
    * instead of quietly leaving the bottle bare.
    *
-   * Adding a wine doesn't come through here — that flow owns its own picker, so
-   * it can offer the product shot it found alongside the photo you took.
+   * Adding a wine doesn't come through here — that flow owns its own picker,
+   * because it runs the studio shot the moment a photo arrives and has to show
+   * you both while it's still deciding which one you'll keep.
    */
   const [storedPhoto, setStoredPhoto] = useState(wine?.photo_id ?? null);
   const [newPhoto, setNewPhoto] = useState<string | null>(null);
   const [photoNotice, setPhotoNotice] = useState<string | null>(null);
-  const [tidying, setTidying] = useState(false);
-  const [hunting, setHunting] = useState(false);
   const [staging, setStaging] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -92,81 +91,6 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
     } catch (error) {
       setPhotoNotice(error instanceof Error ? error.message : "Couldn't read that photo.");
     }
-  }
-
-  /**
-   * Crop the picture to the bottle, and lift it off its background when that
-   * can be done cleanly. Always offered, never automatic: it changes what the
-   * photo looks like, and the result is a judgement you can only make by
-   * seeing it. Nothing is saved until you save.
-   */
-  async function tidyPhoto() {
-    setTidying(true);
-    setPhotoNotice(null);
-    try {
-      const response = await fetch("/api/photos/tidy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newPhoto ? { dataUrl: newPhoto } : { photoId: storedPhoto }),
-      });
-      const payload = (await response.json()) as {
-        dataUrl?: string;
-        note?: string | null;
-        error?: string;
-      };
-      if (!response.ok || !payload.dataUrl) {
-        setPhotoNotice(payload.error ?? "That photo couldn't be tidied up.");
-      } else {
-        setNewPhoto(payload.dataUrl);
-        setPhotoNotice(payload.note ?? null);
-      }
-    } catch {
-      setPhotoNotice("Couldn't reach the server to tidy that photo.");
-    }
-    setTidying(false);
-  }
-
-  /**
-   * Go looking for a proper product shot of this bottle.
-   *
-   * Explicit rather than automatic, because it's the fix for a picture you've
-   * already decided you don't like — including one of these the app chose for
-   * you when you added the wine. Whatever comes back is verified against your
-   * own photo before it's offered, and nothing is saved until you save.
-   */
-  async function findPicture() {
-    setHunting(true);
-    setPhotoNotice(null);
-    try {
-      const response = await fetch("/api/artwork", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...(newPhoto ? { dataUrl: newPhoto } : { photoId: storedPhoto }),
-          producer: producer.trim() || null,
-          name: name.trim() || null,
-          wineId: wine?.id,
-        }),
-      });
-      const payload = (await response.json()) as {
-        found?: boolean;
-        dataUrl?: string;
-        label?: string;
-        reason?: string;
-        error?: string;
-      };
-      if (payload.found && payload.dataUrl) {
-        setNewPhoto(payload.dataUrl);
-        setPhotoNotice(
-          `Found a product shot for “${payload.label ?? "this wine"}”. Keep it, or change the photo again.`,
-        );
-      } else {
-        setPhotoNotice(payload.reason ?? payload.error ?? "Nothing turned up for this bottle.");
-      }
-    } catch {
-      setPhotoNotice("Couldn't reach the server to look for a picture.");
-    }
-    setHunting(false);
   }
 
   /**
@@ -313,7 +237,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
     }
   }
 
-  const busyWithPhoto = tidying || hunting || staging;
+  const busyWithPhoto = staging;
 
   const photo = newPhoto ? (
     /* eslint-disable-next-line @next/next/no-img-element */
@@ -330,10 +254,11 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
   return (
     <form onSubmit={onSubmit} className="space-y-8">
       {/*
-        Changing the picture on a bottle you already logged. The product shot
-        the app finds for you is a guess, and a guess you accepted once is not a
-        guess you're stuck with — it can be soft, or the wrong vintage, or just
-        not the bottle you remember drinking.
+        Changing the picture on a bottle you already logged — a different
+        photo, or another go at the studio shot. The studio shot is a
+        rendering, and one you accepted once is not one you're stuck with: the
+        same photo doesn't produce the same result twice, so a bad roll is
+        usually only bad once.
 
         No `capture` attribute, same as the add flow: it would force the camera
         open, and the photo you want is usually already in the camera roll.
@@ -351,10 +276,10 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
             onChange={onPhotoChosen}
           />
 
-          <div className="flex items-end gap-5">
-            <div className="aspect-4/5 w-28 shrink-0 overflow-hidden bg-tint">{photo}</div>
+          <div className="flex items-end gap-6">
+            <div className="aspect-4/5 w-44 shrink-0 overflow-hidden bg-tint">{photo}</div>
 
-            <div className="flex flex-col items-start gap-2 pb-1">
+            <div className="flex flex-col items-start gap-2.5 pb-1">
               <button
                 type="button"
                 onClick={() => fileInput.current?.click()}
@@ -366,33 +291,11 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
               {(storedPhoto || newPhoto) && (
                 <button
                   type="button"
-                  onClick={tidyPhoto}
-                  disabled={busyWithPhoto}
-                  className="link-quiet disabled:opacity-50"
-                >
-                  {tidying ? "Tidying…" : "Tidy up"}
-                </button>
-              )}
-
-              {(storedPhoto || newPhoto) && (
-                <button
-                  type="button"
-                  onClick={findPicture}
-                  disabled={busyWithPhoto}
-                  className="link-quiet disabled:opacity-50"
-                >
-                  {hunting ? "Looking…" : "Find a product shot"}
-                </button>
-              )}
-
-              {(storedPhoto || newPhoto) && (
-                <button
-                  type="button"
                   onClick={makeStudioShot}
                   disabled={busyWithPhoto}
                   className="link-quiet disabled:opacity-50"
                 >
-                  {staging ? "Restaging…" : "Make a studio shot"}
+                  {staging ? "Restaging…" : newPhoto ? "Try again" : "Make a studio shot"}
                 </button>
               )}
 

@@ -140,12 +140,17 @@ export default function WineDetail({
     { term: "Drank", value: formatDate(wine.drank_on) },
   ].filter((row) => row.value !== "");
 
-  // A sheet has less height to spend than a page, and the first screen is
-  // better spent on the verdict and the table than on a bigger picture.
+  /*
+   * The picture leads now. It used to be kept small because it was a snapshot
+   * of a bottle on a table and the page was better spent on the verdict — but
+   * the studio shot is the bottle against nothing, and at thumbnail size that
+   * is simply a small bottle. A sheet still gets less than a page, because it
+   * has less height to spend before the writing starts.
+   */
   const photo = (
     <div
       className={`mx-auto aspect-4/5 w-full overflow-hidden bg-tint ${
-        sheet ? "max-w-[11rem]" : "max-w-[14rem]"
+        sheet ? "max-w-[17rem]" : "max-w-[22rem]"
       }`}
     >
       <LabelPhoto

@@ -9,8 +9,6 @@ import type { LabelReading } from "@/lib/types";
 
 type Stage = "capture" | "reading" | "form";
 
-type Artwork = { dataUrl: string; label: string };
-
 export default function AddWineFlow() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [stage, setStage] = useState<Stage>("capture");
@@ -18,97 +16,43 @@ export default function AddWineFlow() {
   const [reading, setReading] = useState<LabelReading | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  // A cleaner product shot, if one can be found and verified against the photo.
-  const [artwork, setArtwork] = useState<Artwork | null>(null);
-  const [lookingUp, setLookingUp] = useState(false);
-
-  // Your own photo, cropped to the bottle and lifted off its background.
-  const [tidy, setTidy] = useState<string | null>(null);
-  const [tidying, setTidying] = useState(false);
-
-  // Your bottle restaged under studio lighting. Generated, so never automatic:
-  // it costs a generation per press and takes about a minute.
+  /*
+   * The studio shot now runs on its own as soon as there's a photo, because it
+   * turned out to be the right answer nearly every time and asking first was
+   * just a tap between you and the picture you were going to pick anyway.
+   *
+   * Your own photo is still kept and still offered, for the times it isn't:
+   * this is a rendering, and the label is the one thing in it that has to be
+   * right. "Try again" re-rolls, because the same photo does not give the same
+   * result twice and a bad one is usually only bad once.
+   */
   const [studio, setStudio] = useState<string | null>(null);
   const [staging, setStaging] = useState(false);
+  const [studioTrouble, setStudioTrouble] = useState<string | null>(null);
+  const [useStudio, setUseStudio] = useState(true);
 
-  const [pick, setPick] = useState<"artwork" | "studio" | "tidy" | "mine">("artwork");
-
-  /** Runs after the label is read, in the background — it must never block saving. */
-  async function lookUpArtwork(dataUrl: string, result: LabelReading) {
-    if (!result.name && !result.producer) return;
-    setLookingUp(true);
-    try {
-      const response = await fetch("/api/artwork", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          dataUrl,
-          producer: result.producer,
-          name: result.name,
-        }),
-      });
-      if (response.ok) {
-        const payload = (await response.json()) as {
-          found: boolean;
-          dataUrl?: string;
-          label?: string;
-        };
-        if (payload.found && payload.dataUrl) {
-          setArtwork({ dataUrl: payload.dataUrl, label: payload.label ?? "Product shot" });
-        }
-      }
-    } catch {
-      // No product shot is a normal outcome, not an error worth surfacing.
-    }
-    setLookingUp(false);
-  }
-
-  /**
-   * Runs alongside the product-shot lookup, on the photo you took.
-   *
-   * Independent of it on purpose: the lookup finds nothing for most small
-   * growers, and this works on every bottle because it only needs the picture
-   * already in your hand.
-   */
-  async function tidyUp(dataUrl: string) {
-    setTidying(true);
-    try {
-      const response = await fetch("/api/photos/tidy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataUrl }),
-      });
-      if (response.ok) {
-        const payload = (await response.json()) as { dataUrl?: string; cutOut?: boolean };
-        // A crop alone isn't worth a third thumbnail to choose between; the
-        // background coming off is a visibly different picture.
-        if (payload.dataUrl && payload.cutOut) setTidy(payload.dataUrl);
-      }
-    } catch {
-      // Not being able to tidy up is a normal outcome, not an error to report.
-    }
-    setTidying(false);
-  }
-
-  async function makeStudioShot() {
-    if (!photo) return;
+  async function makeStudioShot(dataUrl: string) {
     setStaging(true);
-    setNotice(null);
+    setStudioTrouble(null);
     try {
       const response = await fetch("/api/photos/studio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataUrl: photo }),
+        body: JSON.stringify({ dataUrl }),
       });
-      const payload = (await response.json()) as { generated?: boolean; dataUrl?: string; reason?: string };
+      const payload = (await response.json()) as {
+        generated?: boolean;
+        dataUrl?: string;
+        reason?: string;
+      };
       if (payload.generated && payload.dataUrl) {
         setStudio(payload.dataUrl);
-        setPick("studio");
+        setUseStudio(true);
       } else {
-        setNotice(payload.reason ?? "That photo couldn't be restaged.");
+        setStudioTrouble(payload.reason ?? "No studio shot came back.");
       }
     } catch {
-      setNotice("Couldn't reach the server to make a studio shot.");
+      setStudioTrouble("Couldn't reach the server to make a studio shot.");
     }
     setStaging(false);
   }
@@ -129,12 +73,13 @@ export default function AddWineFlow() {
     }
 
     setPhoto(dataUrl);
-    setArtwork(null);
-    setTidy(null);
     setStudio(null);
-    setPick("artwork");
+    setStudioTrouble(null);
     setStage("reading");
-    void tidyUp(dataUrl);
+
+    // Alongside the label reading, not after it: neither needs the other, and
+    // together they're the length of the slower one rather than the sum.
+    void makeStudioShot(dataUrl);
 
     try {
       const response = await fetch("/api/identify", {
@@ -153,7 +98,6 @@ export default function AddWineFlow() {
           if (result.confidence === "low") {
             setNotice("The label was hard to read — worth checking these details.");
           }
-          void lookUpArtwork(dataUrl, result);
         } else {
           setNotice(result.note ?? "That didn't look like a wine label. Fill it in by hand.");
         }
@@ -165,37 +109,7 @@ export default function AddWineFlow() {
     setStage("form");
   }
 
-  /*
-   * What's actually selected. Held as a fallback chain rather than corrected
-   * in an effect, because both pictures arrive on their own schedule after the
-   * form is already on screen: preferring the product shot when there is one
-   * means the default doesn't jump around as the lookups land.
-   */
-  const pictures = {
-    artwork: artwork?.dataUrl ?? null,
-    studio,
-    tidy,
-    mine: photo,
-  };
-
-  const chosen = (pictures[pick] ? pick : artwork ? "artwork" : studio ? "studio" : tidy ? "tidy" : "mine") as
-    | "artwork"
-    | "studio"
-    | "tidy"
-    | "mine";
-
-  const chosenPhoto = pictures[chosen] ?? photo;
-
-  /*
-   * Three at most across a phone; a fourth wraps to a second row rather than
-   * squeezing every thumbnail down to a stripe.
-   */
-  const options = [
-    artwork ? { id: "artwork" as const, src: artwork.dataUrl, caption: "Product shot" } : null,
-    studio ? { id: "studio" as const, src: studio, caption: "Studio, generated" } : null,
-    tidy ? { id: "tidy" as const, src: tidy, caption: "Yours, tidied" } : null,
-    photo ? { id: "mine" as const, src: photo, caption: "Your photo" } : null,
-  ].filter((option) => option !== null);
+  const chosen = studio && useStudio ? studio : photo;
 
   return (
     <div className="space-y-7">
@@ -215,15 +129,63 @@ export default function AddWineFlow() {
         onChange={onPhotoChosen}
       />
 
-      {photo && options.length < 2 && (
-        <div className="flex items-end gap-5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={photo}
-            alt="The label you chose"
-            className="aspect-4/5 w-28 shrink-0 bg-tint object-cover"
-          />
-          <div className="flex flex-col items-start gap-2 pb-1">
+      {photo && (
+        <div>
+          {/*
+            One picture at the size it will actually be seen, rather than a row
+            of thumbnails to choose between. There is a right answer here now,
+            and it's on screen; the alternative is a line of text underneath.
+          */}
+          <div className="mx-auto aspect-4/5 w-full max-w-[15rem] overflow-hidden bg-tint">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={chosen ?? photo}
+              alt="The label for this bottle"
+              className={`h-full w-full object-cover transition-opacity duration-300 ${
+                staging ? "opacity-40" : "opacity-100"
+              }`}
+            />
+          </div>
+
+          <p className="mt-3 text-center">
+            {staging ? (
+              <span className="eyebrow">Making a studio shot…</span>
+            ) : studio ? (
+              <span className="eyebrow">{useStudio ? "Studio, generated" : "Your photo"}</span>
+            ) : (
+              <span className="eyebrow">Your photo</span>
+            )}
+          </p>
+
+          {studio && !staging && (
+            <p className="mx-auto mt-3 max-w-sm text-center text-[0.8125rem] leading-relaxed text-muted">
+              Generated from your photo, so it keeps the real label — but it is a
+              rendering. Check the label still reads right.
+            </p>
+          )}
+
+          {studioTrouble && (
+            <p className="mx-auto mt-3 max-w-sm bg-tint px-4 py-3 text-[0.8125rem] leading-relaxed text-ink-soft">
+              {studioTrouble} Your own photo will be used.
+            </p>
+          )}
+
+          <p className="mt-4 flex flex-wrap items-baseline justify-center gap-x-5 gap-y-2">
+            <button
+              type="button"
+              onClick={() => photo && makeStudioShot(photo)}
+              disabled={staging}
+              className="link-quiet disabled:opacity-50"
+            >
+              {staging ? "Working…" : studio || studioTrouble ? "Try again" : "Make a studio shot"}
+            </button>
+
+            {studio && (
+              <button type="button" onClick={() => setUseStudio(!useStudio)} className="link-quiet">
+                {useStudio ? "Use my photo" : "Use the studio shot"}
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => fileInput.current?.click()}
@@ -231,106 +193,19 @@ export default function AddWineFlow() {
             >
               Change photo
             </button>
+
             <button
               type="button"
               onClick={() => {
                 setPhoto(null);
                 setReading(null);
-                setArtwork(null);
-                setTidy(null);
                 setStudio(null);
+                setStudioTrouble(null);
               }}
               className="link-quiet"
             >
               Remove
             </button>
-            <button
-              type="button"
-              onClick={makeStudioShot}
-              disabled={staging}
-              className="link-quiet disabled:opacity-50"
-            >
-              {staging ? "Restaging…" : "Make a studio shot"}
-            </button>
-            {(lookingUp || tidying) && (
-              <span className="eyebrow">{lookingUp ? "Looking for a product shot…" : "Tidying up…"}</span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/*
-        Whichever pictures we managed to come up with, side by side at the size
-        they'll actually be seen. A product shot is only offered once it's been
-        checked against your photo, and a tidied version only once the
-        background actually came off — a plain crop isn't a different enough
-        picture to be worth a decision.
-      */}
-      {photo && (artwork || tidy || studio) && (
-        <div>
-          <p className="eyebrow mb-3">Which picture?</p>
-          <div className={`grid gap-3 ${options.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
-            {options
-              .map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => setPick(option.id)}
-                  className="text-left transition-transform duration-[160ms]
-                    ease-out-strong active:scale-[0.98]"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={option.src}
-                    alt={option.caption}
-                    className={`aspect-4/5 w-full bg-tint object-contain transition-opacity
-                      duration-[160ms] ease-out-strong ${
-                        chosen === option.id ? "ring-1 ring-ink" : "opacity-55"
-                      }`}
-                  />
-                  <span
-                    className={`mt-2 block text-[0.6875rem] font-medium uppercase tracking-[0.14em] ${
-                      chosen === option.id ? "text-ink" : "text-muted"
-                    }`}
-                  >
-                    {option.caption}
-                  </span>
-                </button>
-              ))}
-          </div>
-
-          {artwork && (
-            <p className="mt-3 text-[0.8125rem] leading-relaxed text-muted">
-              The product shot is matched to “{artwork.label}” from Open Food Facts. If that
-              isn&apos;t your bottle, keep one of your own.
-            </p>
-          )}
-
-          {studio && (
-            <p className="mt-3 text-[0.8125rem] leading-relaxed text-muted">
-              The studio shot is generated from your photo. It keeps the label because it starts
-              from the picture rather than the name, but it is a rendering — check the label still
-              reads right before you keep it.
-            </p>
-          )}
-
-          <p className="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-2">
-            <button type="button" onClick={() => fileInput.current?.click()} className="link-quiet">
-              Change photo
-            </button>
-            {!studio && (
-              <button
-                type="button"
-                onClick={makeStudioShot}
-                disabled={staging}
-                className="link-quiet disabled:opacity-50"
-              >
-                {staging ? "Restaging…" : "Make a studio shot"}
-              </button>
-            )}
-            {(lookingUp || tidying) && (
-              <span className="eyebrow">{lookingUp ? "Still looking…" : "Tidying up…"}</span>
-            )}
           </p>
         </div>
       )}
@@ -376,9 +251,7 @@ export default function AddWineFlow() {
         </p>
       )}
 
-      {stage === "form" && (
-        <WineForm mode="create" reading={reading} photoDataUrl={chosenPhoto} />
-      )}
+      {stage === "form" && <WineForm mode="create" reading={reading} photoDataUrl={chosen} />}
 
       {stage !== "form" && (
         <p className="text-center">
