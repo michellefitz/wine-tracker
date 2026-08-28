@@ -77,8 +77,6 @@ export default function Sheet({
   const scroller = useRef<HTMLDivElement>(null);
 
   const [leaving, setLeaving] = useState(false);
-  /** Drag-dismiss handles its own slide-out; skip the CSS exit animation. */
-  const [dragDismiss, setDragDismiss] = useState(false);
   /** Set when the route never took us away — see `close`. */
   const [gone, setGone] = useState(false);
 
@@ -233,16 +231,21 @@ export default function Sheet({
     if (!wasActive) return;
 
     if (dy > DISMISS_DISTANCE || state.velocity > DISMISS_VELOCITY) {
-      if (panel.current) {
-        panel.current.style.transition = "transform 220ms cubic-bezier(0.23, 1, 0.32, 1)";
-        panel.current.style.transform = "translate3d(0, 100%, 0)";
-      }
-      if (scrim.current) {
-        scrim.current.style.transition = "opacity 220ms cubic-bezier(0.23, 1, 0.32, 1)";
-        scrim.current.style.opacity = "0";
-      }
-      setDragDismiss(true);
-      close();
+      // Animate out with WAAPI so it can't fight CSS animations.
+      const easing = "cubic-bezier(0.23, 1, 0.32, 1)";
+      const currentY = panel.current?.getBoundingClientRect().top ?? 0;
+      const distance = window.innerHeight - currentY;
+
+      panel.current?.animate(
+        [{ transform: `translate3d(0, ${distance}px, 0)` }],
+        { duration: 220, easing, fill: "forwards" },
+      );
+      scrim.current?.animate(
+        [{ opacity: 0 }],
+        { duration: 220, easing, fill: "forwards" },
+      );
+
+      window.setTimeout(() => close(), 200);
       return;
     }
     if (panel.current) {
@@ -265,7 +268,7 @@ export default function Sheet({
       role="dialog"
       aria-modal="true"
       aria-label={label}
-      className={`fixed inset-0 z-50 ${leaving ? "pointer-events-none" : ""} ${leaving && !dragDismiss ? "sheet-leaving" : ""}`}
+      className={`fixed inset-0 z-50 ${leaving ? "sheet-leaving pointer-events-none" : ""}`}
     >
       {/* Tapping the strip of page still showing puts the sheet away. */}
       <button
