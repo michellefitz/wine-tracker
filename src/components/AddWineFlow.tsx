@@ -142,7 +142,7 @@ export default function AddWineFlow() {
               src={chosen ?? photo}
               alt="The label for this bottle"
               className={`h-full w-full object-cover transition-opacity duration-300 ${
-                staging ? "opacity-40" : "opacity-100"
+                staging ? "opacity-40 will-change-[opacity]" : "opacity-100"
               }`}
             />
           </div>

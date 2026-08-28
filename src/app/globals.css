@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+@custom-variant pointer-hover {
+  @media (hover: hover) and (pointer: fine) {
+    @slot;
+  }
+}
+
 @theme {
   /*
    * Cream, and a specific one: oklch(92.7% 0.018 81) is #ede6da, the median
@@ -181,19 +187,19 @@ textarea {
       bg-transparent px-6 py-3.5 text-[0.75rem] font-medium uppercase
       tracking-[0.16em] text-ink transition-[transform,border-color]
       duration-[160ms] ease-out-strong active:scale-[0.98]
-      hover:border-ink disabled:opacity-40;
+      pointer-hover:hover:border-ink disabled:opacity-40;
   }
 
   .link-quiet {
     @apply text-[0.75rem] uppercase tracking-[0.12em] text-muted underline
-      decoration-rule underline-offset-4 transition-colors hover:text-ink;
+      decoration-rule underline-offset-4 transition-colors pointer-hover:hover:text-ink;
   }
 
   /* Tag chips: hairline pills, ink fill when chosen. */
   .chip {
     @apply rounded-full border border-rule px-3.5 py-1.5 text-[0.8125rem] text-ink-soft
       transition-[transform,border-color] duration-[160ms] ease-out-strong
-      active:scale-95 hover:border-muted;
+      active:scale-95 pointer-hover:hover:border-muted;
   }
 
   .chip-on {
@@ -222,6 +228,15 @@ textarea {
       transition: opacity 200ms ease;
       transform: none;
     }
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 

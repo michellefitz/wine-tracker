@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import WineCard from "@/components/WineCard";
+import WineRolodex from "@/components/WineRolodex";
 import type { Wine } from "@/lib/types";
 
 type Filter = "all" | "liked" | "disliked";
@@ -75,11 +76,11 @@ export default function WineList({ wines }: { wines: Wine[] }) {
               key={option.id}
               type="button"
               onClick={() => setFilter(option.id)}
-              className={`pb-1 text-[0.6875rem] font-medium uppercase tracking-[0.16em]
+              className={`py-2 text-[0.6875rem] font-medium uppercase tracking-[0.16em]
                 transition-colors ${
                   filter === option.id
                     ? "border-b border-ink text-ink"
-                    : "border-b border-transparent text-muted hover:text-ink-soft"
+                    : "border-b border-transparent text-muted pointer-hover:hover:text-ink-soft"
                 }`}
             >
               {option.label}
@@ -93,13 +94,25 @@ export default function WineList({ wines }: { wines: Wine[] }) {
           Nothing matches that.
         </p>
       ) : (
-        <ul className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 sm:gap-x-5">
-          {visible.map((wine) => (
-            <li key={wine.id}>
-              <WineCard wine={wine} />
-            </li>
-          ))}
-        </ul>
+        <>
+          {/* Rolodex on mobile when browsing unfiltered */}
+          {!query.trim() && filter === "all" && (
+            <div className="-mx-5 sm:hidden">
+              <WineRolodex wines={visible} />
+            </div>
+          )}
+
+          {/* Grid on desktop, or when searching/filtering on mobile */}
+          <ul className={`grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 ${
+            !query.trim() && filter === "all" ? "hidden sm:grid" : ""
+          }`}>
+            {visible.map((wine) => (
+              <li key={wine.id}>
+                <WineCard wine={wine} />
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );

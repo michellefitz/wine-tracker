@@ -16,7 +16,7 @@ export default function WineCard({ wine }: { wine: Wine }) {
     <Link
       href={`/wine/${wine.id}`}
       className="group block transition-transform duration-[160ms] ease-out-strong
-        active:scale-[0.985]"
+        active:scale-[0.975]"
     >
       <div className="photo-bleed relative aspect-4/5 w-full overflow-hidden bg-tint">
         {/* 560px covers a 167 CSS px card at a phone's 3x density. */}
@@ -25,7 +25,7 @@ export default function WineCard({ wine }: { wine: Wine }) {
           alt=""
           width={560}
           className="h-full w-full object-cover transition-transform duration-200
-            ease-out-strong group-hover:scale-[1.03]"
+            ease-out-strong pointer-hover:group-hover:scale-[1.03]"
         />
       </div>
 

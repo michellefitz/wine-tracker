@@ -34,7 +34,7 @@ export default function DeleteWineButton({ id, name }: { id: string; name: strin
         Delete <span className="text-ink">{name}</span> from the log? This can&apos;t be
         undone.
       </p>
-      <div className="mt-4 flex justify-center gap-2">
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
         <button type="button" onClick={remove} disabled={busy} className="btn-ink">
           {busy ? "Deleting…" : "Delete"}
         </button>

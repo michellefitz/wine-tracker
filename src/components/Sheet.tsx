@@ -233,6 +233,9 @@ export default function Sheet({
       close();
       return;
     }
+    if (panel.current) {
+      panel.current.style.transition = "transform 200ms cubic-bezier(0.23, 1, 0.32, 1)";
+    }
     offsetTo(0);
   }
 

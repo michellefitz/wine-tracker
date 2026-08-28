@@ -55,7 +55,7 @@ export default function LoginForm({ next }: { next: string }) {
 
       {error && <p className="text-center text-[0.875rem] text-wine">{error}</p>}
 
-      <button type="submit" className="btn-ink w-full" disabled={busy || !passcode}>
+      <button type="submit" className="btn-ink w-full" disabled={busy}>
         {busy ? "Checking…" : "Unlock"}
       </button>
     </form>

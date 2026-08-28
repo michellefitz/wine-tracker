@@ -180,7 +180,7 @@ export default function GrapeProfileView({
                 ? `You've had ${yourWines.length === 1 ? "one" : yourWines.length} and haven't taken to ${yourWines.length === 1 ? "it" : "them"} yet.`
                 : `You liked ${liked} of the ${yourWines.length} you've had.`}
           </p>
-          <ul className="grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 sm:gap-x-5">
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-9">
             {yourWines.map((wine) => (
               <li key={wine.id}>
                 <WineCard wine={wine} />

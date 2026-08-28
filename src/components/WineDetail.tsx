@@ -58,8 +58,8 @@ export default function WineDetail({
           <Link
             key={grape}
             href={`/grape/${grapeSlug(grape)}`}
-            className="rounded-full border px-3 py-1 text-[0.8125rem] leading-snug
-              transition-colors hover:border-muted"
+            className="rounded-full border px-3.5 py-1.5 text-[0.8125rem] leading-snug
+              transition-colors pointer-hover:hover:border-muted"
             style={
               accent
                 ? {
