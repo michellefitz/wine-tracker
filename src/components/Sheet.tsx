@@ -73,9 +73,12 @@ export default function Sheet({
 }) {
   const router = useRouter();
   const panel = useRef<HTMLDivElement>(null);
+  const scrim = useRef<HTMLButtonElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
 
   const [leaving, setLeaving] = useState(false);
+  /** Drag-dismiss handles its own slide-out; skip the CSS exit animation. */
+  const [dragDismiss, setDragDismiss] = useState(false);
   /** Set when the route never took us away — see `close`. */
   const [gone, setGone] = useState(false);
 
@@ -230,6 +233,15 @@ export default function Sheet({
     if (!wasActive) return;
 
     if (dy > DISMISS_DISTANCE || state.velocity > DISMISS_VELOCITY) {
+      if (panel.current) {
+        panel.current.style.transition = "transform 220ms cubic-bezier(0.23, 1, 0.32, 1)";
+        panel.current.style.transform = "translate3d(0, 100%, 0)";
+      }
+      if (scrim.current) {
+        scrim.current.style.transition = "opacity 220ms cubic-bezier(0.23, 1, 0.32, 1)";
+        scrim.current.style.opacity = "0";
+      }
+      setDragDismiss(true);
       close();
       return;
     }
@@ -253,10 +265,11 @@ export default function Sheet({
       role="dialog"
       aria-modal="true"
       aria-label={label}
-      className={`fixed inset-0 z-50 ${leaving ? "sheet-leaving pointer-events-none" : ""}`}
+      className={`fixed inset-0 z-50 ${leaving ? "pointer-events-none" : ""} ${leaving && !dragDismiss ? "sheet-leaving" : ""}`}
     >
       {/* Tapping the strip of page still showing puts the sheet away. */}
       <button
+        ref={scrim}
         type="button"
         aria-label="Close"
         onClick={close}
