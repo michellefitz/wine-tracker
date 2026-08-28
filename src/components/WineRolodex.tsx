@@ -37,7 +37,6 @@ function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
 
       <div
         className="hide-scrollbar mt-3 flex overflow-x-auto"
-        style={{ touchAction: "pan-x" }}
       >
         {wines.map((wine) => (
           <Link
