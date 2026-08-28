@@ -60,8 +60,8 @@ function RolodexRow({ wines, label }: { wines: Wine[]; label: string }) {
       }
 
       const t = Math.min(distance / maxDistance, 1);
-      const scale = 1 - t * 0.12;
-      const opacity = 1 - t * 0.5;
+      const scale = 1.15 - t * 0.4;
+      const opacity = 1 - t * 0.55;
 
       card.style.transform = `scale(${scale})`;
       card.style.opacity = String(opacity);
