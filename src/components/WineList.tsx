@@ -118,9 +118,7 @@ export default function WineList({ wines }: { wines: Wine[] }) {
           Nothing matches that.
         </p>
       ) : view === "gallery" && !searching ? (
-        <div className="-mx-5">
-          <WineRolodex wines={visible} />
-        </div>
+        <WineRolodex wines={visible} />
       ) : (
         <ul className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10">
           {visible.map((wine) => (
