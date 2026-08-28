@@ -101,15 +101,16 @@ function RolodexRow({ wines, label }: { wines: Wine[]; label: string }) {
       <div
         ref={scrollRef}
         onScroll={onScroll}
-        className="hide-scrollbar mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto
+        className="hide-scrollbar mt-3 flex snap-x snap-mandatory overflow-x-auto
           overflow-y-hidden px-[calc(50%-8rem)] py-4"
+        style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}
         style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}
       >
         {wines.map((wine) => (
           <Link
             key={wine.id}
             href={`/wine/${wine.id}`}
-            className="relative w-64 shrink-0 snap-center active:scale-[0.97]"
+            className="relative w-64 shrink-0 -mr-8 snap-center active:scale-[0.97]"
             style={{ willChange: "transform, opacity", transformOrigin: "center center" }}
           >
             <div className="photo-bleed relative aspect-4/5 w-full overflow-hidden bg-tint">
