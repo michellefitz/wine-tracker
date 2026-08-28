@@ -243,7 +243,7 @@ export default function Sheet({
       );
       scrim.current?.animate(
         [{ opacity: 0 }],
-        { duration: 220, easing, fill: "forwards" },
+        { duration: 120, easing, fill: "forwards" },
       );
 
       dragDismissing.current = true;

@@ -252,7 +252,7 @@ textarea {
 
 @keyframes scrim-in {
   from {
-    opacity: 0.4;
+    opacity: 0;
   }
 }
 
