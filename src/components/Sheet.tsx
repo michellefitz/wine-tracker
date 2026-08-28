@@ -81,6 +81,7 @@ export default function Sheet({
   const [gone, setGone] = useState(false);
 
   const closing = useRef(false);
+  const dragDismissing = useRef(false);
   const holdsLock = useRef(false);
 
   const drag = useRef({
@@ -245,6 +246,7 @@ export default function Sheet({
         { duration: 220, easing, fill: "forwards" },
       );
 
+      dragDismissing.current = true;
       window.setTimeout(() => close(), 200);
       return;
     }
@@ -268,7 +270,7 @@ export default function Sheet({
       role="dialog"
       aria-modal="true"
       aria-label={label}
-      className={`fixed inset-0 z-50 ${leaving ? "sheet-leaving pointer-events-none" : ""}`}
+      className={`fixed inset-0 z-50 ${leaving ? "pointer-events-none" : ""} ${leaving && !dragDismissing.current ? "sheet-leaving" : ""}`}
     >
       {/* Tapping the strip of page still showing puts the sheet away. */}
       <button
