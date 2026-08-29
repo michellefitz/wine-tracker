@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500&family=Spectral:wght@300;500&display=swap">
+  <style>
+    body { margin: 0; background: #ede6da; font-family: Archivo, system-ui, sans-serif; color: #221b1a; }
+    a { color: #8a2632; } a:hover { color: #6d1e28; }
+    .eyebrow { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .16em; color: #69605c; }
+    .serif { font-family: Spectral, Georgia, serif; font-weight: 300; }
+    .cell { border: 1px solid #d3c8b6; background: #f2eee9; padding: 10px 11px; display: flex; flex-direction: column; gap: 5px; min-height: 62px; }
+    .cell-name { font-size: 11.5px; font-weight: 500; letter-spacing: .04em; line-height: 1.25; }
+    .cell-sub { font-size: 10px; color: #69605c; letter-spacing: .06em; text-transform: uppercase; }
+  </style>
+</helmet>
+
+<div style="padding: 28px 26px 30px; display: flex; flex-direction: column; gap: 18px">
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <span class="eyebrow">Direction B</span>
+    <h1 class="serif" style="margin: 0; font-size: 27px; line-height: 1.15">The tile map</h1>
+    <p style="margin: 0; font-size: 13px; line-height: 1.55; color: #514846; max-width: 34ch">
+      No coastlines. Every region is a tile, placed roughly where it belongs and
+      shaded by how many bottles you've had from it.
+    </p>
+  </div>
+
+  <div style="border-top: 1px solid #d3c8b6; border-bottom: 1px solid #d3c8b6; padding: 18px 0">
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px">
+      <div class="cell" style="grid-column: span 1; background: #ede6da; border-style: dashed; opacity: .55">
+        <span class="cell-name">Valle d'Aosta</span>
+      </div>
+      <div class="cell" style="background: #8a2632; border-color: #8a2632">
+        <span class="cell-name" style="color: #ede6da">Alto Piemonte</span>
+        <span class="cell-sub" style="color: #e5dbcb">2 bottles</span>
+      </div>
+      <div class="cell" style="background: #ede6da; border-style: dashed; opacity: .55">
+        <span class="cell-name">Valtellina</span>
+      </div>
+      <div class="cell" style="background: #ede6da; border-style: dashed; opacity: .55">
+        <span class="cell-name">Alto Adige</span>
+      </div>
+
+      <div class="cell" style="background: #8a2632; border-color: #8a2632">
+        <span class="cell-name" style="color: #ede6da">Langhe</span>
+        <span class="cell-sub" style="color: #e5dbcb">3 bottles</span>
+      </div>
+      <div class="cell" style="background: #ede6da; border-style: dashed; opacity: .55">
+        <span class="cell-name">Franciacorta</span>
+      </div>
+      <div class="cell" style="background: #d9b3b3">
+        <span class="cell-name">Soave</span>
+        <span class="cell-sub">1 bottle</span>
+      </div>
+      <div class="cell" style="background: #b0696c">
+        <span class="cell-name" style="color: #ede6da">Valdobbiadene</span>
+        <span class="cell-sub" style="color: #f2eee9">2 bottles</span>
+      </div>
+
+      <div class="cell" style="background: #ede6da; border-style: dashed; opacity: .55">
+        <span class="cell-name">Liguria</span>
+      </div>
+      <div class="cell" style="background: #d9b3b3">
+        <span class="cell-name">Lambrusco</span>
+        <span class="cell-sub">1 bottle</span>
+      </div>
+      <div class="cell" style="background: #ede6da; border-style: dashed; opacity: .55">
+        <span class="cell-name">Valpolicella</span>
+      </div>
+      <div class="cell" style="background: #ede6da; border-style: dashed; opacity: .55">
+        <span class="cell-name">Colli Orientali</span>
+      </div>
+    </div>
+    <p style="margin: 12px 2px 0; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: #69605c">
+      Dashed — regions you haven't logged yet
+    </p>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 9px">
+    <p style="margin: 0; font-size: 12.5px; line-height: 1.55; color: #514846">
+      <strong style="font-weight: 500; color: #221b1a">Why it works.</strong>
+      Every name is legible at every zoom, which is the actual job — you are trying to
+      learn words. It also shows the gaps: the regions next to the ones you like.
+    </p>
+    <p style="margin: 0; font-size: 12.5px; line-height: 1.55; color: #514846">
+      <strong style="font-weight: 500; color: #221b1a">The cost.</strong>
+      It isn't a map. You'd learn that Langhe and Alto Piemonte are both in Piemonte
+      without ever learning that one is an hour from the Alps and the other isn't.
+    </p>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

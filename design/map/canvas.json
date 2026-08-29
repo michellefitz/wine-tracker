@@ -1,0 +1,16 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 390, "h": 900, "title": "The map — walk through it", "is_interactive": true },
+    { "file": "DataModel.dc.html", "x": 540, "y": 0, "w": 760, "h": 900, "title": "What the data supports" },
+    { "file": "DirectionA.dc.html", "x": 0, "y": 1080, "w": 440, "h": 660, "title": "A — The atlas" },
+    { "file": "DirectionB.dc.html", "x": 580, "y": 1080, "w": 440, "h": 660, "title": "B — The tile map" },
+    { "file": "DirectionC.dc.html", "x": 1160, "y": 1080, "w": 440, "h": 660, "title": "C — The plate" }
+  ],
+  "annotations": [
+    { "id": "start-here", "x": 0, "y": -230, "w": 390,
+      "text": "Start here — it's clickable.\n\nTap a mark or a row to go World → Italy → Alto Piemonte, and the breadcrumb to come back out. The leading direction is A and C together: an atlas you drill into a country plate." },
+    { "id": "directions", "x": 0, "y": 900, "w": 520,
+      "text": "Three treatments on one axis: how much real geography, versus how legible the names are. B gives up the map entirely and is the best pure learning tool — say so if that's what you'd rather have." }
+  ],
+  "launch": { "view": "canvas" }
+}
