@@ -143,6 +143,34 @@ export function countryCode(country: string | null | undefined): string | null {
 }
 
 /**
+ * The name to print for a country code.
+ *
+ * ISO_BY_NAME runs the other way and holds several spellings per country, so
+ * this picks one: the first listed, which is the ordinary English name in every
+ * case ("italy" before "italia"). Title-cased on the way out, with the handful
+ * of multi-word names that don't title-case cleanly spelled out.
+ */
+const NAME_BY_ISO: Record<string, string> = (() => {
+  const special: Record<string, string> = {
+    US: "United States", GB: "United Kingdom", NZ: "New Zealand", ZA: "South Africa",
+    MK: "North Macedonia", BA: "Bosnia and Herzegovina", KR: "South Korea", CZ: "Czechia",
+  };
+  const out: Record<string, string> = { ...special };
+  for (const [name, iso] of Object.entries(ISO_BY_NAME)) {
+    if (out[iso]) continue;
+    out[iso] = name.replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
+  }
+  return out;
+})();
+
+/** "IT" -> "Italy". Falls back to the code itself, which is better than nothing. */
+export function countryName(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const code = iso.toUpperCase();
+  return NAME_BY_ISO[code] ?? (KNOWN_ISO.has(code) ? code : null);
+}
+
+/**
  * "Puglia, Italy" — or just whichever half we have. A region that repeats the
  * country ("Italy, Italy", which the reader does produce) collapses to one.
  */

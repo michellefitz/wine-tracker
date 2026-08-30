@@ -65,6 +65,23 @@ export async function foundGrapes(): Promise<Map<string, string[]>> {
 }
 
 /**
+ * Every place the lookup has already found, by wine.
+ *
+ * A plain read: the map shows what is known, and must never set a hundred
+ * lookups running because someone opened it. A bottle with nothing stored still
+ * lands — placeFor falls back to its region field and then to its country — it
+ * just lands more vaguely, and the map says so.
+ */
+export async function storedPlaces(): Promise<Map<string, WineFacts["place"]>> {
+  const db = sql();
+  const rows = (await db.query(
+    `SELECT wine_id, place FROM wine_facts WHERE place IS NOT NULL`,
+  )) as Record<string, unknown>[];
+
+  return new Map(rows.map((row) => [String(row.wine_id), row.place as WineFacts["place"]]));
+}
+
+/**
  * The same wines, with looked-up grapes filled in where you didn't type any.
  *
  * What you wrote always wins. Anything that counts grapes across the whole log
