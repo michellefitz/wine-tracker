@@ -1,5 +1,5 @@
 import Link from "next/link";
-import MapPlate from "@/components/MapPlate";
+import WorldMap from "@/components/WorldMap";
 import { WORLD_LAND } from "@/lib/map-geometry";
 import { buildWineMap } from "@/lib/wine-map";
 
@@ -33,20 +33,32 @@ export default async function MapPage() {
         </p>
       ) : (
         <>
-          <div className="border-y border-rule py-4">
-            <MapPlate
+          <div className="border-y border-rule">
+            <WorldMap
               land={WORLD_LAND}
               marks={map.countries.map((country) => ({
                 key: country.iso,
+                name: country.name,
                 longitude: country.longitude,
                 latitude: country.latitude,
-                count: country.count,
                 spread: 260,
-                label: null,
-                href: `/map/${country.iso.toLowerCase()}`,
+                /* Sizes the dot and names the tooltip. The world plate never
+                   opens a panel — a tap goes to the country — so this is the
+                   only thing the list is for here. */
+                bottles: country.regions.flatMap((region) =>
+                  region.bottles.map((wine) => ({
+                    id: wine.id,
+                    name: wine.name,
+                    producer: wine.producer,
+                    score: wine.score,
+                  })),
+                ),
               }))}
             />
           </div>
+          <p className="mt-3 text-[0.8125rem] leading-relaxed text-muted">
+            Drag to move, pinch or scroll to zoom, tap a country for its regions.
+          </p>
 
           <ul className="mt-2 divide-y divide-rule">
             {map.countries.map((country) => (
