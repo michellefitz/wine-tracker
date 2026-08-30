@@ -1,3 +1,5 @@
+import type { ServingNote } from "@/lib/serving-note";
+
 export type Wine = {
   id: string;
   producer: string | null;
@@ -110,6 +112,12 @@ export type WineFacts = {
     longitude: number;
     precision: "appellation" | "subregion" | "region" | "country";
   } | null;
+  /**
+   * How to serve this one, written for this one. Null until the bottle has
+   * been looked up, or when the writing failed — serving.ts answers either
+   * way, so nothing on the page depends on this being here.
+   */
+  serving: ServingNote | null;
   note: string | null;
 };
 

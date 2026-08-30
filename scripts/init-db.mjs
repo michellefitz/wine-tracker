@@ -102,6 +102,7 @@ const STATEMENTS = [
      food         jsonb NOT NULL DEFAULT '[]'::jsonb,
      sources      jsonb NOT NULL DEFAULT '[]'::jsonb,
      place        jsonb,
+     serving      jsonb,
      note         text,
      version      smallint NOT NULL DEFAULT 1,
      looked_up_at timestamptz NOT NULL DEFAULT now()
@@ -114,6 +115,11 @@ const STATEMENTS = [
   // coordinate for the narrowest step of it. Null until a bottle is looked up
   // again — FACTS_VERSION carries that.
   `ALTER TABLE wine_facts ADD COLUMN IF NOT EXISTS place jsonb`,
+
+  // How to serve this particular bottle, written for it rather than picked
+  // from a bucket. Null until the bottle is looked up again — FACTS_VERSION
+  // carries that — and null forever is fine: serving.ts answers either way.
+  `ALTER TABLE wine_facts ADD COLUMN IF NOT EXISTS serving jsonb`,
 
   // Every spelling that leads to a profile: what you typed, the canonical name,
   // and its synonyms, all flattened to lowercase. A null slug records "we asked

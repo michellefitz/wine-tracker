@@ -1,4 +1,5 @@
 import { sql } from "@/lib/db";
+import { asServingNote } from "@/lib/serving-note";
 import { FACTS_VERSION, researchWine, worthShowing } from "@/lib/wine-research";
 import type { Wine, WineFacts, WineRating } from "@/lib/types";
 
@@ -11,8 +12,8 @@ import type { Wine, WineFacts, WineRating } from "@/lib/types";
  */
 
 const SELECT_COLUMNS = `
-  wine_id, found, summary, style, grapes, ratings, details, awards, food, sources, place, note,
-  version, looked_up_at
+  wine_id, found, summary, style, grapes, ratings, details, awards, food, sources, place,
+  serving, note, version, looked_up_at
 `;
 
 export type StoredFacts = WineFacts & { looked_up_at: string; stale: boolean };
@@ -30,6 +31,10 @@ function toFacts(row: Record<string, unknown>): StoredFacts {
     food: (row.food as string[]) ?? [],
     sources: (row.sources as { title: string; url: string }[]) ?? [],
     place: (row.place as WineFacts["place"]) ?? null,
+    // Checked rather than cast: a note written under an older shape, or a
+    // half-written one, has to fall back to the rules rather than render three
+    // lines and a gap.
+    serving: asServingNote(row.serving),
     note: (row.note as string) ?? null,
     looked_up_at: String(row.looked_up_at),
     stale: Number(row.version ?? 0) < FACTS_VERSION,
@@ -110,9 +115,9 @@ async function saveFacts(facts: WineFacts): Promise<void> {
   await db.query(
     `INSERT INTO wine_facts
        (wine_id, found, summary, style, grapes, ratings, details, awards, food, sources, place,
-        note, version, looked_up_at)
+        serving, note, version, looked_up_at)
      VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, $8::jsonb, $9::jsonb, $10::jsonb,
-             $11::jsonb, $12, $13, now())
+             $11::jsonb, $12::jsonb, $13, $14, now())
      ON CONFLICT (wine_id) DO UPDATE SET
        found = EXCLUDED.found,
        summary = EXCLUDED.summary,
@@ -124,6 +129,7 @@ async function saveFacts(facts: WineFacts): Promise<void> {
        food = EXCLUDED.food,
        sources = EXCLUDED.sources,
        place = EXCLUDED.place,
+       serving = EXCLUDED.serving,
        note = EXCLUDED.note,
        version = EXCLUDED.version,
        looked_up_at = now()`,
@@ -139,6 +145,7 @@ async function saveFacts(facts: WineFacts): Promise<void> {
       JSON.stringify(facts.food),
       JSON.stringify(facts.sources),
       JSON.stringify(facts.place),
+      JSON.stringify(facts.serving),
       facts.note,
       FACTS_VERSION,
     ],

@@ -92,14 +92,20 @@ export default function WineDetail({
   );
 
   /*
-   * Known rather than looked up, so it's here for every bottle — including the
-   * ones the web has nothing to say about. The producer's own temperature wins
-   * when the lookup found one.
+   * Two answers to the same question, and the rules are the one that's always
+   * there. They're instant, they're offline, and they're right — what they
+   * can't be is different, and three firm reds in a row got the same sentence
+   * about a full bowl word for word. So the lookup writes a note for this
+   * bottle, and it wins when it exists; before a bottle has been looked up, or
+   * when the writing failed, the rules answer as they always did.
+   *
+   * The heading stays with the rules either way. "Serving · Nebbiolo" is
+   * wayfinding, and it shouldn't wobble between two bottles of the same thing.
    */
   const statedTemperature = (stored?.details ?? []).find((detail) =>
     /^serv(ing|e)\b/i.test(detail.label.trim()),
   )?.value;
-  const serving = servingFor({
+  const byRule = servingFor({
     wineType: wine.wine_type,
     grapes,
     // Producer, name and region together: how a sparkling wine was made is the
@@ -107,6 +113,9 @@ export default function WineDetail({
     label: [wine.producer, wine.name, wine.region].filter(Boolean).join(" "),
     statedTemperature,
   });
+  const written = stored?.serving ?? null;
+  const serving =
+    byRule && written ? { ...byRule, ...written } : byRule;
 
   const rows: { term: string; value: React.ReactNode; found?: boolean }[] = [
     { term: "Vintage", value: wine.vintage ? String(wine.vintage) : "" },
