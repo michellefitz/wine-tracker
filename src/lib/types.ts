@@ -100,6 +100,16 @@ export type WineFacts = {
   awards: string[];
   food: string[];
   sources: { title: string; url: string }[];
+  /**
+   * Where the bottle goes on the map. Raw, as the lookup gave it — believed
+   * only after wine-places.ts has checked it against the country.
+   */
+  place: {
+    path: string[];
+    latitude: number;
+    longitude: number;
+    precision: "appellation" | "subregion" | "region" | "country";
+  } | null;
   note: string | null;
 };
 

@@ -15,7 +15,7 @@ import type { Wine, WineFacts } from "@/lib/types";
  *
  * Bump FACTS_VERSION to have every stored record rewritten on next view.
  */
-export const FACTS_VERSION = 5;
+export const FACTS_VERSION = 6;
 
 /*
  * Sonnet, not Opus. This job is reading a handful of search results and
@@ -154,6 +154,30 @@ a medal or a number, and never round or "correct" one.
 Scores stay exactly as written, as text: "3.9", "91", "Silver". The scale is the rest of the
 phrase: "out of 5", "points". Ratings only count when the write-up names where they came from.
 
+"place" is where the wine comes from, and it matters more than anything else in this
+schema except the name — it is what puts the bottle on a map. Always fill it in. Never leave it
+null because you are unsure of the detail: give the narrowest level you are actually confident
+about and say so in "precision", rather than guessing a smaller one.
+
+"path" runs widest to narrowest, country first, at most five steps:
+["Italy", "Piemonte", "Langhe", "Barolo"] · ["Portugal", "Vinho Verde", "Monção e Melgaço"] ·
+["Spain", "Rioja", "Rioja Alta"]. Use the names a wine person would use — the appellation and its
+parent region — not postal or administrative divisions, and not the village unless the village is
+the appellation. If the label names an appellation the log's own region field missed, prefer the
+appellation: that is the whole point of asking you.
+
+"latitude" and "longitude" are the centre of the narrowest step in the path, in decimal degrees.
+Get the hemisphere right: Australian and South African longitudes are positive, American and Chilean
+ones negative. A coordinate that falls outside the country in "path" will be thrown away, and the
+bottle will land on the middle of the country instead — so a vague answer you are sure of beats a
+precise one you are not.
+
+"precision" says which step the coordinate is for: "appellation" for a single named appellation,
+"subregion" for a district inside a region, "region" for a whole region, "country" when the wine is
+only identifiable to a country. Use "country" honestly and often — a supermarket Prosecco or a wine
+that says only "Product of Spain" is a country-level wine, and marking it so is correct, not a
+failure.
+
 "details" is for hard facts a label or producer would state, as short label/value pairs like
 {"label": "Alcohol", "value": "13.5%"}. Use these labels exactly when you have them: "Producer",
 "Alcohol", "Serving temperature", "Ageing", "Closure". Put the grapes in "grapes" instead, never
@@ -203,9 +227,20 @@ const SCHEMA = {
     },
     awards: { type: "array", items: { type: "string" } },
     food: { type: "array", items: { type: "string" } },
+    place: {
+      type: "object",
+      properties: {
+        path: { type: "array", items: { type: "string" } },
+        latitude: { type: "number" },
+        longitude: { type: "number" },
+        precision: { type: "string", enum: ["appellation", "subregion", "region", "country"] },
+      },
+      required: ["path", "latitude", "longitude", "precision"],
+      additionalProperties: false,
+    },
     note: { anyOf: [{ type: "string" }, { type: "null" }] },
   },
-  required: ["found", "summary", "style", "grapes", "ratings", "details", "awards", "food", "note"],
+  required: ["found", "summary", "style", "grapes", "ratings", "details", "awards", "food", "place", "note"],
   additionalProperties: false,
 } as const;
 
@@ -616,6 +651,29 @@ export async function researchWine(wine: Wine): Promise<Researched> {
         .slice(0, 8)
     : [];
 
+  /*
+   * Kept as given, including a coordinate that looks wrong: judging it needs
+   * the country off the bottle, which isn't here. wine-places.ts does that at
+   * the point of use, so a lookup stays a record of what was said.
+   */
+  const claimed = raw.place;
+  const place =
+    claimed && typeof claimed === "object" && !Array.isArray(claimed)
+      ? {
+          path: Array.isArray((claimed as Record<string, unknown>).path)
+            ? ((claimed as Record<string, unknown>).path as unknown[])
+                .filter((part): part is string => typeof part === "string")
+                .map((part) => part.trim())
+                .filter(Boolean)
+                .slice(0, 5)
+            : [],
+          latitude: Number((claimed as Record<string, unknown>).latitude),
+          longitude: Number((claimed as Record<string, unknown>).longitude),
+          precision: (claimed as Record<string, unknown>).precision as
+            | "appellation" | "subregion" | "region" | "country",
+        }
+      : null;
+
   console.log(
     `wine-research: filed in ${Date.now() - filingFrom}ms, ` +
       `${Date.now() - startedAt}ms all in`,
@@ -627,6 +685,7 @@ export async function researchWine(wine: Wine): Promise<Researched> {
   return {
     status: "ok",
     facts: {
+      place,
       found: raw.found === true && anything,
       summary,
       style: clipped(raw.style, 600),

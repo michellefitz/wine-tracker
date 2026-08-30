@@ -101,13 +101,19 @@ const STATEMENTS = [
      awards       jsonb NOT NULL DEFAULT '[]'::jsonb,
      food         jsonb NOT NULL DEFAULT '[]'::jsonb,
      sources      jsonb NOT NULL DEFAULT '[]'::jsonb,
+     place        jsonb,
      note         text,
      version      smallint NOT NULL DEFAULT 1,
      looked_up_at timestamptz NOT NULL DEFAULT now()
    )`,
 
-  // Added after wine_facts shipped, so existing tables need it too.
+  // Added after wine_facts shipped, so existing tables need them too.
   `ALTER TABLE wine_facts ADD COLUMN IF NOT EXISTS grapes jsonb NOT NULL DEFAULT '[]'::jsonb`,
+
+  // Where the bottle goes on the map: the region path the lookup found, and a
+  // coordinate for the narrowest step of it. Null until a bottle is looked up
+  // again — FACTS_VERSION carries that.
+  `ALTER TABLE wine_facts ADD COLUMN IF NOT EXISTS place jsonb`,
 
   // Every spelling that leads to a profile: what you typed, the canonical name,
   // and its synonyms, all flattened to lowercase. A null slug records "we asked

@@ -11,7 +11,7 @@ import type { Wine, WineFacts, WineRating } from "@/lib/types";
  */
 
 const SELECT_COLUMNS = `
-  wine_id, found, summary, style, grapes, ratings, details, awards, food, sources, note,
+  wine_id, found, summary, style, grapes, ratings, details, awards, food, sources, place, note,
   version, looked_up_at
 `;
 
@@ -29,6 +29,7 @@ function toFacts(row: Record<string, unknown>): StoredFacts {
     awards: (row.awards as string[]) ?? [],
     food: (row.food as string[]) ?? [],
     sources: (row.sources as { title: string; url: string }[]) ?? [],
+    place: (row.place as WineFacts["place"]) ?? null,
     note: (row.note as string) ?? null,
     looked_up_at: String(row.looked_up_at),
     stale: Number(row.version ?? 0) < FACTS_VERSION,
@@ -91,10 +92,10 @@ async function saveFacts(facts: WineFacts): Promise<void> {
   const db = sql();
   await db.query(
     `INSERT INTO wine_facts
-       (wine_id, found, summary, style, grapes, ratings, details, awards, food, sources, note,
-        version, looked_up_at)
+       (wine_id, found, summary, style, grapes, ratings, details, awards, food, sources, place,
+        note, version, looked_up_at)
      VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, $8::jsonb, $9::jsonb, $10::jsonb,
-             $11, $12, now())
+             $11::jsonb, $12, $13, now())
      ON CONFLICT (wine_id) DO UPDATE SET
        found = EXCLUDED.found,
        summary = EXCLUDED.summary,
@@ -105,6 +106,7 @@ async function saveFacts(facts: WineFacts): Promise<void> {
        awards = EXCLUDED.awards,
        food = EXCLUDED.food,
        sources = EXCLUDED.sources,
+       place = EXCLUDED.place,
        note = EXCLUDED.note,
        version = EXCLUDED.version,
        looked_up_at = now()`,
@@ -119,6 +121,7 @@ async function saveFacts(facts: WineFacts): Promise<void> {
       JSON.stringify(facts.awards),
       JSON.stringify(facts.food),
       JSON.stringify(facts.sources),
+      JSON.stringify(facts.place),
       facts.note,
       FACTS_VERSION,
     ],
