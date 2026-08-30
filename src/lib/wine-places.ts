@@ -1,5 +1,6 @@
 import { COUNTRY_BOUNDS } from "@/lib/country-bounds";
 import { countryCode } from "@/lib/places";
+import { findRegion } from "@/lib/wine-regions";
 
 /**
  * Putting a bottle somewhere on the map — always somewhere.
@@ -88,6 +89,30 @@ export function placeFor(
 ): Placement | null {
   const iso = countryCode(country) ?? countryCode(region);
   const bounds = iso ? COUNTRY_BOUNDS[iso] : undefined;
+
+  /*
+   * The register first, because it is a lookup and everything below it is a
+   * recollection. If the label names a European appellation, its real centre
+   * beats whatever the model remembered — and beats it silently, without
+   * needing to be checked against a country box.
+   *
+   * The path is taken from the lookup when it agrees, since the register knows
+   * where Barolo is but not that Barolo sits inside Piemonte.
+   */
+  const named = findRegion(region, iso) ?? findRegion(cleanPath(claimed?.path).at(-1), iso);
+  if (named) {
+    const claimedPath = cleanPath(claimed?.path);
+    const path = claimedPath.some((step) => step.toLowerCase() === named.name.toLowerCase())
+      ? claimedPath
+      : [...claimedPath, named.name];
+    return {
+      longitude: named.longitude,
+      latitude: named.latitude,
+      precision: "appellation",
+      path,
+      note: `Placed in ${named.name}, from the European register of appellations.`,
+    };
+  }
 
   const path = cleanPath(claimed?.path);
   // Numbers, not things that merely convert to numbers: Number("44.6") is
