@@ -21,16 +21,42 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * The mark on a field you can't save without.
+ *
+ * Two of the twelve things on this form are needed and ten aren't, so the
+ * marks go on the two — marking the optional ones would put a note beside
+ * nearly every label. An asterisk because it's the one convention everybody
+ * already reads without being told, in the accent colour because that's the
+ * thing the eye finds first on a page that is otherwise ink on paper.
+ */
+function Required() {
+  return (
+    <>
+      <span aria-hidden className="ml-1 text-wine">*</span>
+      <span className="sr-only"> (required)</span>
+    </>
+  );
+}
+
 function Section({
   title,
+  required,
+  missing,
   children,
 }: {
   title: string;
+  required?: boolean;
+  /** Asked for, still empty — the heading says so rather than only the footer. */
+  missing?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <section className="border-t border-rule pt-7">
-      <h2 className="eyebrow mb-4">{title}</h2>
+      <h2 className={`eyebrow mb-4 ${missing ? "text-wine" : ""}`}>
+        {title}
+        {required && <Required />}
+      </h2>
       {children}
     </section>
   );
@@ -76,6 +102,18 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
 
   const [showDetails, setShowDetails] = useState(mode === "edit");
   const [error, setError] = useState<string | null>(null);
+  /*
+   * Set the first time Save is pressed, and never unset.
+   *
+   * Nothing about "required" shows before then — a form that goes red at you
+   * for not having filled in the field you're about to fill in is nagging. But
+   * once you've asked to save, the complaint has to stay live: fix the name and
+   * the message should move on to the rating by itself, not wait for another
+   * press to tell you there was a second thing wrong.
+   */
+  const [attempted, setAttempted] = useState(false);
+  const nameField = useRef<HTMLInputElement>(null);
+  const scoreGroup = useRef<HTMLDivElement>(null);
   /** Set when the bottle saved but its photo didn't — see the notice below. */
   const [photoTrouble, setPhotoTrouble] = useState<{ message: string; wineId?: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -140,13 +178,25 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+    setAttempted(true);
 
-    if (!name.trim()) {
-      setError("Give it a name — whatever's on the front of the bottle will do.");
+    /*
+     * Say it where the button is, and go to the field.
+     *
+     * The message used to be rendered in the flow of the form, which on a phone
+     * put it about eight hundred pixels below the fold — under a Save button
+     * that sticks to the bottom of the screen. Pressing Save with an empty name
+     * changed nothing you could see, which reads exactly like a button that
+     * doesn't work. The complaint now sits in the sticky bar, and the form
+     * scrolls to whatever it's complaining about.
+     */
+    if (missingName) {
+      nameField.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      nameField.current?.focus({ preventScroll: true });
       return;
     }
-    if (score === null) {
-      setError("Say how much you liked it.");
+    if (missingScore) {
+      scoreGroup.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
@@ -239,6 +289,22 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
 
   const busyWithPhoto = staging;
 
+  const missingName = !name.trim();
+  const missingScore = score === null;
+  /*
+   * One complaint at a time, in the order you'd meet them coming down the page.
+   * Two red lines at once is a form telling you off; one is a form telling you
+   * what to do next.
+   */
+  const complaint = !attempted
+    ? null
+    : missingName
+      ? "This one still needs a name — whatever's on the front of the bottle will do."
+      : missingScore
+        ? "Nearly. Say how much you liked it and it'll save."
+        : null;
+  const notice = error ?? complaint;
+
   const photo = newPhoto ? (
     /* eslint-disable-next-line @next/next/no-img-element */
     <img src={newPhoto} alt="The photo you just chose" className="h-full w-full object-cover" />
@@ -327,12 +393,20 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
 
       <section className="space-y-5">
         <div>
-          <label className="eyebrow mb-1 block" htmlFor="name">
+          <label
+            className={`eyebrow mb-1 block ${attempted && missingName ? "text-wine" : ""}`}
+            htmlFor="name"
+          >
             Wine
+            <Required />
           </label>
           <input
             id="name"
-            className="field essay text-[1.375rem]"
+            ref={nameField}
+            aria-invalid={attempted && missingName}
+            className={`field essay text-[1.375rem] ${
+              attempted && missingName ? "border-wine" : ""
+            }`}
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Reserva Malbec"
@@ -387,8 +461,8 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
         </div>
       </section>
 
-      <Section title="How was it?">
-        <div className="grid grid-cols-2 gap-2">
+      <Section title="How was it?" required missing={attempted && missingScore}>
+        <div ref={scoreGroup} className="grid grid-cols-2 gap-2">
           {RATINGS.map((rating) => {
             const chosen = score === rating.score;
             return (
@@ -556,8 +630,6 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
         )}
       </section>
 
-      {error && <p className="text-[0.9375rem] text-wine">{error}</p>}
-
       {/*
         Saved, minus the photo. This stays put rather than navigating on, so the
         one thing that went wrong is read before the bottle is opened.
@@ -582,9 +654,23 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
 
       <div className="sticky bottom-0 -mx-5 border-t border-rule bg-paper/95 px-5 py-4
         pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
+        {/* Whatever is standing between you and a saved bottle, said next to
+            the button that isn't saving it. */}
+        {notice && (
+          <p role="alert" className="mb-3 text-[0.9375rem] leading-snug text-wine">
+            {notice}
+          </p>
+        )}
         <button type="submit" className="btn-ink w-full" disabled={saving}>
           {saving ? "Saving…" : mode === "edit" ? "Save changes" : "Add to the log"}
         </button>
+        {/* Answers the question the asterisks raise, once, in the place it
+            gets asked: what actually has to be filled in? */}
+        {!notice && (
+          <p className="mt-2.5 text-center text-[0.8125rem] text-muted">
+            Only the name and the rating are needed.
+          </p>
+        )}
       </div>
     </form>
   );
