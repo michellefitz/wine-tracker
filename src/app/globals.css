@@ -195,6 +195,20 @@ textarea {
       decoration-rule underline-offset-4 transition-colors pointer-hover:hover:text-ink;
   }
 
+  /*
+   * The same job as .link-quiet, said in the page's own voice.
+   *
+   * Letterspaced caps are wayfinding — they label a region of the page. On a
+   * screen where the picture is the whole point and four small controls sit
+   * under it, four underlined caps labels are four more things shouting; they
+   * read as chrome bolted to the photograph. This is the quiet version: body
+   * size, sentence case, no underline, and it only darkens when you point at
+   * it.
+   */
+  .link-plain {
+    @apply text-[0.875rem] text-muted transition-colors pointer-hover:hover:text-ink;
+  }
+
   /* Tag chips: hairline pills, ink fill when chosen. */
   .chip {
     @apply rounded-full border border-rule px-3.5 py-1.5 text-[0.8125rem] text-ink-soft
@@ -279,6 +293,50 @@ textarea {
   .sheet-leaving .sheet-panel,
   .sheet-leaving .sheet-scrim {
     animation: scrim-in 120ms ease;
+  }
+}
+
+/*
+ * The studio shot being made, drawn on your own photo while it happens.
+ *
+ * A band of light travelling down the frame — a lighting rig moving over the
+ * bottle, which is close enough to what's actually going on at the other end
+ * of the request. The photo underneath is dimmed while it runs, so the band
+ * reads as light falling across the picture rather than a stripe drawn over
+ * it; and when the studio shot arrives it cross-fades in on top, so the
+ * picture visibly turns into the other picture instead of being swapped for
+ * it.
+ */
+@keyframes studio-sweep {
+  from {
+    transform: translateY(-110%);
+  }
+  to {
+    transform: translateY(300%);
+  }
+}
+
+.studio-sweep::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 36%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgb(255 255 255 / 0.55),
+    transparent
+  );
+  animation: studio-sweep 2.1s ease-in-out infinite;
+}
+
+/* Still, but not absent: a held highlight says "working" without moving. */
+@media (prefers-reduced-motion: reduce) {
+  .studio-sweep::after {
+    animation: none;
+    top: 32%;
+    opacity: 0.6;
   }
 }
 

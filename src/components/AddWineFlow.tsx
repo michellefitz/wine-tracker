@@ -7,17 +7,31 @@ import WineForm from "@/components/WineForm";
 import { fileToCompressedDataUrl } from "@/lib/image";
 import type { LabelReading } from "@/lib/types";
 
-type Stage = "capture" | "reading" | "form";
-
+/**
+ * Logging a bottle, from the photo down.
+ *
+ * The shape of this screen is one idea: after the shutter you don't answer
+ * questions, you watch. The picture is up the moment you choose it, and two
+ * jobs start on it at once — the studio shot being made, and the label being
+ * read. Neither waits for the other, and neither holds up the form: it's on
+ * screen straight away, empty, and fills in underneath you as the reader
+ * comes back. Everything on this page is a thing you can correct afterwards,
+ * so nothing here is a question you have to answer first.
+ *
+ * The form used to be held back until the reading landed, which meant staring
+ * at a drawing of a label and then being handed a form that was already
+ * complete. Nothing was ever seen happening.
+ */
 export default function AddWineFlow() {
   const fileInput = useRef<HTMLInputElement>(null);
-  const [stage, setStage] = useState<Stage>("capture");
+  const [started, setStarted] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [reading, setReading] = useState<LabelReading | null>(null);
+  const [readingLabel, setReadingLabel] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   /*
-   * The studio shot now runs on its own as soon as there's a photo, because it
+   * The studio shot runs on its own as soon as there's a photo, because it
    * turned out to be the right answer nearly every time and asking first was
    * just a tap between you and the picture you were going to pick anyway.
    *
@@ -57,30 +71,8 @@ export default function AddWineFlow() {
     setStaging(false);
   }
 
-  async function onPhotoChosen(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = ""; // let the same file be re-picked after a change
-    if (!file) return;
-
-    setNotice(null);
-
-    let dataUrl: string;
-    try {
-      dataUrl = await fileToCompressedDataUrl(file);
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Couldn't read that photo.");
-      return;
-    }
-
-    setPhoto(dataUrl);
-    setStudio(null);
-    setStudioTrouble(null);
-    setStage("reading");
-
-    // Alongside the label reading, not after it: neither needs the other, and
-    // together they're the length of the slower one rather than the sum.
-    void makeStudioShot(dataUrl);
-
+  async function readLabel(dataUrl: string) {
+    setReadingLabel(true);
     try {
       const response = await fetch("/api/identify", {
         method: "POST",
@@ -105,11 +97,37 @@ export default function AddWineFlow() {
     } catch {
       setNotice("Couldn't reach the label reader. Fill it in by hand.");
     }
+    setReadingLabel(false);
+  }
 
-    setStage("form");
+  async function onPhotoChosen(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // let the same file be re-picked after a change
+    if (!file) return;
+
+    setNotice(null);
+
+    let dataUrl: string;
+    try {
+      dataUrl = await fileToCompressedDataUrl(file);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Couldn't read that photo.");
+      return;
+    }
+
+    setPhoto(dataUrl);
+    setStudio(null);
+    setStudioTrouble(null);
+    setStarted(true);
+
+    // Both at once: neither needs the other, so the wait is the length of the
+    // slower one rather than the sum of the two.
+    void makeStudioShot(dataUrl);
+    void readLabel(dataUrl);
   }
 
   const chosen = studio && useStudio ? studio : photo;
+  const showingStudio = Boolean(studio && useStudio);
 
   return (
     <div className="space-y-7">
@@ -132,85 +150,115 @@ export default function AddWineFlow() {
       {photo && (
         <div>
           {/*
-            One picture at the size it will actually be seen, rather than a row
-            of thumbnails to choose between. There is a right answer here now,
-            and it's on screen; the alternative is a line of text underneath.
+            Both pictures, stacked, with the studio shot fading in over your
+            own when it lands. A swap would just blink; a cross-fade is the one
+            moment on this screen where you can actually see the thing that was
+            being made arrive.
           */}
-          <div className="mx-auto aspect-4/5 w-full max-w-[15rem] overflow-hidden bg-tint">
+          <div className="relative mx-auto aspect-4/5 w-full max-w-[16rem] overflow-hidden bg-tint">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={chosen ?? photo}
+              src={photo}
               alt="The label for this bottle"
-              className={`h-full w-full object-cover transition-opacity duration-300 ${
-                staging ? "opacity-40 will-change-[opacity]" : "opacity-100"
-              }`}
+              className={`absolute inset-0 h-full w-full object-cover transition-opacity
+                duration-500 ${staging ? "opacity-55" : "opacity-100"}`}
             />
+
+            {studio && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={studio}
+                alt="The same bottle, restaged"
+                className={`absolute inset-0 h-full w-full object-cover transition-opacity
+                  duration-700 ease-out-strong ${showingStudio ? "opacity-100" : "opacity-0"}`}
+              />
+            )}
+
+            {staging && (
+              <span aria-hidden className="studio-sweep pointer-events-none absolute inset-0" />
+            )}
           </div>
 
-          <p className="mt-3 text-center">
-            {staging ? (
-              <span className="eyebrow">Making a studio shot…</span>
-            ) : studio ? (
-              <span className="eyebrow">{useStudio ? "Studio, generated" : "Your photo"}</span>
-            ) : (
-              <span className="eyebrow">Your photo</span>
-            )}
+          <p className="mt-3 text-center text-[0.875rem] text-muted" aria-live="polite">
+            {staging
+              ? "Setting up the studio shot…"
+              : showingStudio
+                ? "Studio shot, made from your photo"
+                : "Your photo"}
           </p>
 
-          {studio && !staging && (
-            <p className="mx-auto mt-3 max-w-sm text-center text-[0.8125rem] leading-relaxed text-muted">
-              Generated from your photo, so it keeps the real label — but it is a
-              rendering. Check the label still reads right.
+          {showingStudio && !staging && (
+            <p className="mx-auto mt-2 max-w-sm text-center text-[0.8125rem] leading-relaxed text-muted">
+              It keeps the real label, but it is a rendering — worth a look before
+              you save it.
             </p>
           )}
 
           {studioTrouble && (
-            <p className="mx-auto mt-3 max-w-sm bg-tint px-4 py-3 text-[0.8125rem] leading-relaxed text-ink-soft">
+            <p className="mx-auto mt-3 max-w-sm bg-tint px-4 py-3 text-center text-[0.8125rem]
+              leading-relaxed text-ink-soft">
               {studioTrouble} Your own photo will be used.
             </p>
           )}
 
-          <p className="mt-4 flex flex-wrap items-baseline justify-center gap-x-5 gap-y-2">
-            <button
-              type="button"
-              onClick={() => photo && makeStudioShot(photo)}
-              disabled={staging}
-              className="link-quiet disabled:opacity-50"
-            >
-              {staging ? "Working…" : studio || studioTrouble ? "Try again" : "Make a studio shot"}
-            </button>
-
-            {studio && (
-              <button type="button" onClick={() => setUseStudio(!useStudio)} className="link-quiet">
-                {useStudio ? "Use my photo" : "Use the studio shot"}
-              </button>
+          {/*
+            Two rows, not one wrapped list: four controls don't fit across a
+            phone, and the wrap left a separator dangling at the end of a line.
+            They also divide neatly — what to do about the studio shot, then
+            what to do about the photograph it was made from.
+          */}
+          <div className="mt-4 space-y-2 text-center">
+            {!staging && (
+              <p className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-1">
+                <button
+                  type="button"
+                  onClick={() => photo && makeStudioShot(photo)}
+                  className="link-plain"
+                >
+                  {studio || studioTrouble ? "Try again" : "Make a studio shot"}
+                </button>
+                {studio && (
+                  <>
+                    <span aria-hidden className="text-muted/50">·</span>
+                    <button
+                      type="button"
+                      onClick={() => setUseStudio(!useStudio)}
+                      className="link-plain"
+                    >
+                      {useStudio ? "Use my photo" : "Use the studio shot"}
+                    </button>
+                  </>
+                )}
+              </p>
             )}
 
-            <button
-              type="button"
-              onClick={() => fileInput.current?.click()}
-              className="link-quiet"
-            >
-              Change photo
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setPhoto(null);
-                setReading(null);
-                setStudio(null);
-                setStudioTrouble(null);
-              }}
-              className="link-quiet"
-            >
-              Remove
-            </button>
-          </p>
+            <p className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-1">
+              <button
+                type="button"
+                onClick={() => fileInput.current?.click()}
+                className="link-plain"
+              >
+                Change photo
+              </button>
+              <span aria-hidden className="text-muted/50">·</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setPhoto(null);
+                  setReading(null);
+                  setStudio(null);
+                  setStudioTrouble(null);
+                }}
+                className="link-plain"
+              >
+                Remove
+              </button>
+            </p>
+          </div>
         </div>
       )}
 
-      {stage === "capture" && (
+      {!started && (
         <div className="border-t border-rule pt-10 text-center">
           <p className="mx-auto max-w-xs essay text-[1.5rem] leading-snug text-ink">
             Start with the label.
@@ -230,8 +278,8 @@ export default function AddWineFlow() {
           <p className="mt-5">
             <button
               type="button"
-              className="link-quiet"
-              onClick={() => setStage("form")}
+              className="link-plain"
+              onClick={() => setStarted(true)}
             >
               Skip — I&apos;ll type it in
             </button>
@@ -239,23 +287,41 @@ export default function AddWineFlow() {
         </div>
       )}
 
-      {stage === "reading" && (
-        <div className="border-t border-rule py-8">
-          <ReadingLabel caption="Reading the label…" />
+      {/*
+        One slot between the picture and the form, and it never empties once
+        there's a photo in play: the drawing while the label is being read,
+        then a line saying what came of it. Letting it disappear altogether
+        dropped a hundred and thirty pixels out of the page at the exact
+        moment the fields underneath were filling in, which is the one moment
+        on this screen you're meant to be watching.
+      */}
+      {photo && (
+        <div className="border-t border-rule pt-6">
+          {readingLabel ? (
+            <ReadingLabel caption="Reading the label…" />
+          ) : notice ? (
+            <p className="bg-tint px-4 py-3 text-[0.9375rem] leading-relaxed text-ink-soft">
+              {notice}
+            </p>
+          ) : reading ? (
+            <p className="text-center text-[0.875rem] text-muted">
+              Filled in from the label. Change anything that came back wrong.
+            </p>
+          ) : null}
         </div>
       )}
 
-      {notice && stage === "form" && (
+      {notice && !photo && (
         <p className="bg-tint px-4 py-3 text-[0.9375rem] leading-relaxed text-ink-soft">
           {notice}
         </p>
       )}
 
-      {stage === "form" && <WineForm mode="create" reading={reading} photoDataUrl={chosen} />}
+      {started && <WineForm mode="create" reading={reading} photoDataUrl={chosen} />}
 
-      {stage !== "form" && (
+      {!started && (
         <p className="text-center">
-          <Link href="/" className="link-quiet">
+          <Link href="/" className="link-plain">
             Back to the log
           </Link>
         </p>

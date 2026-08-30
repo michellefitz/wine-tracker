@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import LabelPhoto from "@/components/LabelPhoto";
 import { fileToCompressedDataUrl } from "@/lib/image";
 import { RATINGS, SOURCES, TAG_GROUPS, WINE_TYPES, tagsInGroup } from "@/lib/taxonomy";
@@ -11,7 +11,13 @@ import type { LabelReading, Wine } from "@/lib/types";
 type Props = {
   mode: "create" | "edit";
   wine?: Wine;
-  /** What the label reader came back with, used to prefill a new entry. */
+  /**
+   * What the label reader came back with.
+   *
+   * Arrives late: the add flow puts this form on screen the moment there's a
+   * photo and hands the reading over when it lands, so the fields fill in
+   * while you're looking at them rather than before you get here.
+   */
   reading?: LabelReading | null;
   /** A freshly captured photo that still needs uploading. */
   photoDataUrl?: string | null;
@@ -117,6 +123,45 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
   /** Set when the bottle saved but its photo didn't — see the notice below. */
   const [photoTrouble, setPhotoTrouble] = useState<{ message: string; wineId?: string } | null>(null);
   const [saving, setSaving] = useState(false);
+
+  /*
+   * The reading landing on a form that's already up.
+   *
+   * It used to arrive as an initial value, because the flow above held the
+   * form back until the reader answered. Now it can turn up at any point,
+   * including a few keystrokes into a field — so anything you've touched wins,
+   * and only what's still empty takes what came back. Once, and only once: a
+   * re-read would otherwise overwrite a correction with the same wrong guess.
+   *
+   * `keep` is deliberately "use what's there if there's anything there", not
+   * "take the reading if the reading has a value" — so a blank answer from the
+   * reader can't wipe something you typed while it was thinking.
+   */
+  const filled = useRef(false);
+  useEffect(() => {
+    if (!reading || filled.current) return;
+    filled.current = true;
+
+    const keep = (current: string, value: string) => (current.trim() ? current : value);
+
+    setName((current) => keep(current, reading.name ?? ""));
+    setProducer((current) => keep(current, reading.producer ?? ""));
+    setVintage((current) => keep(current, reading.vintage ? String(reading.vintage) : ""));
+    setWineType((current) => keep(current, reading.wine_type ?? ""));
+    setRegion((current) => keep(current, reading.region ?? ""));
+    setCountry((current) => keep(current, reading.country ?? ""));
+    setGrapes((current) => keep(current, (reading.grapes ?? []).join(", ")));
+
+    /*
+     * Region, country and grapes live behind "Where, when, how much", which is
+     * shut by default. If the label had any of them, open it — the point of
+     * the whole screen is watching the bottle fill itself in, and three of the
+     * fields doing it out of sight is three quarters of the trick wasted.
+     */
+    if (reading.region || reading.country || (reading.grapes ?? []).length) {
+      setShowDetails(true);
+    }
+  }, [reading]);
 
   async function onPhotoChosen(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -343,13 +388,24 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
           />
 
           <div className="flex items-end gap-6">
-            <div className="aspect-4/5 w-44 shrink-0 overflow-hidden bg-tint">{photo}</div>
+            <div className="relative aspect-4/5 w-44 shrink-0 overflow-hidden bg-tint">
+              <div
+                className={`h-full w-full transition-opacity duration-500 ${
+                  staging ? "opacity-55" : "opacity-100"
+                }`}
+              >
+                {photo}
+              </div>
+              {staging && (
+                <span aria-hidden className="studio-sweep pointer-events-none absolute inset-0" />
+              )}
+            </div>
 
             <div className="flex flex-col items-start gap-2.5 pb-1">
               <button
                 type="button"
                 onClick={() => fileInput.current?.click()}
-                className="link-quiet"
+                className="link-plain"
               >
                 {storedPhoto || newPhoto ? "Change photo" : "Add a photo"}
               </button>
@@ -359,7 +415,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
                   type="button"
                   onClick={makeStudioShot}
                   disabled={busyWithPhoto}
-                  className="link-quiet disabled:opacity-50"
+                  className="link-plain disabled:opacity-50"
                 >
                   {staging ? "Restaging…" : newPhoto ? "Try again" : "Make a studio shot"}
                 </button>
@@ -373,13 +429,15 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
                     setNewPhoto(null);
                     setPhotoNotice(null);
                   }}
-                  className="link-quiet"
+                  className="link-plain"
                 >
                   Remove
                 </button>
               )}
 
-              {newPhoto && <span className="eyebrow">New — saves with the rest</span>}
+              {newPhoto && (
+                <span className="text-[0.8125rem] text-muted">New — saves with the rest</span>
+              )}
             </div>
           </div>
 
@@ -533,7 +591,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
         <button
           type="button"
           onClick={() => setShowDetails((open) => !open)}
-          className="link-quiet"
+          className="link-plain"
         >
           {showDetails ? "Hide extra details" : "Where, when, how much"}
         </button>
@@ -641,10 +699,10 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
           </p>
           {photoTrouble.wineId && (
             <p className="mt-3 flex items-baseline gap-5">
-              <Link href={`/wine/${photoTrouble.wineId}`} className="link-quiet">
+              <Link href={`/wine/${photoTrouble.wineId}`} className="link-plain">
                 Open the bottle
               </Link>
-              <Link href={`/wine/${photoTrouble.wineId}/edit`} className="link-quiet">
+              <Link href={`/wine/${photoTrouble.wineId}/edit`} className="link-plain">
                 Try the photo again
               </Link>
             </p>

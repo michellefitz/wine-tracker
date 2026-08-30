@@ -14,11 +14,19 @@
 /** One wave period is 32 units wide, so scrolling by 32 loops seamlessly. */
 const WAVE = `M-64 10 ${"c4 -2.4 12 -2.4 16 0 s12 2.4 16 0 ".repeat(6)}L128 48 L-64 48 Z`;
 
+/*
+ * The caption is a sentence, so it's set as one.
+ *
+ * It used to be letterspaced caps, which is the app's wayfinding voice — the
+ * label on a region of the page. "Reading the label…" isn't a label on
+ * anything; it's the drawing telling you what it's doing, and shouting it made
+ * a wait feel like an announcement.
+ */
 function Frame({ children, caption }: { children: React.ReactNode; caption: string }) {
   return (
     <div className="flex flex-col items-center py-2" role="status" aria-live="polite">
       {children}
-      <p className="eyebrow mt-3">{caption}</p>
+      <p className="mt-3 text-[0.875rem] text-muted">{caption}</p>
     </div>
   );
 }
