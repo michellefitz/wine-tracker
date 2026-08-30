@@ -106,7 +106,17 @@ export default function WineFactsPanel({
   }
 
   /*
-   * Look it up the first time you open a bottle, then never again unless asked.
+   * Look it up the first time you open a bottle, and again when what's on file
+   * was written by an older version of the lookup. Otherwise never, unless
+   * asked.
+   *
+   * The stale half is what FACTS_VERSION is for — "bump it and every stored
+   * record is rewritten on next view" — and this is the only place that can
+   * honour it. It didn't: the guard was `if (initial)`, so a bottle with
+   * anything on file was left alone forever and an improved lookup only ever
+   * reached bottles nobody had opened yet. Every existing bottle needed its
+   * Refresh button pressing by hand, which is not a thing anyone would think
+   * to do, or know they had to.
    *
    * One request, not two. This used to ask what was on file first, because the
    * lookup endpoint always forced a fresh search and would otherwise repeat one
@@ -115,7 +125,8 @@ export default function WineFactsPanel({
    * could begin — is gone.
    */
   useEffect(() => {
-    if (initial || started.current) return;
+    if (started.current) return;
+    if (initial && !initial.stale) return;
     started.current = true;
     void look();
     // eslint-disable-next-line react-hooks/exhaustive-deps
