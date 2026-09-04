@@ -264,6 +264,29 @@ textarea {
    * looks like a fault rather than an invitation.
    */
   /*
+   * Nothing on this shelf may respond to a finger except by scrolling.
+   *
+   * A link wrapping an image is, to WebKit, a thing you pick up: press and
+   * move and it starts a drag, draws a translucent copy of the picture and
+   * leaves a lit box behind on the original. The `draggable` attribute stops
+   * the HTML5 version of that and does nothing about this one —
+   * -webkit-user-drag is a separate mechanism, and iOS is where the shelf
+   * actually gets swiped.
+   *
+   * The rest are the other ways a picture under a thumb can light up:
+   * selection, the long-press callout, and the tap highlight. All four are
+   * wrong on something whose only job is to be dragged sideways.
+   */
+  .rolodex a,
+  .rolodex img {
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
    * Down to a third, not to nothing. Fading an edge all the way out deletes
    * the bottle that is doing the work of saying there's another one; this
    * leaves it clearly there and clearly tucked under the edge of the screen.

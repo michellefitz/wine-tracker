@@ -158,7 +158,7 @@ function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
               selection box round every bottle on the way past.
             */
             draggable={false}
-            className="shrink-0 will-change-transform active:brightness-95"
+            className="shrink-0 will-change-transform"
           >
             <div className="photo-bleed relative aspect-[3/5] w-full overflow-hidden">
               <LabelPhoto
