@@ -1,6 +1,8 @@
+import SchemaFix from "@/components/SchemaFix";
 import ScoreBar from "@/components/ScoreBar";
 import { paragraphs } from "@/lib/prose";
 import { searchFor, siteName, sourceFor } from "@/lib/sources";
+import { SCHEMA_TROUBLE } from "@/lib/schema-message";
 import type { StoredFacts } from "@/lib/wine-facts";
 import { awardGlyph, foodGlyph } from "@/lib/wine-colours";
 
@@ -251,7 +253,12 @@ export default function WineFactsView({
         </div>
       )}
 
-      {warning && <p className="mt-6 text-[0.75rem] leading-relaxed text-wine">{warning}</p>}
+      {warning &&
+        (warning.startsWith(SCHEMA_TROUBLE) ? (
+          <SchemaFix message={warning} />
+        ) : (
+          <p className="mt-6 text-[0.75rem] leading-relaxed text-wine">{warning}</p>
+        ))}
     </div>
   );
 }
