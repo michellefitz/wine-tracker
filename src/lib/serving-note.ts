@@ -31,6 +31,15 @@ export type ServingNote = {
 const MODEL = process.env.ANTHROPIC_SERVING_MODEL ?? "claude-sonnet-5";
 const TIMEOUT_MS = 20_000;
 
+/*
+ * Four short lines come to about a hundred and twenty tokens, so this is far
+ * more than the job needs — deliberately. A response cut off at the ceiling is
+ * unparseable JSON, which lands in the same catch as a network failure and
+ * comes back as "no note", and a silent null that means "truncated" is the
+ * hardest kind of nothing to explain.
+ */
+const MAX_TOKENS = 1000;
+
 const SYSTEM = `You write the serving note for one bottle of wine in someone's private wine log.
 
 Four short lines, read on a phone by someone holding the bottle:
@@ -80,19 +89,30 @@ function line(value: unknown, max: number): string | null {
 }
 
 /**
- * Writes the note. Never throws and never reports a failure upwards: the
- * caller has a working answer already and this is the better one when it
- * arrives.
+ * Why there's no note, when there's no note.
+ *
+ * The first version of this returned a bare null and logged the reason to the
+ * server, which is fine right up until someone asks why the serving section
+ * never changes — and then the only honest answer is "look in the platform
+ * logs". A reason costs nothing to carry and can be put on the screen.
+ */
+export type ServingNoteResult =
+  | { note: ServingNote }
+  | { note: null; reason: string };
+
+/**
+ * Writes the note. Never throws: the caller has a working answer already —
+ * the rules in serving.ts — and this is the better one when it arrives.
  */
 export async function servingNoteFor(
   client: Anthropic,
   bottle: string,
-): Promise<ServingNote | null> {
+): Promise<ServingNoteResult> {
   try {
     const response = await client.messages.create(
       {
         model: MODEL,
-        max_tokens: 400,
+        max_tokens: MAX_TOKENS,
         system: SYSTEM,
         // Four lines about a wine anyone in the trade could write from memory.
         thinking: { type: "disabled" },
@@ -102,12 +122,26 @@ export async function servingNoteFor(
       { timeout: TIMEOUT_MS, maxRetries: 0 },
     );
 
-    if (response.stop_reason === "refusal") return null;
+    if (response.stop_reason === "refusal") {
+      return { note: null, reason: "The model declined to write one for this bottle." };
+    }
+    if (response.stop_reason === "max_tokens") {
+      return { note: null, reason: "The note ran past its length limit and came back unfinished." };
+    }
 
     const block = response.content.find((item) => item.type === "text");
-    if (!block || block.type !== "text") return null;
+    if (!block || block.type !== "text") {
+      return { note: null, reason: "Nothing came back." };
+    }
 
-    const raw = JSON.parse(block.text) as Record<string, unknown>;
+    let raw: Record<string, unknown>;
+    try {
+      raw = JSON.parse(block.text) as Record<string, unknown>;
+    } catch {
+      console.error("serving-note: unreadable JSON:", block.text.slice(0, 200));
+      return { note: null, reason: "What came back wasn't a readable note." };
+    }
+
     const temperature = line(raw.temperature, 40);
     const chill = line(raw.chill, 140);
     const glass = line(raw.glass, 140);
@@ -115,14 +149,14 @@ export async function servingNoteFor(
 
     // All four or none. Half a note next to three lines of rule-written advice
     // would read as two different people writing about the same bottle.
-    if (!temperature || !chill || !glass || !air) return null;
-    return { temperature, chill, glass, air };
+    if (!temperature || !chill || !glass || !air) {
+      return { note: null, reason: "The note came back with lines missing." };
+    }
+    return { note: { temperature, chill, glass, air } };
   } catch (error) {
-    console.error(
-      "serving-note: could not write one:",
-      error instanceof Error ? error.message : String(error),
-    );
-    return null;
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error("serving-note: could not write one:", detail);
+    return { note: null, reason: `The API said: ${detail.slice(0, 200)}` };
   }
 }
 

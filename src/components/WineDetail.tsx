@@ -1,6 +1,6 @@
 import Link from "next/link";
 import LabelPhoto from "@/components/LabelPhoto";
-import ServingGuide from "@/components/ServingGuide";
+import ServingSection from "@/components/ServingSection";
 import DeleteWineButton from "@/components/DeleteWineButton";
 import WineFactsPanel from "@/components/WineFactsPanel";
 import RatingMark from "@/components/RatingMark";
@@ -114,8 +114,6 @@ export default function WineDetail({
     statedTemperature,
   });
   const written = stored?.serving ?? null;
-  const serving =
-    byRule && written ? { ...byRule, ...written } : byRule;
 
   const rows: { term: string; value: React.ReactNode; found?: boolean }[] = [
     { term: "Vintage", value: wine.vintage ? String(wine.vintage) : "" },
@@ -268,7 +266,12 @@ export default function WineDetail({
         ))}
       </dl>
 
-      {serving && <ServingGuide serving={serving} mark={styleOf(wine.wine_type)} />}
+      <ServingSection
+        wineId={wine.id}
+        byRule={byRule}
+        written={written}
+        mark={styleOf(wine.wine_type)}
+      />
 
       <WineFactsPanel
         wineId={wine.id}

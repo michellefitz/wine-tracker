@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { asServingNote } from "@/lib/serving-note";
+import { asServingNote, type ServingNote } from "@/lib/serving-note";
 import { FACTS_VERSION, researchWine, worthShowing } from "@/lib/wine-research";
 import type { Wine, WineFacts, WineRating } from "@/lib/types";
 
@@ -149,6 +149,29 @@ async function saveFacts(facts: WineFacts): Promise<void> {
       facts.note,
       FACTS_VERSION,
     ],
+  );
+}
+
+/**
+ * Writes just the serving note, leaving everything else alone.
+ *
+ * The note doesn't need the web — how cold a Barolo wants to be is not a thing
+ * anyone looks up — so it shouldn't have to wait behind a search to be written,
+ * or be lost for good because one failed. This is the path that fills it in on
+ * its own: two seconds and one small model call, against a row that may not
+ * exist yet.
+ *
+ * A placeholder row goes in at version 0 rather than the current one, so a
+ * bottle that has a serving note and nothing else still counts as never
+ * properly looked up, and the first view that can afford a search does one.
+ */
+export async function saveServing(wineId: string, note: ServingNote): Promise<void> {
+  const db = sql();
+  await db.query(
+    `INSERT INTO wine_facts (wine_id, found, serving, version, looked_up_at)
+     VALUES ($1, false, $2::jsonb, 0, now())
+     ON CONFLICT (wine_id) DO UPDATE SET serving = EXCLUDED.serving`,
+    [wineId, JSON.stringify(note)],
   );
 }
 

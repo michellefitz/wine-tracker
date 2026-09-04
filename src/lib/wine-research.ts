@@ -696,7 +696,7 @@ export async function researchWine(wine: Wine): Promise<Researched> {
   const summary = clipped(raw.summary, 1200);
   const anything = Boolean(summary) || ratings.length > 0 || details.length > 0;
 
-  const serving = await writingServing;
+  const serving = (await writingServing).note;
 
   return {
     status: "ok",
