@@ -9,30 +9,23 @@ type SimpleType = "Red" | "White" | "Sparkling" | "Other";
 
 const GROUP_ORDER: SimpleType[] = ["Red", "White", "Sparkling", "Other"];
 
-/**
- * How far a bottle at the edge of the shelf is pushed away from you.
- *
- * Small numbers on purpose. This is an exhibition shelf, not a carousel from a
- * 2009 media player — the arc should be the thing you notice you can't quite
- * name, not an effect.
- */
 /** Between bottles, in pixels. Named because the widths have to subtract it. */
 const GAP = 6;
 
-const ARC = {
-  /** Shrink at the edges, so the middle bottle is the one you're looking at. */
-  scale: 0.13,
-  /** The dip: edges sit lower, which curves the row rather than tilting it. */
-  dip: 14,
-  /** Degrees, fanning outwards from the middle. */
-  tilt: 3.5,
-  /**
-   * Edges recede a little. Gently — this compounds with the mask that fades
-   * the right-hand edge, and at 0.3 the two together took the fourth bottle
-   * down to about a third opacity, which is no longer a hint, just a smudge.
-   */
-  fade: 0.16,
-};
+/**
+ * How far back a bottle at the edge of the shelf sits.
+ *
+ * Scale, and nothing else. This started as a proper arc — a dip, a tilt, the
+ * edges faded — and on a phone it was awful: dragging sideways moved every
+ * bottle up and down as its dip changed, so the whole row bobbed under the
+ * finger. Vertical motion in a thing you are moving horizontally reads as the
+ * row coming loose, not as depth.
+ *
+ * So the shelf stays flat. The middle bottle is a little larger than the ones
+ * either side of it, they all stand on the same line, and nothing moves on any
+ * axis but the one your finger is on.
+ */
+const ZOOM = 0.08;
 
 function simplifyType(wineType: string | null): SimpleType {
   if (!wineType) return "Other";
@@ -82,13 +75,13 @@ function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
     : `calc((100% - ${(wines.length - 1) * GAP}px) / ${wines.length})`;
 
   /**
-   * Lays the bottles on a curve, from where the scroll happens to be.
+   * Sizes the bottles from where the scroll happens to be.
    *
    * Measured rather than animated: each bottle's distance from the middle of
-   * the shelf decides how far away it looks, so the arc holds at any scroll
-   * position, mid-flick included, and there's no state to get out of step with
-   * the finger. Runs inside a frame because scroll fires far more often than
-   * the screen redraws.
+   * the shelf decides how large it is, so it holds at any scroll position,
+   * mid-flick included, and there's no state to get out of step with the
+   * finger. Runs inside a frame because scroll fires far more often than the
+   * screen redraws.
    */
   const layout = useCallback(() => {
     const node = scroller.current;
@@ -97,7 +90,7 @@ function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
     const middle = node.scrollLeft + node.clientWidth / 2;
     const reach = node.clientWidth / 2;
     /*
-     * The arc moves with the finger, which is the sort of thing someone who
+     * The zoom moves with the finger, which is the sort of thing someone who
      * has asked their phone to stop animating things has asked it to stop
      * doing. The peek and the edge fades stay — those are layout, not motion,
      * and they're the part that answers "is there more".
@@ -106,16 +99,9 @@ function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
 
     for (const child of Array.from(node.children) as HTMLElement[]) {
       const centre = child.offsetLeft + child.offsetWidth / 2;
-      // -1 at the left edge, 0 dead centre, 1 at the right.
-      const t = Math.max(-1, Math.min(1, (centre - middle) / reach));
-      const away = Math.abs(t);
-
-      child.style.transform = still
-        ? ""
-        : `translateY(${(away * ARC.dip).toFixed(2)}px) ` +
-          `rotate(${(t * ARC.tilt).toFixed(2)}deg) ` +
-          `scale(${(1 - away * ARC.scale).toFixed(3)})`;
-      child.style.opacity = still ? "" : String(1 - away * ARC.fade);
+      // 0 dead centre, 1 at either edge.
+      const away = Math.min(1, Math.abs(centre - middle) / reach);
+      child.style.transform = still ? "" : `scale(${(1 - away * ZOOM).toFixed(3)})`;
     }
 
     /*
@@ -158,13 +144,20 @@ function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
         onScroll={onScroll}
         data-edges="none"
         style={{ gap: `${GAP}px` }}
-        className="rolodex hide-scrollbar mt-3 flex overflow-x-auto pb-1"
+        className="rolodex hide-scrollbar mt-3 flex select-none overflow-x-auto pb-1"
       >
         {wines.map((wine) => (
           <Link
             key={wine.id}
             href={`/wine/${wine.id}`}
             style={{ width, transformOrigin: "50% 100%" }}
+            /*
+              draggable={false} because a link wrapping an image is a drag
+              handle by default: pulling the shelf sideways started a
+              drag-and-drop of the picture instead of a scroll, and drew a
+              selection box round every bottle on the way past.
+            */
+            draggable={false}
             className="shrink-0 will-change-transform active:brightness-95"
           >
             <div className="photo-bleed relative aspect-[3/5] w-full overflow-hidden">
@@ -172,6 +165,7 @@ function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
                 photoId={wine.photo_id}
                 alt={wine.name}
                 width={560}
+                draggable={false}
                 className="h-full w-full object-cover"
               />
             </div>

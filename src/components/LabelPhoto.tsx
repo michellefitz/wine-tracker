@@ -18,6 +18,7 @@ export default function LabelPhoto({
   width,
   className = "",
   eager = false,
+  draggable,
 }: {
   photoId: string | null;
   alt: string;
@@ -25,6 +26,12 @@ export default function LabelPhoto({
   width: 560 | 960;
   className?: string;
   eager?: boolean;
+  /**
+   * Pass false inside anything you swipe. An image is a drag source by
+   * default, so on a shelf you pull sideways the browser starts dragging the
+   * picture instead of scrolling, and marks it selected while it does.
+   */
+  draggable?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
   const image = useRef<HTMLImageElement>(null);
@@ -51,6 +58,7 @@ export default function LabelPhoto({
       loading={eager ? "eager" : "lazy"}
       decoding={eager ? "sync" : "async"}
       onError={() => setFailed(true)}
+      draggable={draggable}
       className={className}
     />
   );
