@@ -1,6 +1,7 @@
 import Link from "next/link";
 import LabelPhoto from "@/components/LabelPhoto";
 import ServingSection from "@/components/ServingSection";
+import { noteIsStale } from "@/lib/serving-note";
 import DeleteWineButton from "@/components/DeleteWineButton";
 import WineFactsPanel from "@/components/WineFactsPanel";
 import RatingMark from "@/components/RatingMark";
@@ -270,6 +271,7 @@ export default function WineDetail({
         wineId={wine.id}
         byRule={byRule}
         written={written}
+        stale={noteIsStale(written)}
         mark={styleOf(wine.wine_type)}
       />
 

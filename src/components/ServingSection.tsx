@@ -29,6 +29,7 @@ export default function ServingSection({
   wineId,
   byRule,
   written,
+  stale,
   mark = null,
 }: {
   wineId: string;
@@ -36,6 +37,12 @@ export default function ServingSection({
   byRule: Serving | null;
   /** What's on file, if a note has been written for this bottle. */
   written: ServingNote | null;
+  /**
+   * True when there's no note, or the one on file was written by a prompt
+   * we've since improved on. Worked out on the server, where the current
+   * version lives.
+   */
+  stale: boolean;
   mark?: GrapeStyle | null;
 }) {
   const router = useRouter();
@@ -44,7 +51,13 @@ export default function ServingSection({
   const asked = useRef(false);
 
   useEffect(() => {
-    if (note || asked.current) return;
+    /*
+     * Asked for once per mount, and only when there's something to gain: no
+     * note at all, or one written by an older prompt. The old note stays on
+     * screen while the new one is being written — swapping it for the rules
+     * first would be a step backwards you'd watch happen.
+     */
+    if (!stale || asked.current) return;
     asked.current = true;
 
     let live = true;
@@ -74,13 +87,13 @@ export default function ServingSection({
     return () => {
       live = false;
     };
-  }, [note, wineId, router]);
+  }, [stale, wineId, router]);
 
   if (!byRule) return null;
 
   return (
     <>
-      <ServingGuide serving={note ? { ...byRule, ...note } : byRule} mark={mark} />
+      <ServingGuide serving={note ? merged(byRule, note) : byRule} mark={mark} />
       {/*
         Quiet, and only when something actually went wrong. The rules above are
         a real answer, so this is a footnote about why they aren't the shorter
@@ -93,4 +106,14 @@ export default function ServingSection({
       )}
     </>
   );
+}
+
+/**
+ * The written lines over the rule-written ones, minus the bookkeeping — the
+ * version belongs in the database, not in a heading on the page.
+ */
+function merged(byRule: Serving, note: ServingNote): Serving {
+  const { version, ...lines } = note;
+  void version;
+  return { ...byRule, ...lines };
 }

@@ -26,7 +26,25 @@ export type ServingNote = {
   chill: string;
   glass: string;
   air: string;
+  /** Which SERVING_VERSION wrote it. See below. */
+  version: number;
 };
+
+/**
+ * Bump this when the prompt above changes, and every note in the log rewrites
+ * itself the next time you open the bottle.
+ *
+ * The lookup has had this since it shipped — FACTS_VERSION — and the note
+ * needed it for exactly the reason that showed up the first time the prompt
+ * was improved: a bottle with a note never asked for another one, so the
+ * better prompt reached new bottles only and every wine already in the log
+ * kept the old wording for good. The alternative on offer was a command-line
+ * script, which is not a thing to need when the app lives on a phone.
+ *
+ * 1 — the first notes, which came out clipped: "Pour and go."
+ * 2 — the same again with room for the reason, which is the half you remember.
+ */
+export const SERVING_VERSION = 2;
 
 const MODEL = process.env.ANTHROPIC_SERVING_MODEL ?? "claude-sonnet-5";
 const TIMEOUT_MS = 20_000;
@@ -166,7 +184,7 @@ export async function servingNoteFor(
     if (!temperature || !chill || !glass || !air) {
       return { note: null, reason: "The note came back with lines missing." };
     }
-    return { note: { temperature, chill, glass, air } };
+    return { note: { temperature, chill, glass, air, version: SERVING_VERSION } };
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     console.error("serving-note: could not write one:", detail);
@@ -183,5 +201,12 @@ export function asServingNote(value: unknown): ServingNote | null {
   const glass = line(raw.glass, LINE_MAX);
   const air = line(raw.air, LINE_MAX);
   if (!temperature || !chill || !glass || !air) return null;
-  return { temperature, chill, glass, air };
+  // Notes written before there was a version are version 1 by definition.
+  const version = typeof raw.version === "number" ? raw.version : 1;
+  return { temperature, chill, glass, air, version };
+}
+
+/** Whether this one was written by a prompt we've since improved on. */
+export function noteIsStale(note: ServingNote | null): boolean {
+  return !note || note.version < SERVING_VERSION;
 }
