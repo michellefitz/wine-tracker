@@ -1,6 +1,5 @@
 import Anthropic, { APIError } from "@anthropic-ai/sdk";
 import { clip } from "@/lib/prose";
-import { servingNoteFor } from "@/lib/serving-note";
 import { flatten } from "@/lib/text";
 import type { Wine, WineFacts } from "@/lib/types";
 
@@ -245,8 +244,14 @@ const SCHEMA = {
   additionalProperties: false,
 } as const;
 
+/**
+ * Everything a search can establish — which is everything except the serving
+ * note. That has its own writer and its own endpoint, because it needs nothing
+ * from the web and a search that fails should never be able to take it down
+ * with it. See saveServing.
+ */
 export type Researched =
-  | { status: "ok"; facts: Omit<WineFacts, "wine_id"> }
+  | { status: "ok"; facts: Omit<WineFacts, "wine_id" | "serving"> }
   | { status: "unavailable"; message: string };
 
 /**
@@ -577,19 +582,6 @@ export async function researchWine(wine: Wine): Promise<Researched> {
   const bottle = describeBottle(wine);
   const startedAt = Date.now();
 
-  /*
-   * The serving note runs alongside the search, not after it.
-   *
-   * It needs nothing from the web — how cold a Barolo wants to be is not a
-   * thing anyone looks up — so starting it here costs the lookup no wall-clock
-   * time at all, and the whole thing is finished long before a search is. It
-   * is also allowed to fail: the rules in serving.ts answer for every bottle in
-   * the log already, so a null here is a missed improvement, not a gap.
-   * servingNoteFor swallows its own failures, so this promise never rejects
-   * and the early returns below can simply walk away from it.
-   */
-  const writingServing = servingNoteFor(client, bottle);
-
   const found = await research(client, bottle, searchQuery(wine));
   if ("status" in found) {
     console.log(`wine-research: gave up after ${Date.now() - startedAt}ms`);
@@ -696,13 +688,10 @@ export async function researchWine(wine: Wine): Promise<Researched> {
   const summary = clipped(raw.summary, 1200);
   const anything = Boolean(summary) || ratings.length > 0 || details.length > 0;
 
-  const serving = (await writingServing).note;
-
   return {
     status: "ok",
     facts: {
       place,
-      serving,
       found: raw.found === true && anything,
       summary,
       style: clipped(raw.style, 600),

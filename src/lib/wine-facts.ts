@@ -110,14 +110,28 @@ export async function withFoundGrapes(wines: Wine[]): Promise<Wine[]> {
   );
 }
 
-async function saveFacts(facts: WineFacts): Promise<void> {
+/**
+ * Writes what a search found — and deliberately not the serving note.
+ *
+ * The note used to be one more column in this statement, written from whatever
+ * the lookup's own attempt at one produced. That quietly destroyed good notes:
+ * the page asks for a note the moment it finds a bottle without one, which
+ * takes two seconds, and the search lands thirty seconds later and overwrites
+ * it with its own — null, whenever that attempt had failed. Every visit wrote
+ * a note and every visit threw it away, so the section filled in a second
+ * after the page loaded and was empty again next time.
+ *
+ * One writer each now. Searching owns everything the web can tell you;
+ * saveServing owns the note. Neither can undo the other.
+ */
+async function saveFacts(facts: Omit<WineFacts, "serving">): Promise<void> {
   const db = sql();
   await db.query(
     `INSERT INTO wine_facts
        (wine_id, found, summary, style, grapes, ratings, details, awards, food, sources, place,
-        serving, note, version, looked_up_at)
+        note, version, looked_up_at)
      VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, $8::jsonb, $9::jsonb, $10::jsonb,
-             $11::jsonb, $12::jsonb, $13, $14, now())
+             $11::jsonb, $12, $13, now())
      ON CONFLICT (wine_id) DO UPDATE SET
        found = EXCLUDED.found,
        summary = EXCLUDED.summary,
@@ -129,7 +143,6 @@ async function saveFacts(facts: WineFacts): Promise<void> {
        food = EXCLUDED.food,
        sources = EXCLUDED.sources,
        place = EXCLUDED.place,
-       serving = EXCLUDED.serving,
        note = EXCLUDED.note,
        version = EXCLUDED.version,
        looked_up_at = now()`,
@@ -145,7 +158,6 @@ async function saveFacts(facts: WineFacts): Promise<void> {
       JSON.stringify(facts.food),
       JSON.stringify(facts.sources),
       JSON.stringify(facts.place),
-      JSON.stringify(facts.serving),
       facts.note,
       FACTS_VERSION,
     ],
@@ -232,7 +244,7 @@ export async function getWineFacts(wine: Wine, refresh = false): Promise<FactsLo
     return researched;
   }
 
-  const facts: WineFacts = { ...researched.facts, wine_id: wine.id };
+  const facts = { ...researched.facts, wine_id: wine.id };
   try {
     await saveFacts(facts);
   } catch (error) {
@@ -242,7 +254,15 @@ export async function getWineFacts(wine: Wine, refresh = false): Promise<FactsLo
 
   return {
     status: "ok",
-    facts: { ...facts, looked_up_at: new Date().toISOString(), stale: false },
+    facts: {
+      ...facts,
+      // Carried through, not searched for: the note is written elsewhere and a
+      // fresh search knows nothing about it. Reporting it as null here is how
+      // the page would put the rules back over a note it already has.
+      serving: cached?.serving ?? null,
+      looked_up_at: new Date().toISOString(),
+      stale: false,
+    },
     warning,
   };
 }

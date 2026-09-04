@@ -40,6 +40,14 @@ const TIMEOUT_MS = 20_000;
  */
 const MAX_TOKENS = 1000;
 
+/*
+ * A guard against a runaway, not an editor. The prompt asks for fifteen to
+ * twenty-five words, which is about a hundred and fifty characters; this sits
+ * above that so the only thing it ever cuts is something that went badly
+ * wrong. A line trimmed mid-word reads worse than a long one.
+ */
+const LINE_MAX = 220;
+
 const SYSTEM = `You write the serving note for one bottle of wine in someone's private wine log.
 
 Four short lines, read on a phone by someone holding the bottle:
@@ -47,24 +55,30 @@ Four short lines, read on a phone by someone holding the bottle:
 - temperature: the range in Celsius and nothing else, as "16-18 C" style with an en dash and a
   space before the degree sign: "16–18 °C". One number is fine for a wine that wants one.
 - chill: how to get there with a fridge and a clock. Nobody owns a wine thermometer.
-- glass: what to pour it into, and the reason only if the reason changes what you'd do.
-- air: whether it wants air, and what to actually do about it.
+- glass: what to pour it into, and why, where the why changes what you'd reach for.
+- air: what to actually do, how long for, and what it does to the wine.
 
 Write about THIS wine. The grape, the place, the vintage and the style are what make a serving
 note worth reading — "Nebbiolo tastes like all tannin when it's cold" earns its line; "red wines
 are served at room temperature" does not. Where nothing about this bottle changes the usual
-advice for its style, give the usual advice briefly rather than padding it out.
+advice for its style, give the usual advice plainly rather than padding it out.
 
-Length is the whole point. Twelve words is the ceiling for chill, glass and air, and most good
-answers are shorter. Sentence fragments are better than full sentences: "Straight from the
-fridge." "Twenty minutes out, no longer."
+Short, but not clipped. One sentence, or two short ones — around fifteen to twenty-five words for
+chill, glass and air. The instruction and the reason for it: "Half an hour in the fridge. Gamay
+goes flat and jammy warm, and crunchy when it's cold." A bare order with the reason cut off is
+the one thing worse than going on too long, because the reason is what you actually remember.
+
+"air" in particular is never just "pour it". Say what to do — swirl it, leave it open, decant it —
+and roughly how long, even when the answer is that it wants none: "Nothing to do. Drink it the day
+you open it." An empty-sounding line there reads as though you ran out of things to say.
 
 Never:
 - open two lines the same way, or use a phrase you would use for every wine of this colour
 - write "this wine", "this one", "this bottle"
 - hedge: no "consider", "you might want to", "generally speaking", "it is recommended"
 - explain what a decanter is, or assume one. A jug is a decanter. So is a second glass.
-- describe how the wine tastes. That is written elsewhere on the page.
+- describe how the wine tastes for its own sake. What warmth or air does to it is the point;
+  a tasting note is written elsewhere on the page.
 
 If the bottle is only identifiable to a colour — a supermarket own-label red, no grape, no
 region — then say the plain thing plainly and briefly. A short honest answer is not a failure.`;
@@ -143,9 +157,9 @@ export async function servingNoteFor(
     }
 
     const temperature = line(raw.temperature, 40);
-    const chill = line(raw.chill, 140);
-    const glass = line(raw.glass, 140);
-    const air = line(raw.air, 140);
+    const chill = line(raw.chill, LINE_MAX);
+    const glass = line(raw.glass, LINE_MAX);
+    const air = line(raw.air, LINE_MAX);
 
     // All four or none. Half a note next to three lines of rule-written advice
     // would read as two different people writing about the same bottle.
@@ -165,9 +179,9 @@ export function asServingNote(value: unknown): ServingNote | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const raw = value as Record<string, unknown>;
   const temperature = line(raw.temperature, 40);
-  const chill = line(raw.chill, 140);
-  const glass = line(raw.glass, 140);
-  const air = line(raw.air, 140);
+  const chill = line(raw.chill, LINE_MAX);
+  const glass = line(raw.glass, LINE_MAX);
+  const air = line(raw.air, LINE_MAX);
   if (!temperature || !chill || !glass || !air) return null;
   return { temperature, chill, glass, air };
 }
