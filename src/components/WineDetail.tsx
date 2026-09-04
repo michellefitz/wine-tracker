@@ -7,7 +7,9 @@ import WineFactsPanel from "@/components/WineFactsPanel";
 import RatingMark from "@/components/RatingMark";
 import StyleMark from "@/components/StyleMark";
 import { grapeSlug, styleOf } from "@/lib/grapes";
-import { countryFlag, placeLine } from "@/lib/places";
+import CountryGhost from "@/components/CountryGhost";
+import { countryCode, countryFlag, placeLine } from "@/lib/places";
+import { placeFor } from "@/lib/wine-places";
 import { tagLabel } from "@/lib/taxonomy";
 import { servingFor } from "@/lib/serving";
 import { wineColour } from "@/lib/wine-colours";
@@ -116,6 +118,15 @@ export default function WineDetail({
   });
   const written = stored?.serving ?? null;
 
+  /*
+   * The country behind the bottle. placeFor is the same ladder the map walks —
+   * the appellation register, then whatever the lookup claimed, then the
+   * middle of the country — so a bottle that shows up on the map shows up
+   * here, and one that doesn't gets an outline with nothing marked on it.
+   */
+  const ghost = placeFor(stored?.place ?? null, wine.region, wine.country);
+  const ghostIso = countryCode(wine.country) ?? countryCode(wine.region) ?? null;
+
   const rows: { term: string; value: React.ReactNode; found?: boolean }[] = [
     { term: "Vintage", value: wine.vintage ? String(wine.vintage) : "" },
     {
@@ -155,19 +166,42 @@ export default function WineDetail({
    * is simply a small bottle. A sheet still gets less than a page, because it
    * has less height to spend before the writing starts.
    */
+  /*
+   * Where the bottle came from, if it's known finely enough to point at. A
+   * bottle placed only to its country gets the outline and no dot — a pin in
+   * the middle of France says nothing except that this is France, which the
+   * outline has already said.
+   */
+  const spot =
+    ghost && ghost.precision !== "country"
+      ? ([ghost.longitude, ghost.latitude] as [number, number])
+      : null;
+
   const photo = (
+    /*
+     * The frame is wider than the picture and taller than it, and that space
+     * is the point: it's where the country shows. Cropping it here rather than
+     * letting it bleed keeps the outline inside the composition instead of
+     * running under the writing below.
+     */
     <div
-      className={`photo-bleed relative mx-auto aspect-4/5 w-full overflow-hidden bg-tint ${
-        sheet ? "max-w-[17rem]" : "max-w-[22rem]"
-      }`}
+      className="relative mx-auto flex aspect-4/5 w-full max-w-[24rem] items-center
+        justify-center overflow-hidden"
     >
-      <LabelPhoto
-        photoId={wine.photo_id}
-        alt={`Label of ${wine.name}`}
-        width={sheet ? 560 : 960}
-        eager
-        className="h-full w-full object-cover"
-      />
+      <CountryGhost iso={ghostIso} at={spot} />
+      <div
+        className={`photo-bleed relative aspect-4/5 w-full overflow-hidden bg-tint ${
+          sheet ? "max-w-[15rem]" : "max-w-[16rem]"
+        }`}
+      >
+        <LabelPhoto
+          photoId={wine.photo_id}
+          alt={`Label of ${wine.name}`}
+          width={sheet ? 560 : 960}
+          eager
+          className="h-full w-full object-cover"
+        />
+      </div>
     </div>
   );
 
