@@ -244,6 +244,60 @@ textarea {
     }
   }
 
+  /*
+   * The shelf, and the promise that it continues.
+   *
+   * Three bottles used to fill the row exactly, ending flush with the edge of
+   * the screen — which is what a list that has run out looks like, so that is
+   * what it looked like. A fourth bottle now starts before the edge and is cut
+   * off by it, and this softens the cut so it reads as "more over there"
+   * rather than as a bottle sliced in half.
+   *
+   * A mask rather than an overlay: the bottles ride on an arc and are already
+   * being transformed, so a gradient painted on top would have to be kept in
+   * step with them. Masking the scroller fades whatever happens to be under
+   * the edge, transform and all. It also can't swallow a tap, which an overlay
+   * would have to be told not to do.
+   *
+   * data-more is set from the scroll position — see WineRolodex. Fading the
+   * last bottle when there is genuinely nothing after it would be a lie, and
+   * looks like a fault rather than an invitation.
+   */
+  /*
+   * Down to a third, not to nothing. Fading an edge all the way out deletes
+   * the bottle that is doing the work of saying there's another one; this
+   * leaves it clearly there and clearly tucked under the edge of the screen.
+   *
+   * Only on the sides that are actually hiding something — data-edges is set
+   * from the scroll position in WineRolodex.
+   */
+  .rolodex[data-edges="right"] {
+    -webkit-mask-image: linear-gradient(to right, #000 74%, rgb(0 0 0 / 0.32) 100%);
+    mask-image: linear-gradient(to right, #000 74%, rgb(0 0 0 / 0.32) 100%);
+  }
+
+  .rolodex[data-edges="left"] {
+    -webkit-mask-image: linear-gradient(to left, #000 74%, rgb(0 0 0 / 0.32) 100%);
+    mask-image: linear-gradient(to left, #000 74%, rgb(0 0 0 / 0.32) 100%);
+  }
+
+  .rolodex[data-edges="both"] {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      rgb(0 0 0 / 0.32) 0%,
+      #000 26%,
+      #000 74%,
+      rgb(0 0 0 / 0.32) 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      rgb(0 0 0 / 0.32) 0%,
+      #000 26%,
+      #000 74%,
+      rgb(0 0 0 / 0.32) 100%
+    );
+  }
+
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
