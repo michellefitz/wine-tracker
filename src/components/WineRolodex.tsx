@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import LabelPhoto from "@/components/LabelPhoto";
 import type { Wine } from "@/lib/types";
 
@@ -52,6 +52,25 @@ function groupWines(wines: Wine[]): Map<SimpleType, Wine[]> {
 function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
   const scroller = useRef<HTMLDivElement>(null);
   const frame = useRef(0);
+
+  /*
+   * Which bottle is under a finger right now.
+   *
+   * There is half a second between tapping a bottle and the sheet arriving,
+   * and without something happening in it the tap and the sheet are two
+   * unrelated events — worse when the tap misses and nothing arrives at all,
+   * because then there was never any way to tell the difference. This is the
+   * bottle giving slightly under the thumb, and it is the only thing standing
+   * in for the connection.
+   *
+   * It lives on the picture inside the card rather than on the card, because
+   * the card's own transform is written from the scroll position every frame
+   * and a press has to be able to animate on its own clock without fighting
+   * that.
+   *
+   * State rather than a ref: this has to repaint, and it happens once per tap.
+   */
+  const [pressed, setPressed] = useState<string | null>(null);
 
   /*
    * Three and a bit, deliberately.
@@ -119,6 +138,13 @@ function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
   const onScroll = useCallback(() => {
     cancelAnimationFrame(frame.current);
     frame.current = requestAnimationFrame(layout);
+    /*
+     * The shelf moved, so that press was the start of a scroll and not a tap.
+     * Letting it stand is how a bottle ends up sitting there pressed while you
+     * swipe away from it — which is the flicker that got the old press state
+     * removed in the first place.
+     */
+    setPressed(null);
   }, [layout]);
 
   useEffect(() => {
@@ -150,6 +176,10 @@ function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
           <Link
             key={wine.id}
             href={`/wine/${wine.id}`}
+            onPointerDown={() => setPressed(wine.id)}
+            onPointerUp={() => setPressed(null)}
+            onPointerCancel={() => setPressed(null)}
+            onPointerLeave={() => setPressed(null)}
             style={{ width, transformOrigin: "50% 100%" }}
             /*
               draggable={false} because a link wrapping an image is a drag
@@ -160,7 +190,12 @@ function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
             draggable={false}
             className="shrink-0 will-change-transform"
           >
-            <div className="photo-bleed relative aspect-[3/5] w-full overflow-hidden">
+            <div
+              className={`photo-bleed relative aspect-[3/5] w-full overflow-hidden
+                transition-transform duration-[130ms] ease-out-strong ${
+                  pressed === wine.id ? "scale-[0.93]" : "scale-100"
+                }`}
+            >
               <LabelPhoto
                 photoId={wine.photo_id}
                 alt={wine.name}
