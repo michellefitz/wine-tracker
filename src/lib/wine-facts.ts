@@ -18,6 +18,24 @@ const SELECT_COLUMNS = `
 
 export type StoredFacts = WineFacts & { looked_up_at: string; stale: boolean };
 
+/**
+ * How long a bottle is left alone after a lookup that didn't work.
+ *
+ * FACTS_VERSION means "rewrite this on next view", and on its own that is a
+ * trap: a record can only stop being out of date by being looked up
+ * successfully, so a bottle whose lookup keeps failing is out of date forever
+ * and searches again every single time you open it. Which is what happened —
+ * every open, on every bottle, indefinitely, while the page showed the cached
+ * write-up and looked like it was working.
+ *
+ * So a failed attempt is recorded too, by moving `looked_up_at` forward, and a
+ * record that has been tried recently is left alone even when it is behind.
+ * Half a day: an improved lookup still reaches every bottle within a day of
+ * ordinary browsing, and a bottle nothing can fix costs two searches a day
+ * instead of one per glance. The Refresh button ignores all of this.
+ */
+const RETRY_AFTER_MS = 12 * 60 * 60 * 1000;
+
 function toFacts(row: Record<string, unknown>): StoredFacts {
   return {
     wine_id: String(row.wine_id),
@@ -37,7 +55,14 @@ function toFacts(row: Record<string, unknown>): StoredFacts {
     serving: asServingNote(row.serving),
     note: (row.note as string) ?? null,
     looked_up_at: String(row.looked_up_at),
-    stale: Number(row.version ?? 0) < FACTS_VERSION,
+    /*
+     * Behind, and not tried lately. Both halves matter: see RETRY_AFTER_MS.
+     * An unreadable timestamp counts as long ago, so a bad row gets its chance
+     * rather than being frozen out by arithmetic on a NaN.
+     */
+    stale:
+      Number(row.version ?? 0) < FACTS_VERSION &&
+      !(Date.now() - Date.parse(String(row.looked_up_at)) < RETRY_AFTER_MS),
   };
 }
 
@@ -165,6 +190,18 @@ async function saveFacts(facts: Omit<WineFacts, "serving">): Promise<void> {
 }
 
 /**
+ * Records that we tried and it didn't work.
+ *
+ * Nothing else about the row changes — the facts on file are still the facts
+ * on file, and they're still out of date. This only stops the next view from
+ * setting the same doomed search running again.
+ */
+async function markAttempt(wineId: string): Promise<void> {
+  const db = sql();
+  await db.query(`UPDATE wine_facts SET looked_up_at = now() WHERE wine_id = $1`, [wineId]);
+}
+
+/**
  * Writes just the serving note, leaving everything else alone.
  *
  * The note doesn't need the web — how cold a Barolo wants to be is not a thing
@@ -240,7 +277,14 @@ export async function getWineFacts(wine: Wine, refresh = false): Promise<FactsLo
      * came back looking like a refresh that found nothing new: the old write-up
      * reappeared, the failure went to the logs, and the page said nothing.
      */
-    if (cached) return { status: "ok", facts: cached, warning: researched.message };
+    if (cached) {
+      try {
+        await markAttempt(wine.id);
+      } catch (error) {
+        console.error("wine-facts: could not record the attempt:", error);
+      }
+      return { status: "ok", facts: cached, warning: researched.message };
+    }
     return researched;
   }
 
