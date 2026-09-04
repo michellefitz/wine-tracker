@@ -9,8 +9,16 @@ type SimpleType = "Red" | "White" | "Sparkling" | "Other";
 
 const GROUP_ORDER: SimpleType[] = ["Red", "White", "Sparkling", "Other"];
 
-/** Between bottles, in pixels. Named because the widths have to subtract it. */
-const GAP = 6;
+/**
+ * Between bottles, in pixels. Named because the widths have to subtract it.
+ *
+ * Tight, and that's the point: three bottles, their gaps and a glimpse of a
+ * fourth all have to fit across a phone, so every pixel of gap is a pixel off
+ * every bottle. Three still separates them — and the photographs fade to paper
+ * at their own edges anyway, so bottles this close don't collide, they just
+ * stand nearer together.
+ */
+const GAP = 3;
 
 /**
  * How far back a bottle at the edge of the shelf sits.
@@ -77,21 +85,35 @@ function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
    *
    * Three bottles filling the row exactly is what made the shelf look like the
    * whole shelf: the last one ended flush with the edge of the screen, which is
-   * precisely what a list that has run out looks like. At 27% a fourth bottle
-   * starts about fifty pixels before the edge and gets cut off by it, and a
-   * thing cut off by the edge of the screen can only mean there is more of it
-   * over there. 29% was tried first and left a sliver too narrow to read as a
-   * bottle once the edge fade had been over it.
+   * precisely what a list that has run out looks like. A fourth bottle now
+   * starts before the edge and gets cut off by it, and a thing cut off by the
+   * edge of the screen can only mean there is more of it over there.
    *
-   * Fewer than four and there's nothing to hint at, so they share the row.
-   * Sharing it exactly, gaps subtracted: at plain 100/n the gaps push the row
-   * a few pixels wider than the scroller, which is enough for "is there more
-   * to the right" to answer yes on a shelf holding two bottles.
+   * The width, the gap, the frame's shape and the size of the glimpse are one
+   * decision, not four.
+   *
+   * The glimpse has to contain glass. A studio shot is a bottle standing in
+   * the middle of a mostly empty frame, so a narrow sliver of the next card is
+   * a sliver of cream on a cream page — invisible, whatever the fade does with
+   * it. Measured: at 29% wide with a 3px gap the sliver came to 32px and
+   * contained exactly zero pixels darker than the paper. It was a promise of
+   * more wine that showed no wine.
+   *
+   * The frame is what fixes it. At 1:2 rather than 3:5, object-cover crops
+   * more off the sides of a 4:5 photograph — all of it background — so the
+   * bottle fills a third of the card instead of under a quarter, and the
+   * glimpse reaches the glass. The same change makes every bottle a quarter
+   * taller, which is the other half of what was asked for and costs no width
+   * at all.
+   *
+   * Fewer than four and there's nothing to hint at — but they don't get to
+   * share the row out between them either. Two bottles at half the width each
+   * are half a screen tall in this frame, which next to a shelf of four reads
+   * as a mistake rather than as a short shelf. They stay the size a bottle is
+   * and sit in the middle of the row.
    */
   const peeks = wines.length > 3;
-  const width = peeks
-    ? "27%"
-    : `calc((100% - ${(wines.length - 1) * GAP}px) / ${wines.length})`;
+  const width = peeks ? "28%" : `${Math.min(100 / wines.length, 30)}%`;
 
   /**
    * Sizes the bottles from where the scroll happens to be.
@@ -170,7 +192,9 @@ function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
         onScroll={onScroll}
         data-edges="none"
         style={{ gap: `${GAP}px` }}
-        className="rolodex hide-scrollbar mt-3 flex select-none overflow-x-auto pb-1"
+        className={`rolodex hide-scrollbar mt-3 flex select-none overflow-x-auto pb-1 ${
+          peeks ? "" : "justify-center"
+        }`}
       >
         {wines.map((wine) => (
           <Link
@@ -191,7 +215,7 @@ function Shelf({ wines, label }: { wines: Wine[]; label: string }) {
             className="shrink-0 will-change-transform"
           >
             <div
-              className={`photo-bleed relative aspect-[3/5] w-full overflow-hidden
+              className={`photo-bleed relative aspect-[1/2] w-full overflow-hidden
                 transition-transform duration-[130ms] ease-out-strong ${
                   pressed === wine.id ? "scale-[0.93]" : "scale-100"
                 }`}

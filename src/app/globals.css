@@ -287,37 +287,40 @@ textarea {
   }
 
   /*
-   * Down to a third, not to nothing. Fading an edge all the way out deletes
+   * Down to two fifths, not to nothing. Fading an edge all the way out deletes
    * the bottle that is doing the work of saying there's another one; this
    * leaves it clearly there and clearly tucked under the edge of the screen.
+   * It ends higher than it used to because the bottles are wider now and the
+   * glimpse of the next one is correspondingly narrower — a thinner sliver
+   * needs to be less faint to still read as a bottle.
    *
    * Only on the sides that are actually hiding something — data-edges is set
    * from the scroll position in WineRolodex.
    */
   .rolodex[data-edges="right"] {
-    -webkit-mask-image: linear-gradient(to right, #000 74%, rgb(0 0 0 / 0.32) 100%);
-    mask-image: linear-gradient(to right, #000 74%, rgb(0 0 0 / 0.32) 100%);
+    -webkit-mask-image: linear-gradient(to right, #000 80%, rgb(0 0 0 / 0.4) 100%);
+    mask-image: linear-gradient(to right, #000 80%, rgb(0 0 0 / 0.4) 100%);
   }
 
   .rolodex[data-edges="left"] {
-    -webkit-mask-image: linear-gradient(to left, #000 74%, rgb(0 0 0 / 0.32) 100%);
-    mask-image: linear-gradient(to left, #000 74%, rgb(0 0 0 / 0.32) 100%);
+    -webkit-mask-image: linear-gradient(to left, #000 80%, rgb(0 0 0 / 0.4) 100%);
+    mask-image: linear-gradient(to left, #000 80%, rgb(0 0 0 / 0.4) 100%);
   }
 
   .rolodex[data-edges="both"] {
     -webkit-mask-image: linear-gradient(
       to right,
-      rgb(0 0 0 / 0.32) 0%,
-      #000 26%,
-      #000 74%,
-      rgb(0 0 0 / 0.32) 100%
+      rgb(0 0 0 / 0.4) 0%,
+      #000 20%,
+      #000 80%,
+      rgb(0 0 0 / 0.4) 100%
     );
     mask-image: linear-gradient(
       to right,
-      rgb(0 0 0 / 0.32) 0%,
-      #000 26%,
-      #000 74%,
-      rgb(0 0 0 / 0.32) 100%
+      rgb(0 0 0 / 0.4) 0%,
+      #000 20%,
+      #000 80%,
+      rgb(0 0 0 / 0.4) 100%
     );
   }
 
