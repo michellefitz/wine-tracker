@@ -72,23 +72,23 @@ function mainland(rings: Ring[]): Ring[] {
  * in nothing, and the one thing every wine has that the photograph can't show
  * is where it grew.
  *
- * Drawn over the photograph rather than behind it, and multiplied into it.
+ * Behind the photograph, which only works because the photograph has a hole
+ * in it. See photo-cutout: a studio shot arrives with its cream ground
+ * removed, so the outline shows through everywhere the bottle isn't, and the
+ * bottle covers the part of the country it stands on.
  *
- * Behind was the obvious place and the wrong one: a studio shot is opaque
- * cream all the way to its edges, so the outline could only ever be seen in
- * whatever margin was left around the picture — which meant keeping the bottle
- * small to leave a margin worth seeing. The image model can't help either;
- * Gemini's image models return flat RGB with no alpha channel, so there is no
- * transparent version of the photograph to be had.
+ * It was briefly drawn over the top instead and multiplied into the picture,
+ * on the theory that a dark line multiplied into a near-white ground reads
+ * while over dark glass it disappears. Both halves are true and it still
+ * failed, because a bottle is not uniformly dark: the label is pale, pale is
+ * where multiply bites hardest, and the result was a coastline ruled straight
+ * across the writing. Nothing about the blend can be tuned to spare a white
+ * label — brightness is the only thing it responds to, and the label's is the
+ * same as the ground's.
  *
- * Multiply solves it without any of that. The line is dark, the photograph's
- * ground is nearly white, and multiplying a dark line into a light ground
- * darkens it — so the outline crosses the cream and reads. Over the bottle
- * itself, which is already far darker than the line, multiplying changes
- * almost nothing and the line disappears. The result is exactly what a
- * transparent background would have given: an outline that passes behind the
- * glass and continues out the other side, with the bottle's own shadow
- * sitting on top of it.
+ * If the picture can't be cut — a real photograph of a bottle on a table has
+ * no flat ground to remove — it arrives opaque and this is hidden behind it,
+ * which is a decoration quietly missing rather than anything broken.
  *
  * Server-rendered: COUNTRY_SHAPES is a 170KB module that never reaches the
  * browser, and what goes over the wire is the path for this one country.
@@ -138,8 +138,7 @@ export default function CountryGhost({
        */
       preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
-      style={{ mixBlendMode: "multiply" }}
-      className="pointer-events-none absolute inset-0 z-10 h-full w-full"
+      className="pointer-events-none absolute inset-0 h-full w-full"
     >
       {land.map((ring, index) => (
         <path

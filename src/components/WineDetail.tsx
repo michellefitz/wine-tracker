@@ -192,21 +192,24 @@ export default function WineDetail({
      * It used to be held to two thirds of it, inside a wider box, because the
      * country outline was drawn behind an opaque photograph and the margin was
      * the only place it could be seen — so the bottle paid for the map. The
-     * outline is drawn over the photograph now and multiplied into it, which
-     * costs the picture nothing, so the frame and the picture are the same
-     * thing again and the bottle is as big as the column allows.
+     * photograph isn't opaque any more; a studio shot is served with its
+     * background cut away, so the outline shows through the whole frame and
+     * the picture can have all of it.
      */
     <div className={`relative mx-auto w-full ${sheet ? "max-w-[20rem]" : "max-w-[23rem]"}`}>
-      <div className="photo-bleed relative aspect-4/5 w-full overflow-hidden bg-tint">
+      <CountryGhost iso={ghostIso} at={spot} />
+      {/* No bg-tint: the picture is cut out, and a tint behind it would be a
+          panel for the outline to hide under. */}
+      <div className="photo-bleed relative aspect-4/5 w-full overflow-hidden">
         <LabelPhoto
           photoId={wine.photo_id}
           alt={`Label of ${wine.name}`}
           width={sheet ? 560 : 960}
           eager
+          cut
           className="h-full w-full object-cover"
         />
       </div>
-      <CountryGhost iso={ghostIso} at={spot} />
     </div>
   );
 
