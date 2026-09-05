@@ -7,9 +7,7 @@ import WineFactsPanel from "@/components/WineFactsPanel";
 import RatingMark from "@/components/RatingMark";
 import StyleMark from "@/components/StyleMark";
 import { grapeSlug, styleOf } from "@/lib/grapes";
-import CountryGhost from "@/components/CountryGhost";
-import { countryCode, countryFlag, placeLine } from "@/lib/places";
-import { placeFor } from "@/lib/wine-places";
+import { countryFlag, placeLine } from "@/lib/places";
 import { isUnopened, tagLabel } from "@/lib/taxonomy";
 import { servingFor } from "@/lib/serving";
 import { wineColour } from "@/lib/wine-colours";
@@ -118,15 +116,6 @@ export default function WineDetail({
   });
   const written = stored?.serving ?? null;
 
-  /*
-   * The country behind the bottle. placeFor is the same ladder the map walks —
-   * the appellation register, then whatever the lookup claimed, then the
-   * middle of the country — so a bottle that shows up on the map shows up
-   * here, and one that doesn't gets an outline with nothing marked on it.
-   */
-  const ghost = placeFor(stored?.place ?? null, wine.region, wine.country);
-  const ghostIso = countryCode(wine.country) ?? countryCode(wine.region) ?? null;
-
   const rows: { term: string; value: React.ReactNode; found?: boolean }[] = [
     { term: "Vintage", value: wine.vintage ? String(wine.vintage) : "" },
     {
@@ -174,42 +163,27 @@ export default function WineDetail({
    * is simply a small bottle. A sheet still gets less than a page, because it
    * has less height to spend before the writing starts.
    */
-  /*
-   * Where the bottle came from, if it's known finely enough to point at. A
-   * bottle placed only to its country gets the outline and no dot — a pin in
-   * the middle of France says nothing except that this is France, which the
-   * outline has already said.
-   */
-  const spot =
-    ghost && ghost.precision !== "country"
-      ? ([ghost.longitude, ghost.latitude] as [number, number])
-      : null;
-
   const photo = (
     /*
      * The picture gets the whole frame.
      *
-     * It used to be held to two thirds of it, inside a wider box, because the
-     * country outline was drawn behind an opaque photograph and the margin was
-     * the only place it could be seen — so the bottle paid for the map. The
-     * photograph isn't opaque any more; a studio shot is served with its
-     * background cut away, so the outline shows through the whole frame and
-     * the picture can have all of it.
+     * It was held to two thirds of it for a while so a country outline could
+     * show in the margin around it. That's gone — see the history of this file
+     * if it ever comes back — and without something else to make room for,
+     * there is no reason for the bottle to be smaller than the column.
      */
-    <div className={`relative mx-auto w-full ${sheet ? "max-w-[20rem]" : "max-w-[23rem]"}`}>
-      <CountryGhost iso={ghostIso} at={spot} />
-      {/* No bg-tint: the picture is cut out, and a tint behind it would be a
-          panel for the outline to hide under. */}
-      <div className="photo-bleed relative aspect-4/5 w-full overflow-hidden">
-        <LabelPhoto
-          photoId={wine.photo_id}
-          alt={`Label of ${wine.name}`}
-          width={sheet ? 560 : 960}
-          eager
-          cut
-          className="h-full w-full object-cover"
-        />
-      </div>
+    <div
+      className={`photo-bleed relative mx-auto aspect-4/5 w-full overflow-hidden bg-tint ${
+        sheet ? "max-w-[20rem]" : "max-w-[23rem]"
+      }`}
+    >
+      <LabelPhoto
+        photoId={wine.photo_id}
+        alt={`Label of ${wine.name}`}
+        width={sheet ? 560 : 960}
+        eager
+        className="h-full w-full object-cover"
+      />
     </div>
   );
 

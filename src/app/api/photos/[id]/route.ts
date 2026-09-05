@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
-import { cutOut } from "@/lib/photo-cutout";
 
 export const runtime = "nodejs";
 
@@ -52,28 +51,9 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
 
   const original = Buffer.from(photo.data, "base64");
 
-  const query = new URL(request.url).searchParams;
-  const requested = Number(query.get("w"));
+  const requested = Number(new URL(request.url).searchParams.get("w"));
   if (!WIDTHS.has(requested)) {
     return respond(original, photo.mime);
-  }
-
-  const acceptsWebp = (request.headers.get("accept") ?? "").includes("image/webp");
-
-  /*
-   * ?cut=1 asks for the bottle without its background, so the country outline
-   * on the detail page has somewhere to show through.
-   *
-   * Asking is all the caller can do: whether a picture can be cut depends on
-   * the picture, and a photo of a bottle on a table can't be. That decision is
-   * made where the pixels are and it comes back as a plain opaque image when
-   * the answer is no, which is why nothing upstream has to know or ask first.
-   * The page renders the same either way; on a photo that can't be cut, the
-   * outline is simply hidden behind it, as it was before any of this.
-   */
-  if (query.get("cut") === "1") {
-    const cut = await cutOut(original, { width: requested, webp: acceptsWebp });
-    if (cut) return respond(cut.data, cut.mime, true);
   }
 
   /*
@@ -88,6 +68,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
    * broken picture. Either way — can't load, or can't encode — the stored
    * photo goes out as it is.
    */
+  const acceptsWebp = (request.headers.get("accept") ?? "").includes("image/webp");
   try {
     const sharp = (await import("sharp")).default;
     const pipeline = sharp(original).resize({ width: requested, withoutEnlargement: true });

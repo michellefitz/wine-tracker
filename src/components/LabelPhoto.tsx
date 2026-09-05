@@ -19,7 +19,6 @@ export default function LabelPhoto({
   className = "",
   eager = false,
   draggable,
-  cut = false,
 }: {
   photoId: string | null;
   alt: string;
@@ -33,12 +32,6 @@ export default function LabelPhoto({
    * picture instead of scrolling, and marks it selected while it does.
    */
   draggable?: boolean;
-  /**
-   * Ask for the bottle without its background. Only honoured for a picture
-   * that has a background worth removing — a studio shot — and quietly
-   * ignored for anything else, so this is a preference rather than a promise.
-   */
-  cut?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
   const image = useRef<HTMLImageElement>(null);
@@ -60,7 +53,7 @@ export default function LabelPhoto({
     // eslint-disable-next-line @next/next/no-img-element
     <img
       ref={image}
-      src={`/api/photos/${photoId}?w=${width}${cut ? "&cut=1" : ""}`}
+      src={`/api/photos/${photoId}?w=${width}`}
       alt={alt}
       loading={eager ? "eager" : "lazy"}
       decoding={eager ? "sync" : "async"}
