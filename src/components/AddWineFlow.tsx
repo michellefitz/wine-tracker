@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { PouringGlass, ReadingLabel } from "@/components/Loaders";
+import ServingGuide from "@/components/ServingGuide";
 import WineFactsView from "@/components/WineFactsView";
 import WineForm from "@/components/WineForm";
 import { fileToCompressedDataUrl } from "@/lib/image";
+import { asServingNote, type ServingNote } from "@/lib/serving-note";
+import { servingFor } from "@/lib/serving";
 import type { LabelReading } from "@/lib/types";
 import type { StoredFacts } from "@/lib/wine-facts";
 
@@ -189,6 +192,22 @@ export default function AddWineFlow() {
 
   const chosen = studio && useStudio ? studio : photo;
   const showingStudio = Boolean(studio && useStudio);
+  /*
+   * How to serve it, ready before you've decided whether you like it.
+   *
+   * The rules answer for any bottle instantly; the note written for this one
+   * arrives with the search and wins when it does. Same pair, same precedence
+   * and same component as the bottle's own page — the point of the whole
+   * exercise is that the two screens stop disagreeing.
+   */
+  const byRule = servingFor({
+    wineType: reading?.wine_type ?? null,
+    grapes: reading?.grapes ?? [],
+    label: [reading?.producer, reading?.name, reading?.region].filter(Boolean).join(" "),
+  });
+  const written = asServingNote(found?.serving);
+  const serving = byRule && written ? { ...byRule, ...strip(written) } : byRule;
+
   /** The bottle as read, so a reviewer's own site can be searched for it. */
   const query = [reading?.producer, reading?.name, reading?.vintage]
     .filter(Boolean)
@@ -244,13 +263,11 @@ export default function AddWineFlow() {
             )}
           </div>
 
-          <p className="mt-3 text-center text-[0.875rem] text-muted" aria-live="polite">
-            {staging
-              ? "Setting up the studio shot…"
-              : showingStudio
-                ? "Studio shot, made from your photo"
-                : "Your photo"}
-          </p>
+          {staging && (
+            <p className="mt-3 text-center text-[0.875rem] text-muted" aria-live="polite">
+              Setting up the studio shot…
+            </p>
+          )}
 
           {studioTrouble && (
             <p className="mx-auto mt-3 max-w-sm bg-tint px-4 py-3 text-center text-[0.8125rem]
@@ -260,56 +277,69 @@ export default function AddWineFlow() {
           )}
 
           {/*
-            Two rows, not one wrapped list: four controls don't fit across a
-            phone, and the wrap left a separator dangling at the end of a line.
-            They also divide neatly — what to do about the studio shot, then
-            what to do about the photograph it was made from.
+            One control, not four.
+            
+            The row of buttons under the photograph was a menu for a decision
+            nobody makes twice: the studio shot is right nearly every time, so
+            the options belong behind a tap rather than in front of one. Open
+            it and they're all still there.
           */}
-          <div className="mt-4 space-y-2 text-center">
-            {!staging && (
-              <p className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-1">
+          <div className="mt-3 flex justify-center">
+            <details className="group relative">
+              <summary
+                aria-label="Photo options"
+                className="mx-auto flex size-9 cursor-pointer list-none items-center
+                  justify-center rounded-full border border-rule text-ink-soft
+                  transition-colors pointer-hover:hover:border-muted"
+              >
+                <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"
+                  fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <circle cx="10" cy="4.5" r="1.1" fill="currentColor" stroke="none" />
+                  <circle cx="10" cy="10" r="1.1" fill="currentColor" stroke="none" />
+                  <circle cx="10" cy="15.5" r="1.1" fill="currentColor" stroke="none" />
+                </svg>
+              </summary>
+
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
+                {!staging && (
+                  <button
+                    type="button"
+                    onClick={() => photo && makeStudioShot(photo)}
+                    className="btn-quiet"
+                  >
+                    {studio || studioTrouble ? "Try the studio shot again" : "Make a studio shot"}
+                  </button>
+                )}
+                {studio && !staging && (
+                  <button
+                    type="button"
+                    onClick={() => setUseStudio(!useStudio)}
+                    className="btn-quiet"
+                  >
+                    {useStudio ? "Use my photo" : "Use the studio shot"}
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => photo && makeStudioShot(photo)}
+                  onClick={() => fileInput.current?.click()}
                   className="btn-quiet"
                 >
-                  {studio || studioTrouble ? "Try again" : "Make a studio shot"}
+                  Change photo
                 </button>
-                {studio && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setUseStudio(!useStudio)}
-                      className="btn-quiet"
-                    >
-                      {useStudio ? "Use my photo" : "Use the studio shot"}
-                    </button>
-                  </>
-                )}
-              </p>
-            )}
-
-            <p className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-1">
-              <button
-                type="button"
-                onClick={() => fileInput.current?.click()}
-                className="btn-quiet"
-              >
-                Change photo
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setPhoto(null);
-                  setReading(null);
-                  setStudio(null);
-                  setStudioTrouble(null);
-                }}
-                className="btn-quiet"
-              >
-                Remove
-              </button>
-            </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPhoto(null);
+                    setReading(null);
+                    setStudio(null);
+                    setStudioTrouble(null);
+                  }}
+                  className="btn-quiet"
+                >
+                  Remove
+                </button>
+              </div>
+            </details>
           </div>
         </div>
       )}
@@ -359,10 +389,6 @@ export default function AddWineFlow() {
             <p className="bg-tint px-4 py-3 text-[0.9375rem] leading-relaxed text-ink-soft">
               {notice}
             </p>
-          ) : reading ? (
-            <p className="text-center text-[0.875rem] text-muted">
-              Filled in from the label. Change anything that came back wrong.
-            </p>
           ) : null}
         </div>
       )}
@@ -373,17 +399,24 @@ export default function AddWineFlow() {
         </p>
       )}
 
+      {started && (
+        <WineForm mode="create" reading={reading} photoDataUrl={chosen} found={found} />
+      )}
+
       {/*
-        What the bottle is, before what you made of it.
+        What the world says, under what you made of it.
         
-        This is the whole point of doing the search here: you are standing in a
-        restaurant holding a bottle, and what you want first is what it is and
-        what to do with it. The rating comes after, in the form below, once
-        there's something to rate against.
+        The order is the argument: your verdict is the thing only you can
+        supply, so it goes first, and the write-up, the ratings and how to
+        serve it sit under it as context rather than as a preamble to be
+        scrolled past. It is all found during the add, so none of it is a wait
+        that starts when you save.
       */}
       {started && (searching || found) && (
         <div className="pt-4">
-          <h2 className="eyebrow mb-3">About this bottle</h2>
+          {serving && <ServingGuide serving={serving} variant="section" />}
+
+          <h2 className="eyebrow mb-3 mt-9">About this bottle</h2>
           {searching && !found ? (
             <PouringGlass caption="Looking it up…" />
           ) : found?.facts ? (
@@ -396,10 +429,6 @@ export default function AddWineFlow() {
         </div>
       )}
 
-      {started && (
-        <WineForm mode="create" reading={reading} photoDataUrl={chosen} found={found} />
-      )}
-
       {!started && (
         <p className="text-center">
           <Link href="/" className="link-plain">
@@ -409,4 +438,11 @@ export default function AddWineFlow() {
       )}
     </div>
   );
+}
+
+/** The note's lines, without the version stamp the heading has no use for. */
+function strip(note: ServingNote): Omit<ServingNote, "version"> {
+  const { version, ...lines } = note;
+  void version;
+  return lines;
 }

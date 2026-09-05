@@ -284,9 +284,20 @@ export default function WineDetail({
         </div>
       )}
 
+      {/*
+        Marked as the quotation it is. Everything else on this page was read
+        off a label or found on the web; this is the one thing you said, and
+        it should look like someone said it.
+      */}
       {wine.notes && (
-        <blockquote className="mx-auto mt-8 max-w-md border-t border-rule pt-6 text-center">
-          <p className="essay text-[1.25rem] leading-[1.45] text-ink">{wine.notes}</p>
+        <blockquote className="relative mx-auto mt-8 max-w-md px-5 text-center">
+          <span aria-hidden className="absolute -left-1 -top-3 essay text-[2rem] leading-none text-rule">
+            &ldquo;
+          </span>
+          <p className="essay text-[1.25rem] italic leading-[1.45] text-ink">{wine.notes}</p>
+          <span aria-hidden className="absolute -bottom-5 -right-1 essay text-[2rem] leading-none text-rule">
+            &rdquo;
+          </span>
         </blockquote>
       )}
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import LabelPhoto from "@/components/LabelPhoto";
 import { fileToCompressedDataUrl } from "@/lib/image";
+import { countryFlag, placeLine } from "@/lib/places";
 import { RATINGS, SOURCES, TAG_GROUPS, WINE_TYPES, tagsInGroup } from "@/lib/taxonomy";
 import type { LabelReading, Wine } from "@/lib/types";
 
@@ -48,6 +49,22 @@ function Required() {
       <span aria-hidden className="ml-1 text-wine">*</span>
       <span className="sr-only"> (required)</span>
     </>
+  );
+}
+
+/**
+ * One line of the details table: a label on the left, the value on the right.
+ *
+ * The same shape the bottle's own page uses, so the table reads identically
+ * whether the value is being shown or typed. See .field-cell for the input
+ * that has to disappear into it.
+ */
+function Row({ term, children }: { term: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-6 py-2.5">
+      <dt className="eyebrow shrink-0">{term}</dt>
+      <dd className="min-w-0 flex-1 text-right">{children}</dd>
+    </div>
   );
 }
 
@@ -354,6 +371,10 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
 
   const busyWithPhoto = staging;
 
+  /* The place line under the name, from whatever the fields hold right now. */
+  const place = placeLine(region.trim() || null, country.trim() || null);
+  const flag = countryFlag(country.trim() || null);
+
   const missingName = !name.trim();
   const missingScore = score === null;
   /*
@@ -469,86 +490,67 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
         </section>
       )}
 
-      <section className="space-y-5">
-        <div>
-          <label
-            className={`eyebrow mb-1 block ${attempted && missingName ? "text-wine" : ""}`}
-            htmlFor="name"
-          >
-            Wine
-            <Required />
-          </label>
-          <input
-            id="name"
-            ref={nameField}
-            aria-invalid={attempted && missingName}
-            className={`field essay text-[1.375rem] ${
-              attempted && missingName ? "border-wine" : ""
+      {/*
+        The wall label, the same one the bottle's own page shows — producer,
+        wine, place, verdict — except that here you can type into it.
+        
+        Logging, reading and editing were three different-looking screens for
+        one bottle, and the differences were arbitrary: the same facts sat in a
+        table on one, in labelled fields on another, in a different order on
+        the third. They are one layout now. The fields keep no borders and no
+        labels of their own, because a caption over a wine's name is a form
+        asking a question you have already answered.
+      */}
+      <header className="text-center">
+        <input
+          id="producer"
+          aria-label="Producer"
+          className="w-full border-0 bg-transparent p-0 text-center eyebrow outline-none
+            placeholder:text-muted/60"
+          value={producer}
+          onChange={(event) => setProducer(event.target.value)}
+          placeholder="Producer"
+        />
+        <input
+          id="name"
+          ref={nameField}
+          aria-label="Wine"
+          aria-invalid={attempted && missingName}
+          className={`mt-2 w-full border-0 bg-transparent p-0 text-center essay
+            text-[1.75rem] leading-[1.2] outline-none placeholder:text-muted/50 ${
+              attempted && missingName ? "text-wine" : "text-ink"
             }`}
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Reserva Malbec"
-          />
-        </div>
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="What is it?"
+        />
+        {place && (
+          <p className="mt-2 flex items-baseline justify-center gap-2 text-[0.9375rem] text-ink-soft">
+            {flag && (
+              <span aria-hidden="true" className="text-[1.0625rem] leading-none">
+                {flag}
+              </span>
+            )}
+            <span>{place}</span>
+          </p>
+        )}
+      </header>
 
-        <div>
-          <label className="eyebrow mb-1 block" htmlFor="producer">
-            Producer
-          </label>
-          <input
-            id="producer"
-            /* The same face as the name above it: both are what's on the label,
-               and setting them in two different types made one look like data
-               and the other like a caption. */
-            className="field essay text-[1.0625rem]"
-            value={producer}
-            onChange={(event) => setProducer(event.target.value)}
-            placeholder="Bodega Norton"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-5">
-          <div>
-            <label className="eyebrow mb-1 block" htmlFor="vintage">
-              Vintage
-            </label>
-            <input
-              id="vintage"
-              className="field"
-              inputMode="numeric"
-              value={vintage}
-              onChange={(event) => setVintage(event.target.value)}
-              placeholder="2021"
-            />
-          </div>
-          <div>
-            <label className="eyebrow mb-1 block" htmlFor="wine-type">
-              Type
-            </label>
-            <select
-              id="wine-type"
-              className="field"
-              value={wineType}
-              onChange={(event) => setWineType(event.target.value)}
-            >
-              <option value="">—</option>
-              {WINE_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </section>
-
-      <Section title="How was it?" required missing={attempted && missingScore}>
-        {/*
-          Pills, like every other choice in the app. Four bordered squares in a
-          grid was the boxiest thing on the page and said "form" where the rest
-          of it says "notebook".
-        */}
-        <div ref={scoreGroup} className="flex flex-wrap gap-2">
+      {/*
+        Your verdict, first. It's the one thing on this screen that only you
+        can supply — everything under it was read off the label or found on the
+        web — so it goes where the eye lands rather than four sections down.
+      */}
+      <section>
+        <h2
+          className={`eyebrow mb-3 text-center ${
+            attempted && missingScore ? "text-wine" : ""
+          }`}
+        >
+          How was it?
+          <Required />
+        </h2>
+        <div ref={scoreGroup} className="flex flex-wrap justify-center gap-2">
           {RATINGS.map((rating) => {
             const chosen = score === rating.score;
             return (
@@ -580,7 +582,106 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
             );
           })}
         </div>
-      </Section>
+      </section>
+
+      {/*
+        The same table the bottle's page shows, with the values typed into
+        rather than read off. It stopped being behind a "where, when, how much"
+        disclosure: nothing in it is advanced, half of it arrives filled in
+        from the label, and a fold you have to open to check the vintage is a
+        fold that gets opened every time.
+      */}
+      <dl className="mx-auto max-w-md divide-y divide-rule border-y border-rule">
+        <Row term="Vintage">
+          <input
+            id="vintage"
+            className="field-cell"
+            inputMode="numeric"
+            value={vintage}
+            onChange={(event) => setVintage(event.target.value)}
+            placeholder="—"
+          />
+        </Row>
+        <Row term="Type">
+          <select
+            id="wine-type"
+            className="field-cell"
+            value={wineType}
+            onChange={(event) => setWineType(event.target.value)}
+          >
+            <option value="">—</option>
+            {WINE_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </Row>
+        <Row term="Grapes">
+          <input
+            id="grapes"
+            className="field-cell"
+            value={grapes}
+            onChange={(event) => setGrapes(event.target.value)}
+            placeholder="—"
+          />
+        </Row>
+        <Row term="Region">
+          <input
+            id="region"
+            className="field-cell"
+            value={region}
+            onChange={(event) => setRegion(event.target.value)}
+            placeholder="—"
+          />
+        </Row>
+        <Row term="Country">
+          <input
+            id="country"
+            className="field-cell"
+            value={country}
+            onChange={(event) => setCountry(event.target.value)}
+            placeholder="—"
+          />
+        </Row>
+        <Row term="Bought at">
+          <select
+            id="source"
+            className="field-cell"
+            value={source}
+            onChange={(event) => setSource(event.target.value)}
+          >
+            <option value="">—</option>
+            {SOURCES.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </Row>
+        <Row term="Price">
+          <input
+            id="price"
+            className="field-cell"
+            inputMode="decimal"
+            value={price}
+            onChange={(event) => setPrice(event.target.value)}
+            placeholder="—"
+          />
+        </Row>
+        <Row term={score === 0 ? "Added" : "Drank"}>
+          {/* w-auto so it shrinks to the date and the <dd>'s text-right can
+              push it over: a date input ignores text-align, because the box it
+              aligns is the picker's, not the text's. */}
+          <input
+            id="drank-on"
+            type="date"
+            className="field-cell ml-auto w-auto"
+            value={drankOn}
+            onChange={(event) => setDrankOn(event.target.value)}
+          />
+        </Row>
+      </dl>
 
       <Section title="What stood out?">
         <div className="space-y-5">
@@ -604,118 +705,30 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
         </div>
       </Section>
 
-      <Section title="Notes">
-        {/* Boxed rather than underlined, so it doesn't double up with the
-            next section's rule. */}
-        <textarea
-          id="notes"
-          className="field-boxed min-h-28 resize-y essay text-[1.125rem] leading-relaxed"
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          placeholder="Anything you want to remember about it."
-        />
+      {/*
+        Set as the quotation it is. This is the only thing on the page you
+        wrote, and it was sitting in a grey box looking like every other input
+        — the marks and the italic say it is a voice rather than a field.
+      */}
+      <Section title="Your note">
+        <div className="relative mx-auto max-w-md">
+          <span aria-hidden className="absolute -left-1 -top-2 essay text-[2rem] leading-none text-rule">
+            &ldquo;
+          </span>
+          <textarea
+            id="notes"
+            className="min-h-24 w-full resize-y border-0 bg-transparent px-5 py-1 text-center
+              essay text-[1.25rem] italic leading-[1.45] text-ink outline-none
+              placeholder:not-italic placeholder:text-muted/70"
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            placeholder="What did you make of it?"
+          />
+          <span aria-hidden className="absolute -bottom-4 -right-1 essay text-[2rem] leading-none text-rule">
+            &rdquo;
+          </span>
+        </div>
       </Section>
-
-      <section className="pt-10">
-        <button
-          type="button"
-          onClick={() => setShowDetails((open) => !open)}
-          className="link-plain"
-        >
-          {showDetails ? "Hide extra details" : "Where, when, how much"}
-        </button>
-
-        {showDetails && (
-          <div className="mt-6 space-y-5">
-            <div className="grid grid-cols-2 gap-5">
-              <div>
-                <label className="eyebrow mb-1 block" htmlFor="source">
-                  Bought at
-                </label>
-                <select
-                  id="source"
-                  className="field"
-                  value={source}
-                  onChange={(event) => setSource(event.target.value)}
-                >
-                  <option value="">—</option>
-                  {SOURCES.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="eyebrow mb-1 block" htmlFor="price">
-                  Price (€)
-                </label>
-                <input
-                  id="price"
-                  className="field"
-                  inputMode="decimal"
-                  value={price}
-                  onChange={(event) => setPrice(event.target.value)}
-                  placeholder="12.99"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-5">
-              <div>
-                <label className="eyebrow mb-1 block" htmlFor="region">
-                  Region
-                </label>
-                <input
-                  id="region"
-                  className="field"
-                  value={region}
-                  onChange={(event) => setRegion(event.target.value)}
-                  placeholder="Mendoza"
-                />
-              </div>
-              <div>
-                <label className="eyebrow mb-1 block" htmlFor="country">
-                  Country
-                </label>
-                <input
-                  id="country"
-                  className="field"
-                  value={country}
-                  onChange={(event) => setCountry(event.target.value)}
-                  placeholder="Argentina"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="eyebrow mb-1 block" htmlFor="grapes">
-                Grapes
-              </label>
-              <input
-                id="grapes"
-                className="field"
-                value={grapes}
-                onChange={(event) => setGrapes(event.target.value)}
-                placeholder="Malbec, Cabernet Sauvignon"
-              />
-            </div>
-
-            <div>
-              <label className="eyebrow mb-1 block" htmlFor="drank-on">
-                Date
-              </label>
-              <input
-                id="drank-on"
-                type="date"
-                className="field"
-                value={drankOn}
-                onChange={(event) => setDrankOn(event.target.value)}
-              />
-            </div>
-          </div>
-        )}
-      </section>
 
       {/*
         Saved, minus the photo. This stays put rather than navigating on, so the

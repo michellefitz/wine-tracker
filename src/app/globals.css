@@ -157,6 +157,25 @@ textarea {
       radial-gradient(40% 100% at 50% 50%, transparent 58%, var(--color-paper) 100%);
   }
 
+  /*
+   * A field that disappears into the details table.
+   *
+   * The table is the same one the bottle's page shows, and it only reads as
+   * one table if the values look like values in both places — so the input
+   * keeps no border, no background and no box of its own, and sits where the
+   * text it replaces sat. The underline arrives on focus, which is the only
+   * moment it needs to say it is a field at all.
+   */
+  .field-cell {
+    @apply w-full appearance-none border-0 border-b border-transparent bg-transparent
+      p-0 text-right text-[0.9375rem] tabular-nums text-ink outline-none
+      transition-colors placeholder:text-muted/60 focus:border-ink;
+    text-align: right;
+    /* A select right-aligns its text but not its own box; this stops it
+       reserving a column of empty space for a dropdown arrow it isn't drawing. */
+    text-align-last: right;
+  }
+
   /* Underlined fields rather than boxes: fewer edges, calmer page. */
   .field {
     @apply w-full border-0 border-b border-rule bg-transparent px-0 py-2.5
