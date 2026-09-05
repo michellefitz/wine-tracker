@@ -1,57 +1,26 @@
 import { COUNTRY_SHAPES, type Ring } from "@/lib/map-geometry";
 import { fit } from "@/lib/map-projection";
 
-/**
- * How wide the country is drawn, against the frame around the bottle.
- *
- * Sized to the bottle rather than fitted to a box, which is the whole
- * difference between Italy reading and Spain not. Fitting a wide, squat
- * country into a tall frame leaves it small and entirely behind the
- * photograph; fitting a tall one leaves it thin. Scaling every country to the
- * same width instead means each one is always about half again the width of
- * the bottle, and it's the frame that crops whatever hangs off.
- *
- * Wider than the bottle, narrower than the frame — and it has to be both.
- *
- * Narrower than the bottle and the outline is simply behind the photograph.
- * Wider than the frame and its two coasts fall off the sides, which for a
- * country with no fill leaves nothing at all in between: Portugal drawn at
- * 108% put both its coastlines just outside the frame and its interior is
- * empty, so the whole country came out as four short scratches.
- *
- * 96% of the frame against a bottle at about 68% of it leaves a clear channel
- * either side, wide enough for a coastline to live in. This number and the
- * bottle's width were settled together, by looking at Italy, Spain, France,
- * Portugal and Argentina.
- */
-const WIDTH = "96%";
-
-/**
- * The ceiling, for countries that are mostly length. Chile is real.
- *
- * Generous, because this clamp is what made Portugal and Argentina read as
- * scratches: at 150% both were being shrunk to fit it, which narrowed them to
- * less than the bottle and left nothing either side. Both are about 175% tall
- * once scaled to width, so the ceiling sits above them and catches only the
- * genuinely absurd — Chile comes out at 445%.
- */
-const TALLEST = "200%";
-
 /*
- * Centred, and nudging it sideways was tried and undone.
+ * Size: the country fits the frame, and that is the whole rule.
  *
- * The idea was that a country centred behind the photograph is hidden along
- * exactly the axis it most needs to be seen on, which is true, and that a
- * tall narrow one — Portugal, Chile — is the same shape as the bottle and all
- * but disappears, which is also true. But the offset takes as much as it
- * gives: at 13% it pushed Italy's east coast behind the bottle and the Barolo
- * mark clean off the frame, to buy Portugal a strip of coastline that still
- * didn't read as Portugal.
+ * It used to be a scale — every country drawn to the same width, allowed to
+ * hang off the top and bottom, with a ceiling to catch Chile, and a debate
+ * about nudging it sideways — because the outline was behind an opaque
+ * photograph and could only be seen in whatever margin was left around it.
+ * Anything that fitted the frame was hidden by the frame, so it had to be too
+ * big for it, and a country shaped like a bottle was hidden whatever you did.
  *
- * So: centred. Countries with some width to them — Italy, France, Spain,
- * Argentina, Germany — read well around the bottle. Ones shaped like the
- * bottle read as a suggestion, and that is the honest limit of drawing a
- * country behind an opaque photograph of something tall and narrow.
+ * Multiplying over the photograph removes the constraint entirely: every part
+ * of the outline is visible now, including the parts crossing the bottle. So
+ * it simply fits, centred, as large as the frame allows — which for Italy or
+ * France is nearly the full width, and for Portugal or Chile is a narrow
+ * shape running the full height. Narrow used to mean invisible. It doesn't
+ * any more.
+ *
+ * Fitting also keeps it inside the picture, which matters more than it did:
+ * the frame no longer clips anything, so an outline sized past it would run
+ * down over the producer's name and the writing below.
  */
 
 /**
@@ -103,11 +72,23 @@ function mainland(rings: Ring[]): Ring[] {
  * in nothing, and the one thing every wine has that the photograph can't show
  * is where it grew.
  *
- * Deliberately larger than the frame and cropped by it. The studio shots are
- * opaque — cream all the way to the edge — so anything the same size as the
- * photo would be entirely hidden behind it. Oversized and bled off the sides,
- * the outline reads around the bottle instead of under it, and cropping is
- * what stops it looking like a diagram someone forgot to label.
+ * Drawn over the photograph rather than behind it, and multiplied into it.
+ *
+ * Behind was the obvious place and the wrong one: a studio shot is opaque
+ * cream all the way to its edges, so the outline could only ever be seen in
+ * whatever margin was left around the picture — which meant keeping the bottle
+ * small to leave a margin worth seeing. The image model can't help either;
+ * Gemini's image models return flat RGB with no alpha channel, so there is no
+ * transparent version of the photograph to be had.
+ *
+ * Multiply solves it without any of that. The line is dark, the photograph's
+ * ground is nearly white, and multiplying a dark line into a light ground
+ * darkens it — so the outline crosses the cream and reads. Over the bottle
+ * itself, which is already far darker than the line, multiplying changes
+ * almost nothing and the line disappears. The result is exactly what a
+ * transparent background would have given: an outline that passes behind the
+ * glass and continues out the other side, with the bottle's own shadow
+ * sitting on top of it.
  *
  * Server-rendered: COUNTRY_SHAPES is a 170KB module that never reaches the
  * browser, and what goes over the wire is the path for this one country.
@@ -150,16 +131,15 @@ export default function CountryGhost({
     <svg
       viewBox={`0 0 ${view.w} ${view.h}`}
       /*
-       * meet, not slice. Slice scales the country until it covers the frame,
-       * and a country cropped that hard is unrecognisable — Italy came out as
-       * three unrelated fragments at the edges. The frame is shaped to give
-       * the outline room instead; see the wrapper in WineDetail.
+       * meet, not slice. Slice scales the country until it covers the frame
+       * and crops what hangs off, and a country cropped that hard is
+       * unrecognisable — Italy came out as three unrelated fragments at the
+       * edges. meet fits the whole outline inside instead.
        */
       preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
-      style={{ width: WIDTH, maxHeight: TALLEST }}
-      className="pointer-events-none absolute left-1/2 top-1/2 h-auto -translate-x-1/2
-        -translate-y-1/2"
+      style={{ mixBlendMode: "multiply" }}
+      className="pointer-events-none absolute inset-0 z-10 h-full w-full"
     >
       {land.map((ring, index) => (
         <path

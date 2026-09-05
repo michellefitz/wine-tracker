@@ -187,21 +187,17 @@ export default function WineDetail({
 
   const photo = (
     /*
-     * The frame is wider than the picture and taller than it, and that space
-     * is the point: it's where the country shows. Cropping it here rather than
-     * letting it bleed keeps the outline inside the composition instead of
-     * running under the writing below.
+     * The picture gets the whole frame.
+     *
+     * It used to be held to two thirds of it, inside a wider box, because the
+     * country outline was drawn behind an opaque photograph and the margin was
+     * the only place it could be seen — so the bottle paid for the map. The
+     * outline is drawn over the photograph now and multiplied into it, which
+     * costs the picture nothing, so the frame and the picture are the same
+     * thing again and the bottle is as big as the column allows.
      */
-    <div
-      className="relative mx-auto flex aspect-4/5 w-full max-w-[24rem] items-center
-        justify-center overflow-hidden"
-    >
-      <CountryGhost iso={ghostIso} at={spot} />
-      <div
-        className={`photo-bleed relative aspect-4/5 w-full overflow-hidden bg-tint ${
-          sheet ? "max-w-[15rem]" : "max-w-[16rem]"
-        }`}
-      >
+    <div className={`relative mx-auto w-full ${sheet ? "max-w-[20rem]" : "max-w-[23rem]"}`}>
+      <div className="photo-bleed relative aspect-4/5 w-full overflow-hidden bg-tint">
         <LabelPhoto
           photoId={wine.photo_id}
           alt={`Label of ${wine.name}`}
@@ -210,6 +206,7 @@ export default function WineDetail({
           className="h-full w-full object-cover"
         />
       </div>
+      <CountryGhost iso={ghostIso} at={spot} />
     </div>
   );
 
