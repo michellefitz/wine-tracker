@@ -79,6 +79,15 @@ export default function RootLayout({
       style={{ backgroundColor: PAPER }}
     >
       <body>
+        {/*
+          Which build this is, so "have my changes actually shipped?" is a
+          question with an answer rather than a debate. Vercel sets the SHA;
+          locally there isn't one and the tag says so.
+        */}
+        <meta
+          name="x-build"
+          content={process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "local"}
+        />
         <ServiceWorker />
         {children}
         {sheet}
