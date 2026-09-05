@@ -12,46 +12,60 @@ import { useEffect, useRef } from "react";
  * leave, and all of that travel is spent moving a picture you've finished
  * with.
  *
- * Shrinking it as it goes means it leaves in half the distance and reads as
- * the bottle stepping back rather than the page shoving it off — and it fades
- * while it does, because things do that when they go away from you.
+ * Shrinking it on the way out means it leaves in half the distance and reads
+ * as the bottle stepping back rather than the page shoving it off — and it
+ * fades while it does, because things do that when they go away from you.
+ *
+ * On the way out is the point, and it took a try to get right: shrink it too
+ * quickly and all of that happens while the bottle is still sitting in full
+ * view, so you watch it resize and then, separately, watch it leave. The
+ * distance and the anchor below are both set so that the shrinking, the fading
+ * and the leaving are one movement.
  */
 
 /** How small it gets before it's just something on its way out. */
 const SMALLEST = 0.25;
 
 /**
- * How far you scroll to get there, as a share of the picture's own height —
- * and not a free choice: it is exactly the height the picture gives up.
+ * How far you scroll to get there, as a share of the picture's own height.
  *
  * Tied to the picture rather than a fixed number of pixels because the sheet
  * shows it smaller than the page does, and a fixed distance would shrink one
  * of them at half the rate of the other.
  *
- * Tied to SMALLEST because of what happens at this particular ratio. The
- * bottom edge rises at one pixel per pixel scrolled, and the height falls at
- * (1 - SMALLEST) / TRAVEL of the same — so when those match, the two cancel
- * along the top edge and it does not move at all. The bottle holds its place
- * and recedes, the writing climbs to meet it, and only once it is small does
- * it start to travel. Every other ratio slides it up the screen while it
- * shrinks, which reads as the page shoving it out rather than the bottle
- * stepping back.
+ * Bigger than one, and that is the whole difference between shrinking and
+ * leaving being one movement or two. Anchored at the bottom, the picture's
+ * bottom edge rises at a pixel per pixel scrolled while its height falls at
+ * (1 - SMALLEST) / TRAVEL of the same, and the top edge moves by the
+ * difference. At 0.75 they cancel exactly: the bottle sits stock still,
+ * finishes resizing, and only then travels — which is what it did, and what
+ * was wrong with it. Above one the shrink is the slower of the two, so the
+ * top edge climbs the whole time and the bottle is getting smaller on its way
+ * out rather than before it.
  *
- * So: change SMALLEST if it should end up bigger or smaller, and this follows
- * on its own. Setting it to something else is a different effect, not a
- * tuning of this one.
+ * 1.15 is where it also finishes on time. The picture clears the top of the
+ * view after about its own height plus the small gap above it — a seventh of
+ * a height in the sheet, a sixth on the page — so a shrink spread over that
+ * same distance lands the bottle at its smallest just as the last of it
+ * leaves. Shorter and it is small and still hanging about; longer and it is
+ * cut off mid-shrink.
  */
-const TRAVEL = 1 - SMALLEST;
+const TRAVEL = 1.15;
 
 /**
- * Shrunk towards its own bottom edge, which is the whole trick.
+ * Shrunk towards its own bottom edge, which is what keeps the page whole.
  *
- * Scaling about the middle or the top leaves a growing band of empty page
- * between the picture and the producer's name below it — the bottle pulls away
- * from the writing and the gap reads as a layout fault rather than an effect.
- * Anchoring the bottom edge keeps the bottle sitting exactly where it sat, on
- * top of the writing, and puts all the reclaimed space above it instead, which
- * is the part already leaving the screen.
+ * A transform doesn't change the height the picture reserves, so whatever the
+ * bottle gives up by shrinking is left as empty page somewhere — and the
+ * anchor decides where. Below it, against the producer's name, it reads as a
+ * hole: scaling about the middle opened a hundred-pixel band there halfway
+ * through the scroll, and about the top it would be twice that. Anchoring the
+ * bottom puts every pixel of it above the bottle instead, which is the part
+ * already leaving the screen, and the gap between the picture and the writing
+ * stays exactly what it is at rest for the whole of the scroll.
+ *
+ * This anchor is also why TRAVEL has to be above one; on its own it would
+ * hold the bottle perfectly still. The two are a pair.
  */
 const ORIGIN = "50% 100%";
 
