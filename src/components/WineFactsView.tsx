@@ -80,15 +80,18 @@ export default function WineFactsView({
             history of the estate can wait until after it.
           */}
           {/* The one sentence that summarises the wine, so it gets the plate. */}
+          {/*
+            No heading over it. "In the glass" was a label on the one thing
+            that needs no label — it's the first thing in the section and it's
+            in a box of its own, which already says what it is.
+          */}
           {facts.style && (
-            <Block title="In the glass">
-              <div className="space-y-2 border border-rule bg-card px-4 py-4">
-                <Paragraphs
-                  text={facts.style}
-                  className="essay text-[1.0625rem] leading-[1.55] text-ink"
-                />
-              </div>
-            </Block>
+            <div className="space-y-2 border border-rule bg-card px-4 py-4">
+              <Paragraphs
+                text={facts.style}
+                className="essay text-[1.0625rem] leading-[1.55] text-ink"
+              />
+            </div>
           )}
 
           {facts.summary && (

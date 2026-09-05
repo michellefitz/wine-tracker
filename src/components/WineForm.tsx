@@ -68,6 +68,49 @@ function Row({ term, children }: { term: string; children: React.ReactNode }) {
   );
 }
 
+/**
+ * A select in the details table, with a chevron so it reads as one.
+ *
+ * A bare select in this table is indistinguishable from the rows either side
+ * of it — right-aligned text on a transparent ground — so there's nothing to
+ * say it can be opened. The arrow is drawn rather than left to the browser,
+ * whose own is a grey lozenge on iOS that would be the loudest thing on the
+ * page.
+ */
+function Choose({
+  id,
+  value,
+  onChange,
+  children,
+}: {
+  id: string;
+  value: string;
+  onChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className="inline-flex items-center justify-end gap-1.5">
+      <select id={id} className="field-cell w-auto" value={value} onChange={onChange}>
+        {children}
+      </select>
+      <svg
+        width="11"
+        height="11"
+        viewBox="0 0 12 12"
+        aria-hidden="true"
+        className="shrink-0 text-muted"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M2.5 4.5 6 8l3.5-3.5" />
+      </svg>
+    </span>
+  );
+}
+
 function Section({
   title,
   required,
@@ -382,14 +425,22 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
    * Two red lines at once is a form telling you off; one is a form telling you
    * what to do next.
    */
-  const complaint = !attempted
-    ? null
-    : missingName
-      ? "This one still needs a name — whatever's on the front of the bottle will do."
-      : missingScore
-        ? "Nearly. Say how it was — or that you haven't opened it yet."
-        : null;
-  const notice = error ?? complaint;
+  /*
+   * What's still missing, said all the time rather than only after you've
+   * pressed a button that then didn't work. It's two fields; there's no
+   * suspense to preserve, and "only the name and the rating are needed" was
+   * answering a question nobody had asked while staying silent about the one
+   * they had.
+   */
+  const missing =
+    missingName && missingScore
+      ? "Add a name and a rating to save."
+      : missingName
+        ? "Add a name to save."
+        : missingScore
+          ? "Add a rating to save."
+          : null;
+  const notice = error ?? (attempted ? missing : null);
 
   const photo = newPhoto ? (
     /* eslint-disable-next-line @next/next/no-img-element */
@@ -603,19 +654,18 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
           />
         </Row>
         <Row term="Type">
-          <select
+          <Choose
             id="wine-type"
-            className="field-cell"
             value={wineType}
             onChange={(event) => setWineType(event.target.value)}
           >
-            <option value="">—</option>
+            <option value="">Select</option>
             {WINE_TYPES.map((type) => (
               <option key={type} value={type}>
                 {type}
               </option>
             ))}
-          </select>
+          </Choose>
         </Row>
         <Row term="Grapes">
           <input
@@ -645,29 +695,34 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
           />
         </Row>
         <Row term="Bought at">
-          <select
+          <Choose
             id="source"
-            className="field-cell"
             value={source}
             onChange={(event) => setSource(event.target.value)}
           >
-            <option value="">—</option>
+            <option value="">Select</option>
             {SOURCES.map((option) => (
               <option key={option} value={option}>
                 {option}
               </option>
             ))}
-          </select>
+          </Choose>
         </Row>
         <Row term="Price">
-          <input
-            id="price"
-            className="field-cell"
-            inputMode="decimal"
-            value={price}
-            onChange={(event) => setPrice(event.target.value)}
-            placeholder="—"
-          />
+          {/* The symbol sits outside the field so it doesn't have to be typed,
+              deleted or validated — and the placeholder shows the shape of an
+              answer rather than a dash standing in for one. */}
+          <span className="inline-flex items-baseline justify-end gap-0.5">
+            <span className={price ? "text-ink" : "text-muted/60"}>€</span>
+            <input
+              id="price"
+              className="field-cell w-16"
+              inputMode="decimal"
+              value={price}
+              onChange={(event) => setPrice(event.target.value)}
+              placeholder="20"
+            />
+          </span>
         </Row>
         <Row term={score === 0 ? "Added" : "Drank"}>
           {/* w-auto so it shrinks to the date and the <dd>'s text-right can
@@ -752,25 +807,34 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
         </div>
       )}
 
-      <div className="sticky bottom-0 -mx-5 border-t border-rule bg-paper/95 px-5 py-4
+      {/*
+        Fixed, not sticky.
+        
+        Sticky holds a thing to the bottom of the screen only while its own
+        container is on screen — so the save button vanished the moment you
+        scrolled past the end of the form and into the serving note and the
+        write-up, which is exactly where you are when you finish reading and
+        decide to keep the bottle. It is pinned to the window now and stays
+        there the whole way down. The page carries bottom padding to match, so
+        nothing ends up underneath it.
+      */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-paper/95 px-5 py-4
         pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
-        {/* Whatever is standing between you and a saved bottle, said next to
-            the button that isn't saving it. */}
-        {notice && (
-          <p role="alert" className="mb-3 text-[0.9375rem] leading-snug text-wine">
-            {notice}
-          </p>
-        )}
-        <button type="submit" className="btn-ink w-full" disabled={saving}>
-          {saving ? "Saving…" : mode === "edit" ? "Save changes" : "Add to the log"}
-        </button>
-        {/* Answers the question the asterisks raise, once, in the place it
-            gets asked: what actually has to be filled in? */}
-        {!notice && (
-          <p className="mt-2.5 text-center text-[0.8125rem] text-muted">
-            Only the name and the rating are needed.
-          </p>
-        )}
+        <div className="mx-auto w-full max-w-xl">
+          {(notice ?? missing) && (
+            <p
+              role={notice ? "alert" : undefined}
+              className={`mb-3 text-center text-[0.875rem] leading-snug ${
+                notice ? "text-wine" : "text-muted"
+              }`}
+            >
+              {notice ?? missing}
+            </p>
+          )}
+          <button type="submit" className="btn-ink w-full" disabled={saving}>
+            {saving ? "Saving…" : mode === "edit" ? "Save changes" : "Add to the log"}
+          </button>
+        </div>
       </div>
     </form>
   );

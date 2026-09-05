@@ -199,8 +199,11 @@ export default function WineFactsPanel({
 
   return (
     <section className="mx-auto mt-9 max-w-md">
-      <div className="mb-4 flex items-baseline justify-between gap-4">
-        <h2 className="eyebrow">About this bottle</h2>
+      {/* Weight to match the Serving heading above it: these are the two
+          sections a bottle's page is actually for, and small caps had them
+          reading as captions on the table rather than as sections. */}
+      <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-rule pb-2">
+        <h2 className="essay text-[1.375rem] leading-none text-ink">About this bottle</h2>
         <button
           type="button"
           onClick={() => look({ refresh: true })}

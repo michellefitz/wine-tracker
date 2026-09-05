@@ -232,14 +232,14 @@ export default function AddWineFlow() {
       />
 
       {photo && (
-        <div>
+        <div className="relative mx-auto w-full max-w-[16rem]">
           {/*
             Both pictures, stacked, with the studio shot fading in over your
             own when it lands. A swap would just blink; a cross-fade is the one
             moment on this screen where you can actually see the thing that was
             being made arrive.
           */}
-          <div className="relative mx-auto aspect-4/5 w-full max-w-[16rem] overflow-hidden bg-tint">
+          <div className="relative aspect-4/5 w-full overflow-hidden bg-tint">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={photo}
@@ -277,70 +277,68 @@ export default function AddWineFlow() {
           )}
 
           {/*
-            One control, not four.
+            Options live on the picture, in its corner.
             
-            The row of buttons under the photograph was a menu for a decision
-            nobody makes twice: the studio shot is right nearly every time, so
-            the options belong behind a tap rather than in front of one. Open
-            it and they're all still there.
+            Underneath, on its own, the button was a lone dot in a field of
+            paper with nothing to belong to — it read as something left behind
+            rather than as a control for the photograph above it. In the corner
+            it is plainly the photo's, and it costs the layout no height at all.
           */}
-          <div className="mt-3 flex justify-center">
-            <details className="group relative">
-              <summary
-                aria-label="Photo options"
-                className="mx-auto flex size-9 cursor-pointer list-none items-center
-                  justify-center rounded-full border border-rule text-ink-soft
-                  transition-colors pointer-hover:hover:border-muted"
-              >
-                <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"
-                  fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                  <circle cx="10" cy="4.5" r="1.1" fill="currentColor" stroke="none" />
-                  <circle cx="10" cy="10" r="1.1" fill="currentColor" stroke="none" />
-                  <circle cx="10" cy="15.5" r="1.1" fill="currentColor" stroke="none" />
-                </svg>
-              </summary>
+          <details className="group absolute right-1 top-1">
+            <summary
+              aria-label="Photo options"
+              className="flex size-8 cursor-pointer list-none items-center justify-center
+                rounded-full bg-paper/80 text-ink-soft backdrop-blur transition-colors
+                pointer-hover:hover:text-ink"
+            >
+              <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true">
+                <circle cx="10" cy="4.5" r="1.1" fill="currentColor" />
+                <circle cx="10" cy="10" r="1.1" fill="currentColor" />
+                <circle cx="10" cy="15.5" r="1.1" fill="currentColor" />
+              </svg>
+            </summary>
 
-              <div className="mt-3 flex flex-wrap justify-center gap-2">
-                {!staging && (
-                  <button
-                    type="button"
-                    onClick={() => photo && makeStudioShot(photo)}
-                    className="btn-quiet"
-                  >
-                    {studio || studioTrouble ? "Try the studio shot again" : "Make a studio shot"}
-                  </button>
-                )}
-                {studio && !staging && (
-                  <button
-                    type="button"
-                    onClick={() => setUseStudio(!useStudio)}
-                    className="btn-quiet"
-                  >
-                    {useStudio ? "Use my photo" : "Use the studio shot"}
-                  </button>
-                )}
+            <div className="absolute right-0 z-10 mt-1 flex w-max flex-col items-stretch gap-1
+              border border-rule bg-paper p-1.5 shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
+              {!staging && (
                 <button
                   type="button"
-                  onClick={() => fileInput.current?.click()}
-                  className="btn-quiet"
+                  onClick={() => photo && makeStudioShot(photo)}
+                  className="btn-quiet border-0 justify-start"
                 >
-                  Change photo
+                  {studio || studioTrouble ? "Try the studio shot again" : "Make a studio shot"}
                 </button>
+              )}
+              {studio && !staging && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setPhoto(null);
-                    setReading(null);
-                    setStudio(null);
-                    setStudioTrouble(null);
-                  }}
-                  className="btn-quiet"
+                  onClick={() => setUseStudio(!useStudio)}
+                  className="btn-quiet border-0 justify-start"
                 >
-                  Remove
+                  {useStudio ? "Use my photo" : "Use the studio shot"}
                 </button>
-              </div>
-            </details>
-          </div>
+              )}
+              <button
+                type="button"
+                onClick={() => fileInput.current?.click()}
+                className="btn-quiet border-0 justify-start"
+              >
+                Change photo
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPhoto(null);
+                  setReading(null);
+                  setStudio(null);
+                  setStudioTrouble(null);
+                }}
+                className="btn-quiet border-0 justify-start"
+              >
+                Remove
+              </button>
+            </div>
+          </details>
         </div>
       )}
 
@@ -416,7 +414,10 @@ export default function AddWineFlow() {
         <div className="pt-4">
           {serving && <ServingGuide serving={serving} variant="section" />}
 
-          <h2 className="eyebrow mb-3 mt-9">About this bottle</h2>
+          <h2 className="mb-4 mt-10 border-b border-rule pb-2 essay text-[1.375rem]
+            leading-none text-ink">
+            About this bottle
+          </h2>
           {searching && !found ? (
             <PouringGlass caption="Looking it up…" />
           ) : found?.facts ? (
