@@ -13,7 +13,8 @@ import { useEffect, useRef } from "react";
  * with.
  *
  * Shrinking it as it goes means it leaves in half the distance and reads as
- * the bottle stepping back rather than the page shoving it off.
+ * the bottle stepping back rather than the page shoving it off — and it fades
+ * while it does, because things do that when they go away from you.
  */
 
 /** How small it gets before it's just something on its way out. */
@@ -54,6 +55,17 @@ const TRAVEL = 1 - SMALLEST;
  */
 const ORIGIN = "50% 100%";
 
+/**
+ * How far the fade goes by the time it's at its smallest.
+ *
+ * Not to nothing. Something that has faded out completely and is still taking
+ * up room is a hole in the page, and the last stretch of the scroll would be
+ * spent moving it — so it keeps enough presence to be a bottle on its way out
+ * rather than a gap where one used to be. Two fifths is enough to feel like
+ * distance and not enough to look like a failed image.
+ */
+const FAINTEST = 0.4;
+
 export default function RecedingPhoto({ children }: { children: React.ReactNode }) {
   const box = useRef<HTMLDivElement>(null);
 
@@ -93,7 +105,7 @@ export default function RecedingPhoto({ children }: { children: React.ReactNode 
     watcher.observe(element);
 
     element.style.transformOrigin = ORIGIN;
-    element.style.willChange = "transform";
+    element.style.willChange = "transform, opacity";
 
     let frame = 0;
     let painted = -1;
@@ -104,12 +116,20 @@ export default function RecedingPhoto({ children }: { children: React.ReactNode 
 
       const top = scroller ? scroller.scrollTop : window.scrollY;
       const along = Math.min(1, Math.max(0, top / distance));
-      const scale = 1 - (1 - SMALLEST) * along;
 
       // Nothing to say to the browser if it's already where it should be.
-      if (Math.abs(scale - painted) < 0.001) return;
-      painted = scale;
-      element.style.transform = along > 0 ? `scale(${scale})` : "";
+      if (Math.abs(along - painted) < 0.002) return;
+      painted = along;
+
+      if (along === 0) {
+        // Cleared rather than set to their resting values, so an untouched
+        // picture carries no inline styles and no compositor layer.
+        element.style.transform = "";
+        element.style.opacity = "";
+        return;
+      }
+      element.style.transform = `scale(${1 - (1 - SMALLEST) * along})`;
+      element.style.opacity = String(1 - (1 - FAINTEST) * along);
     }
 
     function onScroll() {
@@ -126,6 +146,7 @@ export default function RecedingPhoto({ children }: { children: React.ReactNode 
       watcher.disconnect();
       if (frame) cancelAnimationFrame(frame);
       element.style.transform = "";
+      element.style.opacity = "";
       element.style.transformOrigin = "";
       element.style.willChange = "";
     };
