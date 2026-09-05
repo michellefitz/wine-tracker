@@ -11,12 +11,33 @@
  * colour, the rest go quiet grey — so a shelf of cards reads at a glance.
  * `solid` separates the emphatic ends of the scale from the mild ones.
  */
+/**
+ * The verdicts, and the absence of one.
+ *
+ * Zero is "not opened yet", and it is a real answer rather than a missing one:
+ * you can buy a bottle, or be standing in front of one in a shop, and want
+ * everything the app knows about it without pretending to an opinion you
+ * haven't earned. It sits last because the other four are the common case, and
+ * it is deliberately still a choice you have to make — a bottle in the log
+ * with nothing said about it at all is how a log stops being trustworthy.
+ *
+ * Zero was free: the scale has always run -2, -1, 1, 2, with nothing in the
+ * middle. Everything that reads a rating reads it from this list, so a fifth
+ * entry reaches validation, the form, the cards, the map and the grape pages
+ * without any of them being told.
+ */
 export const RATINGS = [
   { score: 2, id: "loved", label: "Loved it", short: "Loved", liked: true, solid: true },
   { score: 1, id: "liked", label: "Liked it", short: "Liked", liked: true, solid: false },
   { score: -1, id: "disliked", label: "Didn't like it", short: "Didn't like", liked: false, solid: false },
   { score: -2, id: "hated", label: "Really disliked it", short: "Disliked", liked: false, solid: true },
+  { score: 0, id: "unopened", label: "Not opened yet", short: "Unopened", liked: false, solid: false },
 ] as const;
+
+/** A bottle you have but haven't drunk. */
+export function isUnopened(score: number): boolean {
+  return score === 0;
+}
 
 export type RatingScore = (typeof RATINGS)[number]["score"];
 

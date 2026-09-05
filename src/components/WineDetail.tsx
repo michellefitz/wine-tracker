@@ -10,7 +10,7 @@ import { grapeSlug, styleOf } from "@/lib/grapes";
 import CountryGhost from "@/components/CountryGhost";
 import { countryCode, countryFlag, placeLine } from "@/lib/places";
 import { placeFor } from "@/lib/wine-places";
-import { tagLabel } from "@/lib/taxonomy";
+import { isUnopened, tagLabel } from "@/lib/taxonomy";
 import { servingFor } from "@/lib/serving";
 import { wineColour } from "@/lib/wine-colours";
 import type { StoredFacts } from "@/lib/wine-facts";
@@ -156,7 +156,15 @@ export default function WineDetail({
     ...looked.map((detail) => ({ term: detail.label, value: detail.value, found: true })),
     { term: "Bought at", value: wine.source ?? "" },
     { term: "Price", value: wine.price_eur !== null ? `€${wine.price_eur.toFixed(2)}` : "" },
-    { term: "Drank", value: formatDate(wine.drank_on) },
+    /*
+     * The same date, and not the same word. A bottle you haven't opened has a
+     * day it arrived, not a day you drank it, and calling that "Drank" makes
+     * the one row on the page that is plainly a fact into a small lie.
+     */
+    {
+      term: isUnopened(wine.score) ? "Added" : "Drank",
+      value: formatDate(wine.drank_on),
+    },
   ].filter((row) => row.value !== "");
 
   /*

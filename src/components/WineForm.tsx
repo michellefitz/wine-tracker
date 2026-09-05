@@ -366,7 +366,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
     : missingName
       ? "This one still needs a name — whatever's on the front of the bottle will do."
       : missingScore
-        ? "Nearly. Say how much you liked it and it'll save."
+        ? "Nearly. Say how it was — or that you haven't opened it yet."
         : null;
   const notice = error ?? complaint;
 
