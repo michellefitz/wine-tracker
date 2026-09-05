@@ -106,10 +106,24 @@ export default function HomePage() {
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center
         bg-gradient-to-t from-paper/80 from-0% via-paper/40 via-30% to-transparent to-100%
         pt-9 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-        {/* The one rounded control in the app: it floats over the grid rather
-            than sitting in it, and a square block here reads as another tile. */}
-        <Link href="/add" className="btn-ink pointer-events-auto rounded-full px-8">
-          Log a wine
+        {/*
+          A plus, not a sentence.
+          
+          "Log a wine" was the only piece of instruction on a page that is
+          otherwise photographs, and it doesn't earn the room: this is the one
+          thing you can do from here, it sits under your thumb, and everyone
+          alive knows what a plus in a circle does. The label is still there
+          for anyone who can't see the shape.
+        */}
+        <Link
+          href="/add"
+          aria-label="Log a wine"
+          className="btn-ink pointer-events-auto size-14 rounded-full p-0"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"
+            stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <path d="M10 4.5v11M4.5 10h11" />
+          </svg>
         </Link>
       </div>
     </main>

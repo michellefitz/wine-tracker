@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { ReadingLabel } from "@/components/Loaders";
+import { PouringGlass, ReadingLabel } from "@/components/Loaders";
+import WineFactsView from "@/components/WineFactsView";
 import WineForm from "@/components/WineForm";
 import { fileToCompressedDataUrl } from "@/lib/image";
 import type { LabelReading } from "@/lib/types";
+import type { StoredFacts } from "@/lib/wine-facts";
 
 /**
  * Logging a bottle, from the photo down.
@@ -29,6 +31,21 @@ export default function AddWineFlow() {
   const [reading, setReading] = useState<LabelReading | null>(null);
   const [readingLabel, setReadingLabel] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  /*
+   * What the web says about the bottle, found here rather than on the page
+   * that opens afterwards.
+   *
+   * Logging a wine used to be two waits with a save wedged between them: the
+   * label reading, then the form, then a web search starting from scratch the
+   * moment the bottle's own page opened — which also rewrote the serving note
+   * you'd just been reading. The search now runs the moment the label has been
+   * read, while you're still deciding what you thought of it, and what it
+   * finds goes to the server with the wine.
+   */
+  const [found, setFound] = useState<{ facts: unknown; serving: unknown } | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [searchTrouble, setSearchTrouble] = useState<string | null>(null);
 
   /*
    * The studio shot runs on its own as soon as there's a photo, because it
@@ -71,6 +88,48 @@ export default function AddWineFlow() {
     setStaging(false);
   }
 
+  /**
+   * Everything the web knows, started as soon as there's a name to search for.
+   *
+   * Never blocks anything: it can be slow, it can fail, and either way the
+   * bottle still saves. A failure here costs the wine's page one search on
+   * first view, which is what it always used to do.
+   */
+  async function lookUp(label: LabelReading) {
+    setSearching(true);
+    setSearchTrouble(null);
+    try {
+      const response = await fetch("/api/research", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          producer: label.producer,
+          name: label.name,
+          vintage: label.vintage,
+          region: label.region,
+          country: label.country,
+          grapes: label.grapes,
+          wine_type: label.wine_type,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        facts?: unknown;
+        serving?: unknown;
+        reason?: string;
+        error?: string;
+      };
+      if (payload.facts || payload.serving) {
+        setFound({ facts: payload.facts ?? null, serving: payload.serving ?? null });
+      }
+      if (!payload.facts) {
+        setSearchTrouble(payload.reason ?? payload.error ?? "Nothing came back about this one.");
+      }
+    } catch {
+      setSearchTrouble("Couldn't reach the server to look this bottle up.");
+    }
+    setSearching(false);
+  }
+
   async function readLabel(dataUrl: string) {
     setReadingLabel(true);
     try {
@@ -90,6 +149,8 @@ export default function AddWineFlow() {
           if (result.confidence === "low") {
             setNotice("The label was hard to read — worth checking these details.");
           }
+          // Straight on to the web, without waiting to be asked.
+          if (result.name) void lookUp(result);
         } else {
           setNotice(result.note ?? "That didn't look like a wine label. Fill it in by hand.");
         }
@@ -128,6 +189,10 @@ export default function AddWineFlow() {
 
   const chosen = studio && useStudio ? studio : photo;
   const showingStudio = Boolean(studio && useStudio);
+  /** The bottle as read, so a reviewer's own site can be searched for it. */
+  const query = [reading?.producer, reading?.name, reading?.vintage]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className="space-y-7">
@@ -187,13 +252,6 @@ export default function AddWineFlow() {
                 : "Your photo"}
           </p>
 
-          {showingStudio && !staging && (
-            <p className="mx-auto mt-2 max-w-sm text-center text-[0.8125rem] leading-relaxed text-muted">
-              It keeps the real label, but it is a rendering — worth a look before
-              you save it.
-            </p>
-          )}
-
           {studioTrouble && (
             <p className="mx-auto mt-3 max-w-sm bg-tint px-4 py-3 text-center text-[0.8125rem]
               leading-relaxed text-ink-soft">
@@ -213,17 +271,16 @@ export default function AddWineFlow() {
                 <button
                   type="button"
                   onClick={() => photo && makeStudioShot(photo)}
-                  className="link-plain"
+                  className="btn-quiet"
                 >
                   {studio || studioTrouble ? "Try again" : "Make a studio shot"}
                 </button>
                 {studio && (
                   <>
-                    <span aria-hidden className="text-muted/50">·</span>
                     <button
                       type="button"
                       onClick={() => setUseStudio(!useStudio)}
-                      className="link-plain"
+                      className="btn-quiet"
                     >
                       {useStudio ? "Use my photo" : "Use the studio shot"}
                     </button>
@@ -236,11 +293,10 @@ export default function AddWineFlow() {
               <button
                 type="button"
                 onClick={() => fileInput.current?.click()}
-                className="link-plain"
+                className="btn-quiet"
               >
                 Change photo
               </button>
-              <span aria-hidden className="text-muted/50">·</span>
               <button
                 type="button"
                 onClick={() => {
@@ -249,7 +305,7 @@ export default function AddWineFlow() {
                   setStudio(null);
                   setStudioTrouble(null);
                 }}
-                className="link-plain"
+                className="btn-quiet"
               >
                 Remove
               </button>
@@ -259,7 +315,7 @@ export default function AddWineFlow() {
       )}
 
       {!started && (
-        <div className="border-t border-rule pt-10 text-center">
+        <div className="pt-8 text-center">
           <p className="mx-auto max-w-xs essay text-[1.5rem] leading-snug text-ink">
             Start with the label.
           </p>
@@ -296,7 +352,7 @@ export default function AddWineFlow() {
         on this screen you're meant to be watching.
       */}
       {photo && (
-        <div className="border-t border-rule pt-6">
+        <div className="pt-2">
           {readingLabel ? (
             <ReadingLabel caption="Reading the label…" />
           ) : notice ? (
@@ -317,7 +373,32 @@ export default function AddWineFlow() {
         </p>
       )}
 
-      {started && <WineForm mode="create" reading={reading} photoDataUrl={chosen} />}
+      {/*
+        What the bottle is, before what you made of it.
+        
+        This is the whole point of doing the search here: you are standing in a
+        restaurant holding a bottle, and what you want first is what it is and
+        what to do with it. The rating comes after, in the form below, once
+        there's something to rate against.
+      */}
+      {started && (searching || found) && (
+        <div className="pt-4">
+          <h2 className="eyebrow mb-3">About this bottle</h2>
+          {searching && !found ? (
+            <PouringGlass caption="Looking it up…" />
+          ) : found?.facts ? (
+            <WineFactsView facts={found.facts as StoredFacts} query={query} />
+          ) : (
+            <p className="text-[0.9375rem] leading-relaxed text-muted">
+              {searchTrouble ?? "Nothing much is written about this one."}
+            </p>
+          )}
+        </div>
+      )}
+
+      {started && (
+        <WineForm mode="create" reading={reading} photoDataUrl={chosen} found={found} />
+      )}
 
       {!started && (
         <p className="text-center">

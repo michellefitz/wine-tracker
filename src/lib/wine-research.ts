@@ -4,6 +4,19 @@ import { flatten } from "@/lib/text";
 import type { Wine, WineFacts } from "@/lib/types";
 
 /**
+ * What a search needs to know about a bottle: what's written on the label.
+ *
+ * Not a Wine, because a bottle can be looked up before it is one. The add
+ * screen searches the web while you're still deciding what you thought of it,
+ * so the search runs against the label reading and the record doesn't exist
+ * yet. A saved Wine has all of these and is accepted anywhere this is.
+ */
+export type BottleLabel = Pick<
+  Wine,
+  "producer" | "name" | "vintage" | "region" | "country" | "grapes" | "wine_type"
+>;
+
+/**
  * Looks one specific bottle up on the web and turns what it finds into a record.
  *
  * Two calls, deliberately. The first searches and writes prose with citations;
@@ -261,7 +274,7 @@ export type Researched =
  * of it to a search engine is what produced "no results" for a wine that
  * answers on the first page of Google.
  */
-export function describeBottle(wine: Wine): string {
+export function describeBottle(wine: BottleLabel): string {
   return [
     wine.producer ? `Producer: ${wine.producer}` : null,
     `Wine: ${wine.name}`,
@@ -284,7 +297,7 @@ export function describeBottle(wine: Wine): string {
  * query carrying the same word twice is a query a person would never type.
  * So any word already in the wine's name is dropped from the producer.
  */
-export function searchQuery(wine: Wine): string {
+export function searchQuery(wine: BottleLabel): string {
   const inName = new Set(flatten(wine.name).split(" ").filter(Boolean));
 
   const producer = (wine.producer ?? "")
@@ -573,7 +586,7 @@ export async function research(
 }
 
 /** Looks one bottle up. Never throws — a failure comes back as a status. */
-export async function researchWine(wine: Wine): Promise<Researched> {
+export async function researchWine(wine: BottleLabel): Promise<Researched> {
   if (!process.env.ANTHROPIC_API_KEY) {
     return { status: "unavailable", message: "ANTHROPIC_API_KEY isn't set, so wines can't be looked up." };
   }

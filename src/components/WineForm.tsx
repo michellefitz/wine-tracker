@@ -21,6 +21,12 @@ type Props = {
   reading?: LabelReading | null;
   /** A freshly captured photo that still needs uploading. */
   photoDataUrl?: string | null;
+  /**
+   * What the web already said about this bottle, looked up while you were
+   * still writing about it. Saved alongside the wine so its own page doesn't
+   * start the same search over the moment it opens.
+   */
+  found?: { facts: unknown; serving: unknown } | null;
 };
 
 function today(): string {
@@ -58,7 +64,12 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-t border-rule pt-7">
+    /*
+     * Separated by space, not by a line. Every section used to open with a
+     * hairline and the form came out as a stack of boxes — six rules down one
+     * screen stops reading as structure and starts reading as ruling.
+     */
+    <section className="pt-10">
       <h2 className={`eyebrow mb-4 ${missing ? "text-wine" : ""}`}>
         {title}
         {required && <Required />}
@@ -68,7 +79,7 @@ function Section({
   );
 }
 
-export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
+export default function WineForm({ mode, wine, reading, photoDataUrl, found }: Props) {
   const router = useRouter();
 
   const [name, setName] = useState(wine?.name ?? reading?.name ?? "");
@@ -278,6 +289,15 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
       }
 
       const body = {
+        /*
+         * Carried, not looked up again. The add screen searched the web while
+         * this form was being filled in; handing the answer over with the wine
+         * is what stops its page searching for the same bottle a second time
+         * and rewriting the serving note you already read.
+         */
+        ...(mode === "create" && found
+          ? { facts: found.facts, serving: found.serving }
+          : {}),
         producer: producer.trim() || null,
         name: name.trim(),
         vintage: vintage.trim() || null,
@@ -477,7 +497,10 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
           </label>
           <input
             id="producer"
-            className="field"
+            /* The same face as the name above it: both are what's on the label,
+               and setting them in two different types made one look like data
+               and the other like a caption. */
+            className="field essay text-[1.0625rem]"
             value={producer}
             onChange={(event) => setProducer(event.target.value)}
             placeholder="Bodega Norton"
@@ -520,7 +543,12 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
       </section>
 
       <Section title="How was it?" required missing={attempted && missingScore}>
-        <div ref={scoreGroup} className="grid grid-cols-2 gap-2">
+        {/*
+          Pills, like every other choice in the app. Four bordered squares in a
+          grid was the boxiest thing on the page and said "form" where the rest
+          of it says "notebook".
+        */}
+        <div ref={scoreGroup} className="flex flex-wrap gap-2">
           {RATINGS.map((rating) => {
             const chosen = score === rating.score;
             return (
@@ -528,11 +556,12 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
                 key={rating.id}
                 type="button"
                 onClick={() => setScore(rating.score)}
-                className={`border px-3 py-3.5 text-[0.9375rem] transition-transform
-                  duration-[160ms] ease-out-strong active:scale-[0.98] ${
+                className={`rounded-full border px-4 py-2.5 text-[0.9375rem]
+                  transition-[transform,border-color] duration-[160ms] ease-out-strong
+                  active:scale-95 ${
                     chosen
                       ? "border-ink bg-ink text-paper"
-                      : "border-rule text-ink-soft hover:border-muted"
+                      : "border-rule text-ink-soft pointer-hover:hover:border-muted"
                   }`}
               >
                 <span className="flex items-center justify-center gap-2">
@@ -587,7 +616,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl }: Props) {
         />
       </Section>
 
-      <section className="border-t border-rule pt-7">
+      <section className="pt-10">
         <button
           type="button"
           onClick={() => setShowDetails((open) => !open)}

@@ -191,6 +191,22 @@ async function saveFacts(facts: Omit<WineFacts, "serving">): Promise<void> {
 }
 
 /**
+ * Keeps a set of facts that were found before the bottle existed.
+ *
+ * The add screen searches the web while you're still writing your note, so by
+ * the time the wine is saved the answer is already in hand — this is where it
+ * lands, once there's an id to hang it on. Without it the wine page would
+ * start the same search over again the moment you arrived, which is exactly
+ * the wait the search during the add was meant to have already spent.
+ */
+export async function keepFacts(
+  wineId: string,
+  facts: Omit<WineFacts, "wine_id" | "serving">,
+): Promise<void> {
+  await saveFacts({ ...facts, wine_id: wineId });
+}
+
+/**
  * Records that we tried and it didn't work.
  *
  * Nothing else about the row changes — the facts on file are still the facts

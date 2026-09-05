@@ -209,6 +209,21 @@ textarea {
     @apply text-[0.875rem] text-muted transition-colors pointer-hover:hover:text-ink;
   }
 
+  /*
+   * A small button that is plainly a button.
+   *
+   * .link-plain reads as a sentence, which is right for a link in prose and
+   * wrong for a row of controls under a photograph — four of them in a line
+   * looked like a caption, and nobody presses a caption. This has an edge, so
+   * it looks like something you press, without the weight of btn-ink.
+   */
+  .btn-quiet {
+    @apply inline-flex items-center justify-center border border-rule bg-transparent
+      px-3.5 py-2 text-[0.8125rem] text-ink-soft transition-[transform,border-color]
+      duration-[160ms] ease-out-strong active:scale-95
+      pointer-hover:hover:border-muted disabled:opacity-45;
+  }
+
   /* Tag chips: hairline pills, ink fill when chosen. */
   .chip {
     @apply rounded-full border border-rule px-3.5 py-1.5 text-[0.8125rem] text-ink-soft
