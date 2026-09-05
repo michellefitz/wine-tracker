@@ -1,5 +1,6 @@
 import Link from "next/link";
 import LabelPhoto from "@/components/LabelPhoto";
+import RecedingPhoto from "@/components/RecedingPhoto";
 import ServingSection from "@/components/ServingSection";
 import { noteIsStale } from "@/lib/serving-note";
 import DeleteWineButton from "@/components/DeleteWineButton";
@@ -221,7 +222,7 @@ export default function WineDetail({
         </nav>
       )}
 
-      {photo}
+      <RecedingPhoto>{photo}</RecedingPhoto>
 
       {/* The wall label: producer, work, place, verdict. */}
       <header className="mt-6 text-center">
