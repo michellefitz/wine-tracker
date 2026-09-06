@@ -48,13 +48,20 @@
    */
   --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
   /*
-   * And its opposite number, for leaving. Even at both ends rather than
-   * weighted to one, because a sheet on its way out is the one moment you
-   * want to actually watch it travel — an entrance can afford to arrive
-   * before you've followed it, an exit that does the same has simply
-   * vanished.
+   * And its opposite number, for leaving.
+   *
+   * Weighted deliberately rather than evenly: a gentle push off, most of the
+   * distance covered fast through the middle, and then a long shallow approach
+   * to the end so the last stretch arrives rather than stops. That tail is the
+   * whole effect — an exit that runs out of screen at full speed reads as the
+   * sheet being deleted, while one that settles reads as it being put back
+   * where it came from.
+   *
+   * The second handle is what does it. Pulling its x in to 0.15 while its y
+   * sits at 1 means the curve is already near the end of its travel with a
+   * third of the time left, and spends that third barely moving.
    */
-  --ease-sheet-out: cubic-bezier(0.4, 0, 0.6, 1);
+  --ease-sheet-out: cubic-bezier(0.5, 0, 0.15, 1);
 }
 
 html {
