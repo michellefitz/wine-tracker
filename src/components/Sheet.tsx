@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { PAPER, SCRIMMED } from "@/lib/chrome";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
@@ -74,6 +75,24 @@ function releaseScroll() {
 let live = 0;
 let showing: string | null = null;
 
+/**
+ * Keep the strip behind the clock the colour of whatever is under it.
+ *
+ * Installed on a phone, there is no browser chrome across the top and bottom
+ * of the screen to hide the edges of the app — the system draws that strip
+ * itself, from the theme-color meta tag. Ours said paper, permanently, so with
+ * a sheet up and the shelf dimmed behind it the strip stayed the one bright
+ * band on a darkened screen, and it lagged behind the change on the way back
+ * out. Either way it read as a bar that shouldn't be there.
+ *
+ * Moved with the sheet, it stops being a bar at all: it is the same colour as
+ * the pixels immediately below it in both states, which is the only thing that
+ * makes a strip you cannot style disappear.
+ */
+function paintChrome(colour: string) {
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", colour);
+}
+
 export default function Sheet({
   children,
   label,
@@ -131,10 +150,14 @@ export default function Sheet({
 
     live += 1;
     showing = here;
+    if (live === 1) paintChrome(SCRIMMED);
 
     return () => {
       live = Math.max(0, live - 1);
-      if (live === 0) showing = null;
+      if (live === 0) {
+        showing = null;
+        paintChrome(PAPER);
+      }
 
       if (!holdsLock.current) return;
       holdsLock.current = false;
@@ -271,12 +294,27 @@ export default function Sheet({
 
     if (dy > DISMISS_DISTANCE || state.velocity > DISMISS_VELOCITY) {
       // Animate out with WAAPI so it can't fight CSS animations.
-      const easing = "cubic-bezier(0.23, 1, 0.32, 1)";
-      const currentY = panel.current?.getBoundingClientRect().top ?? 0;
-      const distance = window.innerHeight - currentY;
+      const easing = "cubic-bezier(0.32, 0.72, 0, 1)";
 
+      /*
+       * Its own height, not a distance worked out from where it is now.
+       *
+       * That was the bug, and it hid behind the browser: the target was
+       * window.innerHeight minus the panel's current top, but its current top
+       * already included how far you had dragged it — so the further you
+       * pulled, the further short it stopped. Dragged the 110px that dismisses
+       * it, the panel settled 110px shy of gone and sat there in plain sight
+       * until the route caught up. In a tab that strip is under the browser's
+       * own furniture and nobody sees it; installed, there is nothing there to
+       * hide it.
+       *
+       * The panel sits on the bottom of the screen, so a translation of its own
+       * height clears it exactly, whatever the drag did and whatever iOS thinks
+       * the viewport is this second. A single keyframe animates from the
+       * transform already on the element, so it still starts from your finger.
+       */
       panel.current?.animate(
-        [{ transform: `translate3d(0, ${distance}px, 0)` }],
+        [{ transform: "translate3d(0, 100%, 0)" }],
         { duration: 220, easing, fill: "forwards" },
       );
       scrim.current?.animate(

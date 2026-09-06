@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Spectral } from "next/font/google";
 import ServiceWorker from "@/components/ServiceWorker";
+import { PAPER } from "@/lib/chrome";
 import "./globals.css";
 
 /* The quiet workhorse: UI labels, buttons, captions, letterspaced caps. */
@@ -22,14 +23,6 @@ const serif = Spectral({
   display: "swap",
 });
 
-/**
- * --color-paper in sRGB. The token is authored in OKLCH, which the manifest
- * can't read and the browser can't paint until the stylesheet has arrived, so
- * the same colour is spelled out here for the frames before that: the tab
- * chrome, the installed app's splash, and the first paint of the document.
- * If --color-paper in globals.css changes, change this and the manifest too.
- */
-const PAPER = "#ede6da";
 
 export const metadata: Metadata = {
   title: "Cellar Notes",
