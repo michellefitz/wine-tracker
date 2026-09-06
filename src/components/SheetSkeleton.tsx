@@ -19,9 +19,18 @@
  * the right colour and the right place — anything the real thing has that this
  * can have for nothing is one less edge that moves.
  */
-export default function SheetSkeleton() {
+export default function SheetSkeleton({ still = false }: { still?: boolean }) {
   return (
-    <div className="mx-auto w-full max-w-3xl animate-pulse px-5 pt-1" aria-hidden="true">
+    <div
+      /*
+       * The pulse says "still working" while this is what's on screen, and is
+       * turned off for the copy Settling fades out — that one is mid-handover,
+       * and a fresh pulse would restart the cycle at a different brightness
+       * from the one it is taking over from.
+       */
+      className={`mx-auto w-full max-w-3xl px-5 pt-1 ${still ? "" : "animate-pulse"}`}
+      aria-hidden="true"
+    >
       {/* Where Edit sits — the height of the link, not of the mark for it. */}
       <div className="mb-4 flex h-[26px] items-center justify-end">
         <span className="block h-2.5 w-10 rounded-full bg-tint" />

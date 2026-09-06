@@ -414,28 +414,41 @@ textarea {
 }
 
 /*
- * What the bottle does when it finally lands.
+ * The handover from the skeleton to the bottle: a dissolve, not a fade-in.
  *
- * The skeleton is the same shape as this, so the swap moves nothing — but
- * nothing moving is exactly what makes it a hard cut, with the whole page
- * changing between one frame and the next. A short fade with barely any rise
- * to it turns the cut into an arrival. Slow enough to see, well short of
- * anything you would have to wait for.
+ * Both halves run over the same span so the pair always sums to about one —
+ * the sheet is never emptier than it was a moment ago. The outgoing skeleton
+ * leads slightly, because it is grey bars and the eye lets them go early,
+ * while the writing wants its last few percent to land cleanly.
  */
-@keyframes settling {
+@keyframes settle-in {
   from {
     opacity: 0;
-    transform: translate3d(0, 8px, 0);
   }
 }
 
-.sheet-settling {
-  animation: settling 320ms var(--ease-sheet) both;
+@keyframes settle-out {
+  to {
+    opacity: 0;
+  }
+}
+
+.settling-in {
+  animation: settle-in 260ms ease-out both;
+}
+
+.settling-out {
+  animation: settle-out 200ms ease-in both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sheet-settling {
+  .settling-in,
+  .settling-out {
     animation: none;
+  }
+
+  .settling-out {
+    display: none;
   }
 }
 

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import Settling from "@/components/Settling";
 import Sheet from "@/components/Sheet";
 import SheetSkeleton from "@/components/SheetSkeleton";
 import WineDetail from "@/components/WineDetail";
@@ -11,7 +12,11 @@ async function Bottle({ id }: { id: string }) {
   const detail = await loadWineDetail(id);
   if (!detail) notFound();
 
-  return <WineDetail wine={detail.wine} stored={detail.stored} sheet />;
+  return (
+    <Settling placeholder={<SheetSkeleton still />}>
+      <WineDetail wine={detail.wine} stored={detail.stored} sheet />
+    </Settling>
+  );
 }
 
 /**
