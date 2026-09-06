@@ -47,6 +47,14 @@
    * which is the curve a phone's own sheets use.
    */
   --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  /*
+   * And its opposite number, for leaving. Even at both ends rather than
+   * weighted to one, because a sheet on its way out is the one moment you
+   * want to actually watch it travel — an entrance can afford to arrive
+   * before you've followed it, an exit that does the same has simply
+   * vanished.
+   */
+  --ease-sheet-out: cubic-bezier(0.4, 0, 0.6, 1);
 }
 
 html {
@@ -453,20 +461,45 @@ textarea {
 }
 
 /* Reversed on the way out, and quicker — leaving should never feel laboured. */
+/*
+ * Keyframes of its own rather than the entrance played backwards.
+ *
+ * `reverse` runs the easing backwards too, so an ease-out becomes an ease-in:
+ * the panel crept for the first half and then threw itself off the bottom of
+ * the screen, which is why leaving read as disappearing rather than as
+ * sliding. Forwards, with an even curve and half again the time, you can see
+ * it go.
+ */
+@keyframes sheet-out {
+  to {
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+@keyframes scrim-out {
+  to {
+    opacity: 0;
+  }
+}
+
 .sheet-leaving .sheet-panel {
-  animation: sheet-in 220ms var(--ease-sheet) reverse forwards;
+  animation: sheet-out 340ms var(--ease-sheet-out) both;
 }
 
 .sheet-leaving .sheet-scrim {
-  animation: scrim-in 220ms var(--ease-sheet) reverse forwards;
+  /* Gone a little before the panel, so the shelf is clear behind it. */
+  animation: scrim-out 300ms linear both;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .sheet-enter,
-  .scrim-enter,
+  .scrim-enter {
+    animation: scrim-in 120ms ease;
+  }
+
   .sheet-leaving .sheet-panel,
   .sheet-leaving .sheet-scrim {
-    animation: scrim-in 120ms ease;
+    animation: scrim-out 120ms ease both;
   }
 }
 

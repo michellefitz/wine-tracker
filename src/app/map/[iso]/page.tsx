@@ -70,7 +70,7 @@ export default async function MapCountryPage({ params }: { params: Promise<{ iso
     }));
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-5 pb-20 pt-[max(1.75rem,env(safe-area-inset-top))]">
+    <main className="mx-auto w-full max-w-3xl px-5 pb-20 pt-[calc(env(safe-area-inset-top)_+_1.75rem)]">
       <nav className="mb-7 flex items-center justify-between gap-4">
         <Link href="/map" className="link-quiet">← The map</Link>
         <span className="eyebrow">{country.name}</span>

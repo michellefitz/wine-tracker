@@ -31,7 +31,24 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Cellar Notes",
-    statusBarStyle: "default",
+    /*
+     * The page draws under the status bar, which is the only way the strip
+     * behind the clock can be part of the app at all.
+     *
+     * It was "default", where iOS reserves that strip and paints it itself
+     * from the theme-color tag. Nothing in the page can reach it: the scrim
+     * that dims the shelf when a sheet opens stops at the top of the web view,
+     * so the strip stayed bright over a darkened page, and every attempt to
+     * keep the tag in step arrived late because iOS repaints that strip when
+     * it feels like it. Translucent, there is no reserved strip — the page
+     * runs to the top of the screen, the scrim covers it like everything else,
+     * and it dims in the same frame because it is the same element.
+     *
+     * The cost is that iOS draws the clock and the battery in white over our
+     * cream. Everything above pads by env(safe-area-inset-top), which is no
+     * longer zero, so nothing of ours ends up underneath them.
+     */
+    statusBarStyle: "black-translucent",
   },
   icons: {
     icon: "/icons/icon-192.png",

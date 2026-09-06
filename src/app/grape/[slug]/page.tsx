@@ -31,7 +31,7 @@ export default async function GrapePage({ params }: { params: Promise<{ slug: st
 
   return (
     <main>
-      <div className="mx-auto w-full max-w-3xl px-5 pt-[max(1.75rem,env(safe-area-inset-top))]">
+      <div className="mx-auto w-full max-w-3xl px-5 pt-[calc(env(safe-area-inset-top)_+_1.75rem)]">
         <nav className="mb-9 flex items-center justify-between">
           <Link href="/" className="link-quiet">
             ← All wines

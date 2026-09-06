@@ -27,6 +27,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * `close`. Getting that wrong froze the app until it was force-quit.
  */
 
+/**
+ * How long the sheet takes to leave.
+ *
+ * Longer than it was. At 220ms, with the entrance curve played backwards, it
+ * crept and then threw itself off the bottom of the screen — the panel was
+ * gone before you had followed it down, and a sheet that vanishes teaches you
+ * nothing about where it went or how to get it back. Leaving should still be
+ * brisker than arriving, which is 440ms, but it has to be watchable.
+ *
+ * Kept here rather than only in the stylesheet because the route change waits
+ * on it: go back before the panel has left and the shelf appears underneath a
+ * sheet that is still on screen.
+ */
+const LEAVE_MS = 340;
+
 /** Past this much, or this fast, and letting go closes it. */
 const DISMISS_DISTANCE = 110;
 const DISMISS_VELOCITY = 0.55; // px per ms
@@ -196,7 +211,7 @@ export default function Sheet({
     };
   }, [here]);
 
-  const close = useCallback(() => {
+  const close = useCallback((immediate = false) => {
     if (closing.current) return;
     closing.current = true;
     setLeaving(true);
@@ -223,8 +238,10 @@ export default function Sheet({
       releaseScroll();
     }
 
-    // Let the exit animation run before the route changes underneath it.
-    const back = window.setTimeout(() => router.back(), 220);
+    // Let the exit animation run before the route changes underneath it —
+    // unless the drag already ran it, in which case there is nothing to wait
+    // for and waiting twice just leaves the sheet mounted over the shelf.
+    const back = window.setTimeout(() => router.back(), immediate ? 0 : LEAVE_MS);
 
     /*
      * And a way out of the way out. router.back() does nothing when there's no
@@ -336,7 +353,12 @@ export default function Sheet({
 
     if (dy > DISMISS_DISTANCE || state.velocity > DISMISS_VELOCITY) {
       // Animate out with WAAPI so it can't fight CSS animations.
-      const easing = "cubic-bezier(0.32, 0.72, 0, 1)";
+      /*
+       * Eased out rather than evenly, unlike the tap and Escape paths: this
+       * one is continuing a movement your finger already started, and a curve
+       * that begins slowly would stall against the throw you just gave it.
+       */
+      const easing = "cubic-bezier(0.25, 0.46, 0.45, 0.94)";
 
       /*
        * Its own height, not a distance worked out from where it is now.
@@ -357,11 +379,11 @@ export default function Sheet({
        */
       panel.current?.animate(
         [{ transform: "translate3d(0, 100%, 0)" }],
-        { duration: 220, easing, fill: "forwards" },
+        { duration: LEAVE_MS, easing, fill: "forwards" },
       );
       scrim.current?.animate(
         [{ opacity: 0 }],
-        { duration: 120, easing, fill: "forwards" },
+        { duration: LEAVE_MS - 60, easing, fill: "forwards" },
       );
 
       dragDismissing.current = true;
@@ -369,7 +391,7 @@ export default function Sheet({
       // doesn't reach close() for another 200ms, which is most of the way
       // through the sheet leaving.
       paintChrome(PAPER);
-      window.setTimeout(() => close(), 200);
+      window.setTimeout(() => close(true), LEAVE_MS);
       return;
     }
     if (panel.current) {
@@ -399,7 +421,7 @@ export default function Sheet({
         ref={scrim}
         type="button"
         aria-label="Close"
-        onClick={close}
+        onClick={() => close()}
         className={`sheet-scrim absolute inset-0 w-full cursor-default bg-ink/20 ${
           continuing ? "" : "scrim-enter"
         }`}

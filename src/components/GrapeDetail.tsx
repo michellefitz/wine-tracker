@@ -108,7 +108,7 @@ export default function GrapeDetail({
   return (
     <div
       className={`mx-auto w-full max-w-3xl px-5 pb-20 ${
-        sheet ? "pt-2" : "min-h-dvh pt-[max(1.75rem,env(safe-area-inset-top))]"
+        sheet ? "pt-2" : "min-h-dvh pt-[calc(env(safe-area-inset-top)_+_1.75rem)]"
       }`}
     >
       <Suspense fallback={<Outline name={prettifyKey(askedKey)} />}>

@@ -7,7 +7,7 @@ export default function AddPage() {
   return (
     /* pb-32 clears the fixed save bar, which is pinned to the window rather
        than to the end of the form — see WineForm. */
-    <main className="mx-auto min-h-dvh w-full max-w-xl px-5 pb-32 pt-[max(1.75rem,env(safe-area-inset-top))]">
+    <main className="mx-auto min-h-dvh w-full max-w-xl px-5 pb-32 pt-[calc(env(safe-area-inset-top)_+_1.75rem)]">
       <header className="mb-8">
         <div className="flex items-center justify-between gap-4">
           <p className="eyebrow">New entry</p>

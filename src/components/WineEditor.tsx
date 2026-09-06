@@ -26,7 +26,7 @@ export default function WineEditor({
     <div
       /* pb-32 clears the save bar, which is fixed to the window. */
       className={`mx-auto w-full max-w-xl px-5 pb-32 ${
-        sheet ? "pt-1" : "min-h-dvh pt-[max(1.75rem,env(safe-area-inset-top))]"
+        sheet ? "pt-1" : "min-h-dvh pt-[calc(env(safe-area-inset-top)_+_1.75rem)]"
       }`}
     >
       <header className="mb-8">

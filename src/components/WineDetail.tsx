@@ -212,7 +212,7 @@ export default function WineDetail({
         */
         <nav className="sticky top-0 z-20 -mx-5 mb-6 flex items-center justify-between gap-4
           bg-paper/92 px-5 pb-3 backdrop-blur-sm
-          pt-[max(1.5rem,env(safe-area-inset-top))]">
+          pt-[calc(env(safe-area-inset-top)_+_1.5rem)]">
           <Link href="/" className="link-quiet">
             ← All wines
           </Link>

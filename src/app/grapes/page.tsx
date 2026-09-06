@@ -43,7 +43,7 @@ export default async function GrapesPage() {
   }
 
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-20 pt-[max(1.75rem,env(safe-area-inset-top))]">
+    <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-20 pt-[calc(env(safe-area-inset-top)_+_1.75rem)]">
       <nav className="mb-9 flex items-center justify-between">
         <Link href="/" className="link-quiet">
           ← All wines

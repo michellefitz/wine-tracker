@@ -45,7 +45,7 @@ export default function HomePage() {
   const loaded = loadWines();
 
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-32 pt-[max(2rem,env(safe-area-inset-top))]">
+    <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 pb-32 pt-[calc(env(safe-area-inset-top)_+_2rem)]">
       <header className="mb-5">
         <div className="flex items-baseline justify-between gap-4">
           <h1 className="masthead whitespace-nowrap text-[clamp(1.75rem,9vw,2.25rem)]
