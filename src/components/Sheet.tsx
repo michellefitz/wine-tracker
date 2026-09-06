@@ -89,8 +89,36 @@ let showing: string | null = null;
  * the pixels immediately below it in both states, which is the only thing that
  * makes a strip you cannot style disappear.
  */
+let painted: string | null = null;
+
 function paintChrome(colour: string) {
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", colour);
+  if (painted === colour) return;
+  painted = colour;
+
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) return;
+  meta.setAttribute("content", colour);
+
+  /*
+   * ...and then put the tag back where it already is, which is not as silly as
+   * it looks.
+   *
+   * iOS does not repaint that strip when the attribute changes. It repaints it
+   * when something else makes it look again, and the something else was the
+   * skeleton handing over to the bottle — so the strip sat at the old colour
+   * for the whole of the opening and only caught up, about seven hundred
+   * milliseconds late, when the content arrived. On the way out there was
+   * nothing to prompt it at all until the sheet had gone.
+   *
+   * Taking the node out and putting it straight back is a mutation of the head
+   * rather than of an attribute, and that it does notice. The same node goes
+   * back in the same place, so whatever Next thinks it owns, it still owns.
+   */
+  const parent = meta.parentNode;
+  if (!parent) return;
+  const after = meta.nextSibling;
+  parent.removeChild(meta);
+  parent.insertBefore(meta, after);
 }
 
 export default function Sheet({
@@ -156,6 +184,9 @@ export default function Sheet({
       live = Math.max(0, live - 1);
       if (live === 0) {
         showing = null;
+        // A net, not the main path: the back button unmounts this without any
+        // of the above running. paintChrome ignores a colour already showing,
+        // so a normal dismissal doesn't touch the head twice.
         paintChrome(PAPER);
       }
 
@@ -169,6 +200,17 @@ export default function Sheet({
     if (closing.current) return;
     closing.current = true;
     setLeaving(true);
+
+    /*
+     * Now, with the scrim, and not when this finally unmounts.
+     *
+     * That was the lag on the way out. The strip was repainted from the effect
+     * cleanup, which does not run until router.back() has actually taken us
+     * off this route — a couple of hundred milliseconds after the scrim has
+     * finished fading and the shelf is bright again. So the page came back and
+     * the strip stayed dark, exactly as long as it took the route to change.
+     */
+    paintChrome(PAPER);
 
     /*
      * Hand the page back before anything else. Everything below this line can
@@ -323,6 +365,10 @@ export default function Sheet({
       );
 
       dragDismissing.current = true;
+      // With the animation, for the same reason close() does it: this path
+      // doesn't reach close() for another 200ms, which is most of the way
+      // through the sheet leaving.
+      paintChrome(PAPER);
       window.setTimeout(() => close(), 200);
       return;
     }
