@@ -191,7 +191,7 @@ export default function WineDetail({
   return (
     <div
       className={`mx-auto w-full max-w-3xl px-5 pb-16 ${
-        sheet ? "pt-1" : "min-h-dvh"
+        sheet ? "sheet-settling pt-1" : "min-h-dvh"
       }`}
     >
       {sheet ? (

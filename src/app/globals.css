@@ -37,6 +37,16 @@
 
   /* The built-in easings are too weak; presses and reveals use this instead. */
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  /*
+   * For the sheet, and only the sheet. ease-out-strong is right for a press or
+   * a small state change — it is almost all over in the first sixth of its
+   * duration, which is what makes a 130ms tap feel instant. A whole panel
+   * crossing the screen on that curve arrives before the eye has followed it,
+   * and after a wait for the server that reads as a lurch rather than a
+   * movement. This one keeps some speed in the middle and settles at the end,
+   * which is the curve a phone's own sheets use.
+   */
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 html {
@@ -384,26 +394,63 @@ textarea {
   }
 }
 
-.sheet-panel {
-  animation: sheet-in 320ms var(--ease-out-strong);
+/*
+ * The entrance is its own class, separate from .sheet-panel, because a sheet
+ * that is carrying on from the one before it keeps the identity and skips the
+ * arrival — see Sheet. .sheet-panel stays on both, since leaving is animated
+ * from there.
+ */
+.sheet-enter {
+  animation: sheet-in 440ms var(--ease-sheet);
 }
 
-.sheet-scrim {
-  animation: scrim-in 320ms var(--ease-out-strong);
+.scrim-enter {
+  /*
+   * Slower than the panel, and deliberately. The scrim arriving first darkens
+   * the shelf before anything has moved, so the panel is rising onto a page
+   * that has already given way to it.
+   */
+  animation: scrim-in 520ms var(--ease-sheet);
+}
+
+/*
+ * What the bottle does when it finally lands.
+ *
+ * The skeleton is the same shape as this, so the swap moves nothing — but
+ * nothing moving is exactly what makes it a hard cut, with the whole page
+ * changing between one frame and the next. A short fade with barely any rise
+ * to it turns the cut into an arrival. Slow enough to see, well short of
+ * anything you would have to wait for.
+ */
+@keyframes settling {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+}
+
+.sheet-settling {
+  animation: settling 320ms var(--ease-sheet) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-settling {
+    animation: none;
+  }
 }
 
 /* Reversed on the way out, and quicker — leaving should never feel laboured. */
 .sheet-leaving .sheet-panel {
-  animation: sheet-in 220ms var(--ease-out-strong) reverse forwards;
+  animation: sheet-in 220ms var(--ease-sheet) reverse forwards;
 }
 
 .sheet-leaving .sheet-scrim {
-  animation: scrim-in 220ms var(--ease-out-strong) reverse forwards;
+  animation: scrim-in 220ms var(--ease-sheet) reverse forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sheet-panel,
-  .sheet-scrim,
+  .sheet-enter,
+  .scrim-enter,
   .sheet-leaving .sheet-panel,
   .sheet-leaving .sheet-scrim {
     animation: scrim-in 120ms ease;

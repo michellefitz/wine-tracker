@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
@@ -51,6 +51,29 @@ function releaseScroll() {
   if (scrollLocks === 0) document.body.style.overflow = "";
 }
 
+/**
+ * Which sheet is already up, so the next one knows whether it is arriving or
+ * carrying on.
+ *
+ * A sheet is mounted twice for one opening. The loading file puts the panel on
+ * screen immediately with a skeleton in it; when the bottle arrives, React
+ * throws that whole tree away and mounts the page's — a different instance, a
+ * different element, and a CSS entrance animation that would play again, so
+ * the panel would drop and fly back up at the exact moment the content
+ * appeared. The two are the same sheet as far as anyone looking at it is
+ * concerned, and this is how the second one knows.
+ *
+ * Keyed by path and counted, not timed. Timing can't tell the swap apart from
+ * a quick second tap, whereas the swap is exactly the case where a sheet for
+ * this same URL is already mounted when the next one arrives. Counting handles
+ * the mount order, which is not guaranteed: React can mount the replacement
+ * before unmounting the one it replaces, so the key is only cleared when the
+ * last sheet has actually gone — which also covers leaving by the back button,
+ * where nothing else runs.
+ */
+let live = 0;
+let showing: string | null = null;
+
 export default function Sheet({
   children,
   label,
@@ -72,7 +95,16 @@ export default function Sheet({
   dismiss?: "anywhere" | "handle";
 }) {
   const router = useRouter();
+  const here = usePathname();
   const panel = useRef<HTMLDivElement>(null);
+
+  /*
+   * Read once, on the way in: whether a sheet for this same URL was already up.
+   * useState rather than a ref because it has to be settled before the first
+   * paint — a class added afterwards would play the animation and then cancel
+   * it, which is the flicker this exists to avoid.
+   */
+  const [continuing] = useState(() => live > 0 && showing === here);
   const scrim = useRef<HTMLButtonElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
 
@@ -97,12 +129,18 @@ export default function Sheet({
     lockScroll();
     holdsLock.current = true;
 
+    live += 1;
+    showing = here;
+
     return () => {
+      live = Math.max(0, live - 1);
+      if (live === 0) showing = null;
+
       if (!holdsLock.current) return;
       holdsLock.current = false;
       releaseScroll();
     };
-  }, []);
+  }, [here]);
 
   const close = useCallback(() => {
     if (closing.current) return;
@@ -278,13 +316,17 @@ export default function Sheet({
         type="button"
         aria-label="Close"
         onClick={close}
-        className="sheet-scrim absolute inset-0 w-full cursor-default bg-ink/20"
+        className={`sheet-scrim absolute inset-0 w-full cursor-default bg-ink/20 ${
+          continuing ? "" : "scrim-enter"
+        }`}
       />
 
       <div
         ref={panel}
-        className="sheet-panel absolute inset-x-0 bottom-0 flex h-[92dvh] flex-col
-          overflow-hidden rounded-t-[1.25rem] bg-paper shadow-[0_-1px_24px_rgba(0,0,0,0.14)]"
+        className={`sheet-panel absolute inset-x-0 bottom-0 flex h-[92dvh] flex-col
+          overflow-hidden rounded-t-[1.25rem] bg-paper shadow-[0_-1px_24px_rgba(0,0,0,0.14)] ${
+            continuing ? "" : "sheet-enter"
+          }`}
         {...(dismiss === "anywhere" ? handlers : {})}
         style={{ touchAction: "pan-y" }}
       >
