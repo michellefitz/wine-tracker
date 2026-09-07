@@ -191,14 +191,36 @@ textarea {
    * text it replaces sat. The underline arrives on focus, which is the only
    * moment it needs to say it is a field at all.
    */
+  /*
+   * A hairline under every cell, not only the focused one.
+   *
+   * These were transparent at rest, on the theory that a table of underlines
+   * is a stack of boxes. It went too far: with nothing but a right-aligned
+   * em-dash in them, four of the rows in the add form read as empty read-only
+   * text, and both testers scrolled past the fields they were being asked to
+   * fill. A rule light enough to disappear into the table still says "you can
+   * type here", which is the one thing these have to say.
+   */
   .field-cell {
-    @apply w-full appearance-none border-0 border-b border-transparent bg-transparent
+    @apply w-full appearance-none border-0 border-b border-rule/70 bg-transparent
       p-0 text-right text-[0.9375rem] tabular-nums text-ink outline-none
       transition-colors placeholder:text-muted/60 focus:border-ink;
     text-align: right;
     /* A select right-aligns its text but not its own box; this stops it
        reserving a column of empty space for a dropdown arrow it isn't drawing. */
     text-align-last: right;
+  }
+
+  /*
+   * WebKit draws its own clear button inside a search field, in system blue —
+   * the single blue pixel in an app that is otherwise paper and wine, and it
+   * read as something nobody had got round to styling. Ours is below, in the
+   * right colour and a size a thumb can hit.
+   */
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
   }
 
   /* Underlined fields rather than boxes: fewer edges, calmer page. */

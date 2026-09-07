@@ -1,0 +1,26 @@
+const { boot } = require('./lib');
+const PHOTO='/tmp/claude-0/-home-user-wine-tracker/51ac2fc6-2848-5945-9ad7-a1982f33d24f/scratchpad/study/bottle-photo.jpg';
+(async()=>{
+  const {browser,page} = await boot();
+  await page.goto('http://localhost:3210/add'); await page.waitForTimeout(2000);
+  await page.locator('input[type=file]').setInputFiles(PHOTO);
+  await page.waitForTimeout(4000);
+  await page.locator('#producer').fill('Tenuta San Guido');
+  await page.locator('#name').fill('Chianti Classico');
+  await page.getByText('Loved it').click();
+  await page.locator('#vintage').fill('2020');
+  await page.locator('#wine-type').selectOption({label:'Red'});
+  await page.locator('#grapes').fill('Sangiovese');
+  await page.locator('#region').fill('Toscana');
+  await page.locator('#country').fill('Italy');
+  await page.locator('#price').fill('38');
+  await page.locator('#notes').fill('Decant 45 min. Drink 2026-2032. Bought Berry Bros en primeur. Had it with bistecca.');
+  await page.waitForTimeout(600);
+  await page.screenshot({path:'/home/user/wine-tracker/.study-marg/18-add-filled.png', fullPage:true});
+  await page.getByText('ADD TO THE LOG').click();
+  await page.waitForTimeout(5000);
+  console.log('AFTER SAVE URL:', page.url());
+  await page.screenshot({path:'/home/user/wine-tracker/.study-marg/19-added-detail.png', fullPage:true});
+  console.log(await page.locator('body').innerText());
+  await browser.close();
+})();

@@ -54,6 +54,20 @@ export function normalizeInput(body: unknown): Required<WineInput> {
     priceEur = Math.round(price * 100) / 100;
   }
 
+  /*
+   * Alcohol, bounded by what a wine can actually be. Anything outside this is
+   * a typo — a decimal point in the wrong place, or a serving temperature
+   * pasted into the wrong row.
+   */
+  let abv: number | null = null;
+  if (input.abv !== null && input.abv !== undefined && input.abv !== "") {
+    const strength = Number(input.abv);
+    if (!Number.isFinite(strength) || strength < 0 || strength > 25) {
+      throw new ValidationError("Alcohol should be a number between 0 and 25");
+    }
+    abv = Math.round(strength * 10) / 10;
+  }
+
   const grapes = Array.isArray(input.grapes)
     ? Array.from(
         new Set(
@@ -92,6 +106,7 @@ export function normalizeInput(body: unknown): Required<WineInput> {
     tags,
     notes: trimmed(input.notes, 4000),
     price_eur: priceEur,
+    abv,
     source: source && VALID_SOURCES.has(source) ? source : null,
     photo_id: trimmed(input.photo_id, 40),
     drank_on: drankOn,
@@ -103,7 +118,7 @@ const SELECT_COLUMNS = `
   coalesce(grapes, '[]'::jsonb) as grapes,
   wine_type, score,
   coalesce(tags, '[]'::jsonb) as tags,
-  notes, price_eur, source, photo_id,
+  notes, price_eur, abv, source, photo_id,
   to_char(drank_on, 'YYYY-MM-DD') as drank_on,
   created_at
 `;
@@ -112,6 +127,7 @@ function toWine(row: Record<string, unknown>): Wine {
   return {
     ...row,
     price_eur: row.price_eur === null ? null : Number(row.price_eur),
+    abv: row.abv === null || row.abv === undefined ? null : Number(row.abv),
     grapes: (row.grapes as string[]) ?? [],
     tags: (row.tags as string[]) ?? [],
     created_at: String(row.created_at),
@@ -138,8 +154,8 @@ export async function createWine(input: Required<WineInput>): Promise<Wine> {
   const rows = await db.query(
     `INSERT INTO wines
        (producer, name, vintage, region, country, grapes, wine_type,
-        score, tags, notes, price_eur, source, photo_id, drank_on)
-     VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9::jsonb, $10, $11, $12, $13, $14)
+        score, tags, notes, price_eur, abv, source, photo_id, drank_on)
+     VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9::jsonb, $10, $11, $12, $13, $14, $15)
      RETURNING ${SELECT_COLUMNS}`,
     [
       input.producer,
@@ -153,6 +169,7 @@ export async function createWine(input: Required<WineInput>): Promise<Wine> {
       JSON.stringify(input.tags),
       input.notes,
       input.price_eur,
+      input.abv,
       input.source,
       input.photo_id,
       input.drank_on,
@@ -167,7 +184,7 @@ export async function updateWine(id: string, input: Required<WineInput>): Promis
     `UPDATE wines SET
        producer = $2, name = $3, vintage = $4, region = $5, country = $6,
        grapes = $7::jsonb, wine_type = $8, score = $9, tags = $10::jsonb,
-       notes = $11, price_eur = $12, source = $13, photo_id = $14, drank_on = $15
+       notes = $11, price_eur = $12, abv = $13, source = $14, photo_id = $15, drank_on = $16
      WHERE id = $1
      RETURNING ${SELECT_COLUMNS}`,
     [
@@ -183,6 +200,7 @@ export async function updateWine(id: string, input: Required<WineInput>): Promis
       JSON.stringify(input.tags),
       input.notes,
       input.price_eur,
+      input.abv,
       input.source,
       input.photo_id,
       input.drank_on,

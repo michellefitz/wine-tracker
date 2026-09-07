@@ -2,7 +2,17 @@
 
 import { useState } from "react";
 
-export default function DeleteWineButton({ id, name }: { id: string; name: string }) {
+export default function DeleteWineButton({
+  id,
+  name,
+  producer,
+  vintage,
+}: {
+  id: string;
+  name: string;
+  producer?: string | null;
+  vintage?: number | null;
+}) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
@@ -64,8 +74,24 @@ export default function DeleteWineButton({ id, name }: { id: string; name: strin
   return (
     <div className="mx-auto max-w-md border-t border-rule pt-7">
       <p className="text-[0.9375rem] text-ink-soft">
-        Delete <span className="text-ink">{name}</span> from the log? This can&apos;t be
-        undone.
+        {/*
+          The space before "from" is written out rather than left as the one
+          between the tag and the word. That space does not survive the JSX
+          transform — the DOM came out as three nodes, "Delete ", the span, and
+          "from the log?", so the sentence read "Delete Barolo Brunatefrom the
+          log?" for as long as this has existed. It is the kind of thing that
+          reads fine in the source and is only ever visible on screen.
+
+          Producer and vintage are here because the name alone is not an
+          identity: with two entries both called Chianti Classico, the sentence
+          could not tell you which one you were about to destroy — on the one
+          screen in the app where there is no undo.
+        */}
+        Delete{" "}
+        <span className="text-ink">
+          {[producer, name, vintage ? String(vintage) : null].filter(Boolean).join(" · ")}
+        </span>{" "}
+        from the log? This can&apos;t be undone.
       </p>
       {failed && <p className="mt-3 text-[0.9375rem] text-wine">{failed}</p>}
       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">

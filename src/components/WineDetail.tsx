@@ -90,7 +90,11 @@ export default function WineDetail({
     "serving temperature", "serve at", "serving",
   ]);
   const looked = (stored?.details ?? []).filter(
-    (detail) => !own.has(detail.label.trim().toLowerCase()),
+    (detail) =>
+      !own.has(detail.label.trim().toLowerCase()) &&
+      // Yours wins outright. Not shown alongside, not shown as an alternative
+      // — a bottle has one strength and it is the one printed on it.
+      !(wine.abv !== null && detail.label.trim().toLowerCase() === "alcohol"),
   );
 
   /*
@@ -146,6 +150,7 @@ export default function WineDetail({
     ...looked.map((detail) => ({ term: detail.label, value: detail.value, found: true })),
     { term: "Bought at", value: wine.source ?? "" },
     { term: "Price", value: wine.price_eur !== null ? `€${wine.price_eur.toFixed(2)}` : "" },
+    { term: "Alcohol", value: wine.abv !== null ? `${wine.abv}%` : "" },
     /*
      * The same date, and not the same word. A bottle you haven't opened has a
      * day it arrived, not a day you drank it, and calling that "Drank" makes
@@ -290,10 +295,43 @@ export default function WineDetail({
               }`}
             >
               {row.value}
+              {/*
+                A mark, because the shade was not enough.
+                
+                The intent was already here — looked-up values in a lighter
+                grey than the ones you entered — and two testers read the whole
+                table without noticing any difference, then objected that they
+                could not tell what the app had guessed from what they had
+                typed. A five per cent shift in grey is not a distinction on a
+                phone in daylight. A small circle is.
+              */}
+              {row.found && (
+                <span
+                  title="Found by looking this bottle up, not entered by you"
+                  className="ml-1.5 inline-block size-1.5 translate-y-[-0.15em] rounded-full
+                    bg-muted/70 align-middle"
+                />
+              )}
             </dd>
           </div>
         ))}
       </dl>
+
+      {/*
+        The key to the mark, and only when there is a mark to explain. A legend
+        under an unmarked table is noise; under a marked one it's the
+        difference between a dot and a decoration.
+      */}
+      {rows.some((row) => row.found) && (
+        <p className="mx-auto mt-2 max-w-md text-right text-[0.75rem] text-muted">
+          <span
+            aria-hidden="true"
+            className="mr-1.5 inline-block size-1.5 translate-y-[-0.15em] rounded-full
+              bg-muted/70 align-middle"
+          />
+          found by looking it up — everything else is yours
+        </p>
+      )}
 
       <ServingSection
         wineId={wine.id}
@@ -310,7 +348,12 @@ export default function WineDetail({
       />
 
       <div className="mt-10 text-center">
-        <DeleteWineButton id={wine.id} name={wine.name} />
+        <DeleteWineButton
+          id={wine.id}
+          name={wine.name}
+          producer={wine.producer}
+          vintage={wine.vintage}
+        />
       </div>
     </div>
   );

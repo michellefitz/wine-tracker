@@ -156,6 +156,9 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
   const [price, setPrice] = useState(
     wine?.price_eur !== null && wine?.price_eur !== undefined ? String(wine.price_eur) : "",
   );
+  const [abv, setAbv] = useState(
+    wine?.abv !== null && wine?.abv !== undefined ? String(wine.abv) : "",
+  );
   const [source, setSource] = useState(wine?.source ?? "");
   const [drankOn, setDrankOn] = useState(wine?.drank_on ?? today());
 
@@ -372,6 +375,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
         tags,
         notes: notes.trim() || null,
         price_eur: price.trim() || null,
+        abv: abv.trim() || null,
         source: source || null,
         photo_id: photoId,
         drank_on: drankOn || null,
@@ -650,7 +654,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
             inputMode="numeric"
             value={vintage}
             onChange={(event) => setVintage(event.target.value)}
-            placeholder="—"
+            placeholder="2019"
           />
         </Row>
         <Row term="Type">
@@ -673,7 +677,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
             className="field-cell"
             value={grapes}
             onChange={(event) => setGrapes(event.target.value)}
-            placeholder="—"
+            placeholder="Nebbiolo, Barbera"
           />
         </Row>
         <Row term="Region">
@@ -682,7 +686,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
             className="field-cell"
             value={region}
             onChange={(event) => setRegion(event.target.value)}
-            placeholder="—"
+            placeholder="Piemonte"
           />
         </Row>
         <Row term="Country">
@@ -691,7 +695,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
             className="field-cell"
             value={country}
             onChange={(event) => setCountry(event.target.value)}
-            placeholder="—"
+            placeholder="Italy"
           />
         </Row>
         <Row term="Bought at">
@@ -724,6 +728,26 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
             />
           </span>
         </Row>
+        {/*
+          Alcohol, which the page has always shown and never let you set.
+          The figure came from the lookup, sat in this table in the same
+          typeface as the vintage you typed, and moved when you pressed
+          Refresh — with nowhere to put the number actually printed on the
+          bottle in your hand. Anything entered here wins over anything found.
+        */}
+        <Row term="Alcohol">
+          <span className="inline-flex items-baseline justify-end gap-0.5">
+            <input
+              id="abv"
+              className="field-cell w-12"
+              inputMode="decimal"
+              value={abv}
+              onChange={(event) => setAbv(event.target.value)}
+              placeholder="13.5"
+            />
+            <span className={abv ? "text-ink" : "text-muted/60"}>%</span>
+          </span>
+        </Row>
         <Row term={score === 0 ? "Added" : "Drank"}>
           {/* w-auto so it shrinks to the date and the <dd>'s text-right can
               push it over: a date input ignores text-align, because the box it
@@ -738,6 +762,17 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
         </Row>
       </dl>
 
+      {/*
+        Nothing stood out about a bottle you haven't opened.
+        
+        Twenty-five chips across six categories asking how it tasted, shown
+        under a rating that says "Not opened yet" — a tester marked a bottle as
+        still in the house and was then asked whether it was too tannic. The
+        same applies to the note below, but a note about a bottle you're
+        looking forward to is a reasonable thing to want to write, so that
+        stays.
+      */}
+      {score !== 0 && (
       <Section title="What stood out?">
         <div className="space-y-5">
           {TAG_GROUPS.map((group) => (
@@ -759,6 +794,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
           ))}
         </div>
       </Section>
+      )}
 
       {/*
         Set as the quotation it is. This is the only thing on the page you

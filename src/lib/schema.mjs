@@ -84,6 +84,16 @@ export const STATEMENTS = [
    )`,
 
   // Added after wine_facts shipped, so existing tables need them too.
+  /*
+   * Alcohol, as a thing you can be right about.
+   *
+   * It was only ever a row inside wine_facts.details — a value a model
+   * produced, printed in the same table and the same typeface as the vintage
+   * you typed, with no field anywhere to correct it. Pressing Refresh could
+   * change it and there was no way to change it back. A column makes it yours,
+   * and the display prefers it over anything looked up.
+   */
+  `ALTER TABLE wines ADD COLUMN IF NOT EXISTS abv numeric(4,1)`,
   `ALTER TABLE wine_facts ADD COLUMN IF NOT EXISTS grapes jsonb NOT NULL DEFAULT '[]'::jsonb`,
 
   // Where the bottle goes on the map: the region path the lookup found, and a

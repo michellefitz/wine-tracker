@@ -56,8 +56,26 @@ const SELECT_COLUMNS = `
   grapes.slug, grapes.name, grapes.also_known_as, grapes.colour, grapes.summary,
   grapes.acidity, grapes.body, grapes.tannin, grapes.sweetness,
   grapes.flavours, grapes.regions, grapes.pairings, grapes.similar_grapes,
-  grapes.facts, grapes.version
+  grapes.facts, grapes.version,
+  grape_aliases.created_at
 `;
+
+/**
+ * How long a "that isn't a grape" verdict is believed before asking again.
+ *
+ * It used to be believed forever. A null slug in grape_aliases was written the
+ * first time a lookup came back unsure and then read straight out of the cache
+ * on every visit after, with no version check and no expiry — so a single bad
+ * run, an API outage, a model having an off moment, permanently retired a
+ * variety. In the study that had bricked all fourteen grapes in the log,
+ * Malbec and Chardonnay included, and the page told the reader their own
+ * bottle was mistyped.
+ *
+ * A week is long enough that a genuine non-grape — "blend", "red", a typo —
+ * costs one call a week rather than one per view, and short enough that a
+ * variety is never gone for good.
+ */
+const DOUBT_LASTS_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * What we've already got for this key, if anything.
@@ -67,7 +85,11 @@ const SELECT_COLUMNS = `
  */
 async function findCached(
   key: string,
-): Promise<{ kind: "profile"; profile: GrapeProfile; stale: boolean } | { kind: "unknown" } | null> {
+): Promise<
+  | { kind: "profile"; profile: GrapeProfile; stale: boolean }
+  | { kind: "unknown"; stale: boolean }
+  | null
+> {
   const db = sql();
   const rows = (await db.query(
     `SELECT ${SELECT_COLUMNS}
@@ -79,7 +101,11 @@ async function findCached(
 
   const row = rows[0];
   if (!row) return null;
-  if (row.slug === null) return { kind: "unknown" };
+
+  const asked = row.created_at ? new Date(String(row.created_at)).getTime() : 0;
+  if (row.slug === null) {
+    return { kind: "unknown", stale: Date.now() - asked > DOUBT_LASTS_MS };
+  }
   return {
     kind: "profile",
     profile: toProfile(row),
@@ -150,8 +176,16 @@ async function saveProfile(profile: Omit<GrapeProfile, "slug">, askedFor: string
 async function rememberUnknown(key: string): Promise<void> {
   const db = sql();
   await db.query(
+    /*
+     * The timestamp restarts on a repeat verdict, or the expiry above would
+     * only ever fire once: DO NOTHING left created_at at the first refusal, so
+     * a week later every view would ask again and none of the answers would
+     * ever be believed. Guarded on slug IS NULL so re-asking can never blank a
+     * variety that has since been identified.
+     */
     `INSERT INTO grape_aliases (alias, slug) VALUES ($1, NULL)
-     ON CONFLICT (alias) DO NOTHING`,
+     ON CONFLICT (alias) DO UPDATE SET created_at = now()
+     WHERE grape_aliases.slug IS NULL`,
     [key],
   );
 }
@@ -199,7 +233,9 @@ export async function getGrapeProfile(rawName: string): Promise<GrapeLookup> {
     warning = cacheTrouble(error);
   }
 
-  if (cached?.kind === "unknown") return { status: "unknown", note: null };
+  // A verdict of "not a grape" is honoured until it is old enough to be worth
+  // doubting; past that it falls through and gets asked again.
+  if (cached?.kind === "unknown" && !cached.stale) return { status: "unknown", note: null };
   if (cached?.kind === "profile" && !cached.stale) {
     return { status: "ok", profile: cached.profile, warning: null };
   }

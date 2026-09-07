@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { SCHEMA_TROUBLE } from "@/lib/schema-message";
+import { schemaTrouble } from "@/lib/schema-message";
 import { asServingNote, type ServingNote } from "@/lib/serving-note";
 import { FACTS_VERSION, researchWine, worthShowing } from "@/lib/wine-research";
 import type { Wine, WineFacts, WineRating } from "@/lib/types";
@@ -242,29 +242,8 @@ export async function saveServing(wineId: string, note: ServingNote): Promise<vo
 }
 
 /** Postgres for "no such table" and "no such column" — the schema is behind. */
-const UNDEFINED_TABLE = "42P01";
-const UNDEFINED_COLUMN = "42703";
-
 function storeTrouble(error: unknown): string {
-  const code = (error as { code?: unknown } | null)?.code;
-  const message = error instanceof Error ? error.message : String(error);
-
-  if (code === UNDEFINED_TABLE || /relation .*wine_facts.* does not exist/i.test(message)) {
-    return `${SCHEMA_TROUBLE} the wine_facts table isn't in the database yet.`;
-  }
-  if (code === UNDEFINED_COLUMN || /column .* does not exist/i.test(message)) {
-    /*
-     * Name it. "A column added since you made it" is true and useless — it
-     * can't be checked, and it makes a real fault indistinguishable from a
-     * message the app always shows. Postgres puts the column in the error;
-     * pass it through.
-     */
-    const named = /column "?([\w.]+)"? .*does not exist/i.exec(message)?.[1];
-    return named
-      ? `${SCHEMA_TROUBLE} the database has no "${named.replace(/^\w+\./, "")}" column yet.`
-      : `${SCHEMA_TROUBLE} the database is missing a column this version needs.`;
-  }
-  return "This couldn't be saved, so it'll be looked up again next time.";
+  return schemaTrouble(error) ?? "This couldn't be saved, so it'll be looked up again next time.";
 }
 
 export type FactsLookup =

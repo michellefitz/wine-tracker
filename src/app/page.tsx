@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import CollectionSkeleton from "@/components/CollectionSkeleton";
+import SchemaFix from "@/components/SchemaFix";
+import { SCHEMA_TROUBLE, schemaTrouble } from "@/lib/schema-message";
 import WineList from "@/components/WineList";
 import { listWines } from "@/lib/wines";
 import type { Wine } from "@/lib/types";
@@ -17,6 +19,7 @@ function loadWines(): Promise<Loaded> {
       return {
         wines: [] as Wine[],
         error:
+          schemaTrouble(error) ??
           "Couldn't reach the database. Check DATABASE_URL, and that you've run `npm run db:init`.",
       };
     });
@@ -27,7 +30,11 @@ async function Collection({ loaded }: { loaded: Promise<Loaded> }) {
 
   if (error) {
     return (
-      <p className="border border-rule bg-card p-5 text-[0.9375rem] text-wine">{error}</p>
+      <div className="border border-rule bg-card p-5">
+        <p className="text-[0.9375rem] text-wine">{error}</p>
+        {/* A schema message is the one database error with a cure attached. */}
+        {error.startsWith(SCHEMA_TROUBLE) && <SchemaFix message={error} />}
+      </div>
     );
   }
 

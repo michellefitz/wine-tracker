@@ -1,0 +1,25 @@
+const { boot, shot } = require('./lib');
+(async()=>{
+  const {browser,page} = await boot();
+  await page.goto('http://localhost:3210/add'); await page.waitForTimeout(1500);
+  await page.getByText("Skip — I'll type it in").click(); await page.waitForTimeout(1500);
+  await shot(page,'22-add-manual', true);
+  await page.locator('#producer').fill('Giuseppe Rinaldi');
+  await page.locator('#name').fill('Barolo Brunate');
+  await page.getByText('Not opened yet').click();
+  await page.locator('#vintage').fill('2019');
+  await page.locator('#wine-type').selectOption({label:'Red'});
+  await page.locator('#grapes').fill('Nebbiolo');
+  await page.locator('#region').fill('Piemonte');
+  await page.locator('#country').fill('Italy');
+  await page.locator('#price').fill('180');
+  await page.waitForTimeout(400);
+  console.log('CAN I SET A QUANTITY / DRINK-FROM? fields:', await page.evaluate(()=>[...document.querySelectorAll('input,textarea,select')].map(e=>e.id||e.type).join(', ')));
+  await shot(page,'23-add-unopened-filled', true);
+  console.log('BODY:', (await page.locator('body').innerText()).replace(/\n+/g,' / ').slice(0,900));
+  await page.getByText('ADD TO THE LOG').click(); await page.waitForTimeout(4000);
+  console.log('SAVED URL:', page.url());
+  await shot(page,'24-unopened-detail', true);
+  console.log(await page.locator('body').innerText());
+  await browser.close();
+})();

@@ -13,6 +13,8 @@ export type Wine = {
   tags: string[];
   notes: string | null;
   price_eur: number | null;
+  /** Alcohol by volume, as you entered it. Never written by a lookup. */
+  abv: number | null;
   source: string | null;
   photo_id: string | null;
   drank_on: string;
@@ -134,6 +136,7 @@ export type WineInput = {
   tags?: string[];
   notes?: string | null;
   price_eur?: number | null;
+  abv?: number | null;
   source?: string | null;
   photo_id?: string | null;
   drank_on?: string | null;
