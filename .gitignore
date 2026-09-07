@@ -16,3 +16,9 @@ next-env.d.ts
 # Design canvases: ~2 MB of bundled editor, rebuilt from the sources beside them.
 design/**/*.html
 !design/**/*.dc.html
+
+# Scratch directories for local poking about — screenshots, throwaway scripts,
+# whatever a usability run or a debugging session left behind. Never part of
+# the app.
+.probe/
+.study-*/
