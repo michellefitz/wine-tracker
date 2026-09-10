@@ -1,7 +1,7 @@
 import Link from "next/link";
 import AddWineFlow from "@/components/AddWineFlow";
 
-export const metadata = { title: "Log a wine — Cellar Notes" };
+export const metadata = { title: "Log a wine — Wine Log" };
 
 export default function AddPage() {
   return (

@@ -3,7 +3,7 @@ import Link from "next/link";
 import LabelDecoder from "@/components/LabelDecoder";
 
 export const metadata: Metadata = {
-  title: "Reading a label · Cellar Notes",
+  title: "Reading a label · Wine Log",
 };
 
 /**

@@ -1,6 +1,6 @@
 {
-  "name": "Cellar Notes",
-  "short_name": "Cellar",
+  "name": "Wine Log",
+  "short_name": "Wine Log",
   "description": "A private log of the wines you've had, and what you thought of them.",
   "start_url": "/",
   "scope": "/",

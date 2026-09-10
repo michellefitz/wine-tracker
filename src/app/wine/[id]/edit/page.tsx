@@ -3,7 +3,7 @@ import WineEditor from "@/components/WineEditor";
 import { getWine } from "@/lib/wines";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Edit — Cellar Notes" };
+export const metadata = { title: "Edit — Wine Log" };
 
 /**
  * Editing as a page of its own: a direct link, a reload, or a bottle opened

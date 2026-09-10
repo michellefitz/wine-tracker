@@ -1,4 +1,4 @@
-# Cellar Notes
+# Wine Log
 
 A private log of the wines you've had and what you made of them. Photograph the
 label, tap how much you liked it, add a note. Later, in the shop, search it.

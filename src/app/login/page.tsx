@@ -1,6 +1,6 @@
 import LoginForm from "@/components/LoginForm";
 
-export const metadata = { title: "Unlock — Cellar Notes" };
+export const metadata = { title: "Unlock — Wine Log" };
 
 export default async function LoginPage({
   searchParams,
@@ -14,9 +14,9 @@ export default async function LoginPage({
       <div className="w-full max-w-xs">
         <div className="text-center">
           <h1 className="masthead text-[3rem] leading-[1.1] text-ink">
-            Cellar
+            Wine
             <br />
-            Notes
+            Log
           </h1>
           <hr className="rule mx-auto mt-7 w-12" />
           <p className="essay mt-5 text-[1.0625rem] leading-relaxed text-muted">

@@ -9,7 +9,7 @@ import type { Wine } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Grapes · Cellar Notes",
+  title: "Grapes · Wine Log",
 };
 
 /** "4 bottles · 3 you liked" — your record with this grape, in one line. */

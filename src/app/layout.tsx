@@ -25,12 +25,12 @@ const serif = Spectral({
 
 
 export const metadata: Metadata = {
-  title: "Cellar Notes",
+  title: "Wine Log",
   description: "A private log of the wines you've had, and what you thought of them.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Cellar Notes",
+    title: "Wine Log",
     /*
      * The page draws under the status bar, which is the only way the strip
      * behind the clock can be part of the app at all.

@@ -57,7 +57,7 @@ export default function HomePage() {
         <div className="flex items-baseline justify-between gap-4">
           <h1 className="masthead whitespace-nowrap text-[clamp(1.75rem,9vw,2.25rem)]
             leading-none text-ink">
-            Cellar Notes
+            Wine Log
           </h1>
           <nav className="flex shrink-0 items-baseline gap-4">
             <Link

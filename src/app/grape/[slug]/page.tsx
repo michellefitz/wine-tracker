@@ -20,7 +20,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  return { title: `${prettifyKey(slugToKey(decodeURIComponent(slug)))} · Cellar Notes` };
+  return { title: `${prettifyKey(slugToKey(decodeURIComponent(slug)))} · Wine Log` };
 }
 
 /** The grape as a page of its own — a direct link, a reload, or a share. */

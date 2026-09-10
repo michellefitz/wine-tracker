@@ -4,7 +4,7 @@ import { WORLD_LAND } from "@/lib/map-geometry";
 import { buildWineMap } from "@/lib/wine-map";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "The map — Cellar Notes" };
+export const metadata = { title: "The map — Wine Log" };
 
 export default async function MapPage() {
   const map = await buildWineMap();
