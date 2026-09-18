@@ -42,7 +42,17 @@ export const FACTS_VERSION = 7;
 export type Searcher = "anthropic" | "gemini";
 
 export function defaultSearcher(): Searcher {
-  return process.env.WINE_SEARCH === "gemini" ? "gemini" : "anthropic";
+  /*
+   * Google, on the evidence. Run head to head over three bottles, the two
+   * searches returned the same facts from the same number of pages — the
+   * estate, the grower, the hectares, the biodynamics, Vivino where Vivino
+   * had it — and one of them did it in about a second where the other took
+   * sixteen. That is the difference between a panel that fills while you are
+   * still looking at the bottle and one you wait for.
+   *
+   * WINE_SEARCH=anthropic goes back, without a deploy.
+   */
+  return process.env.WINE_SEARCH === "anthropic" ? "anthropic" : "gemini";
 }
 
 /*
@@ -159,6 +169,13 @@ thing under about ninety words: what the wine is, then anything notable about wh
 from. This is read on a phone, held in one hand, in a shop or at a table — and every word of it
 gets written twice, once by you and once by the step that files it, so length costs seconds as
 well as attention. What it tastes like goes in "style", not here.
+
+Never write about the search. Not in the summary, not anywhere: this whole write-up is about
+the wine. The instruction above asked for the same thing and was ignored for a while because
+the request itself used to end "if the results are thin, say so", which is a licence to file a
+report on the searching — and that is what came back, a closing paragraph on which vintage had
+no page and which details could not be found. Thin results are a reason to write less, not a
+subject to write about.
 
 The summary is about the wine and never about the search. It is read by someone holding the
 bottle, who did not ask you to look anything up and has no idea that you did. So: no "I", no
@@ -482,7 +499,7 @@ export async function research(
     {
       role: "user",
       content:
-        `Find out what's known about this exact bottle. If the results are thin, say so.\n\n` +
+        `Find out what's known about this exact bottle and write it up. Write about the wine, the estate and the place — never about the search, the results or what you could not find.\n\n` +
         `${bottle}\n\nStart with this search, exactly as written: ${query}`,
     },
   ];

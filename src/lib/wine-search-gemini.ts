@@ -64,7 +64,7 @@ export async function searchWithGemini(
           parts: [
             {
               text:
-                `Find out what's known about this exact bottle. If the results are thin, say so.\n\n` +
+                `Find out what's known about this exact bottle and write it up. Write about the wine, the estate and the place — never about the search, the results or what you could not find.\n\n` +
                 `Bottle as it was logged:\n${bottle}\n\nA search to start from: ${query}`,
             },
           ],
