@@ -25,18 +25,28 @@ import type { Researched } from "@/lib/wine-research";
  */
 
 /*
- * Named by Google, after Google refused the previous one.
+ * Flash, and the alias rather than a pinned version.
  *
- * The first guess here was gemini-3-pro-preview, which is retired: the API
- * answers it with a 404 naming this as the replacement. That 404 was invisible
- * for a while, because a failed lookup falls back to whatever facts are
- * already stored and reports the reason in a warning — so the page kept
- * showing a perfectly good write-up and a comparison run against it kept
- * "passing", while every word of it had come from the previous search. A
- * lookup that quietly answers with the old answer is worth remembering the
- * next time this looks like it works.
+ * Measured against gemini-3.1-pro-preview on the same bottle, minutes apart:
+ * 15s against 48s, with the same two winemakers named, the same soils, and a
+ * tasting note of the same quality — "red berry sorbet, orange and lemon zest,
+ * white peach, a saline mineral finish" against pro's "light strawberry,
+ * orange, red fruit sorbet, high acidity, a fresh saline finish". Pro's food
+ * pairings are a little more distinctive; three times the wait is not worth
+ * the difference on a screen you watch fill.
+ *
+ * The alias is deliberate. The first name tried here was pinned, and it had
+ * been retired — the API answered with a 404 that took a deploy to discover.
+ * An alias follows Google's own idea of current, which is the failure mode
+ * worth having.
+ *
+ * That 404 was also invisible: a failed lookup falls back to the facts already
+ * stored and reports the reason in a warning, so the page kept showing a good
+ * write-up and a comparison run against it kept "passing" while every word of
+ * it came from the previous search. Worth remembering the next time this looks
+ * like it works.
  */
-const MODEL = process.env.GEMINI_SEARCH_MODEL ?? "gemini-3.1-pro-preview";
+const MODEL = process.env.GEMINI_SEARCH_MODEL ?? "gemini-flash-latest";
 const TIMEOUT_MS = 90_000;
 
 /** As many pages as are worth keeping a link to. */
@@ -55,8 +65,6 @@ export async function searchWithGemini(
   bottle: string,
   query: string,
   system: string,
-  /** TEMPORARY: overridden per request while models are being compared. */
-  model: string = MODEL,
 ): Promise<Research | Researched> {
   if (!process.env.GEMINI_API_KEY) {
     return {
@@ -71,7 +79,7 @@ export async function searchWithGemini(
   let response;
   try {
     response = await ai.models.generateContent({
-      model,
+      model: MODEL,
       contents: [
         {
           role: "user",
@@ -125,7 +133,7 @@ export async function searchWithGemini(
 
   console.log(
     `wine-search-gemini: ${Date.now() - startedAt}ms, ` +
-      `${text.length} chars, ${sources.length} pages, ${model}`,
+      `${text.length} chars, ${sources.length} pages, ${MODEL}`,
   );
 
   if (!text) {

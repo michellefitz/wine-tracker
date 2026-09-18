@@ -681,8 +681,6 @@ export async function research(
 export async function researchWine(
   wine: BottleLabel,
   via: Searcher = defaultSearcher(),
-  /** TEMPORARY: model override while Gemini models are being compared. */
-  model?: string,
 ): Promise<Researched> {
   // The filing step is Anthropic's either way, so its key is needed either way.
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -695,7 +693,7 @@ export async function researchWine(
 
   const found =
     via === "gemini"
-      ? await searchWithGemini(bottle, searchQuery(wine), RESEARCH_SYSTEM, model)
+      ? await searchWithGemini(bottle, searchQuery(wine), RESEARCH_SYSTEM)
       : await research(client, bottle, searchQuery(wine));
   if ("status" in found) {
     console.log(`wine-research: gave up after ${Date.now() - startedAt}ms`);
