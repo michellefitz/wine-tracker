@@ -24,7 +24,19 @@ import type { Researched } from "@/lib/wine-research";
  * measuring rather than arguing about.
  */
 
-const MODEL = process.env.GEMINI_SEARCH_MODEL ?? "gemini-3-pro-preview";
+/*
+ * Named by Google, after Google refused the previous one.
+ *
+ * The first guess here was gemini-3-pro-preview, which is retired: the API
+ * answers it with a 404 naming this as the replacement. That 404 was invisible
+ * for a while, because a failed lookup falls back to whatever facts are
+ * already stored and reports the reason in a warning — so the page kept
+ * showing a perfectly good write-up and a comparison run against it kept
+ * "passing", while every word of it had come from the previous search. A
+ * lookup that quietly answers with the old answer is worth remembering the
+ * next time this looks like it works.
+ */
+const MODEL = process.env.GEMINI_SEARCH_MODEL ?? "gemini-3.1-pro-preview";
 const TIMEOUT_MS = 90_000;
 
 /** As many pages as are worth keeping a link to. */
