@@ -224,6 +224,24 @@ record. You have no knowledge of your own here: every field must come from the w
 of you. If the write-up doesn't establish something, leave it out. Never invent a rating, a score,
 a medal or a number, and never round or "correct" one.
 
+Two things about the write-up you are filing are yours to correct, because asking the step before
+you has repeatedly failed to stop them.
+
+Drop every sentence about the searching. Anything of the form "no page was found for the 2025
+bottling", "coverage relates to the domaine generally", "no tasting note turned up" is about how
+the research went, not about the wine, and it must not reach "summary" — it is printed under the
+wine's name where it reads as an apology. Delete those sentences and keep what is left. If what
+is left is short, that is the correct summary. If the write-up genuinely established nothing, set
+found to false and put the one plain sentence in "note", which is what "note" is for.
+
+A typicity sentence is a real style, not an invention. When the write-up says what this grape,
+this appellation or this style typically gives — "Tibouren from the Côtes de Provence is
+typically pale, saline and red-fruited" — that belongs in "style", in those words. The rule above
+against inventing is about ratings, scores, medals and numbers, which are claims about the world
+that are either true or false. How a grape typically tastes is not that kind of claim, and
+leaving "style" null because no page reviewed this exact cuvée gives the reader a heading with
+nothing under it, which helps nobody.
+
 Scores stay exactly as written, as text: "3.9", "91", "Silver". The scale is the rest of the
 phrase: "out of 5", "points". Ratings only count when the write-up names where they came from.
 
