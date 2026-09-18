@@ -262,6 +262,8 @@ export async function getWineFacts(
   wine: Wine,
   refresh = false,
   via: Searcher = defaultSearcher(),
+  /** TEMPORARY: model override while Gemini models are being compared. */
+  model?: string,
 ): Promise<FactsLookup> {
   let cached: StoredFacts | null = null;
   let warning: string | null = null;
@@ -277,7 +279,7 @@ export async function getWineFacts(
     return { status: "ok", facts: cached, warning: null };
   }
 
-  const researched = await researchWine(wine, via);
+  const researched = await researchWine(wine, via, model);
 
   if (researched.status === "unavailable") {
     /*

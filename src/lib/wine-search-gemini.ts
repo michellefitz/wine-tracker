@@ -55,6 +55,8 @@ export async function searchWithGemini(
   bottle: string,
   query: string,
   system: string,
+  /** TEMPORARY: overridden per request while models are being compared. */
+  model: string = MODEL,
 ): Promise<Research | Researched> {
   if (!process.env.GEMINI_API_KEY) {
     return {
@@ -69,7 +71,7 @@ export async function searchWithGemini(
   let response;
   try {
     response = await ai.models.generateContent({
-      model: MODEL,
+      model,
       contents: [
         {
           role: "user",
@@ -123,7 +125,7 @@ export async function searchWithGemini(
 
   console.log(
     `wine-search-gemini: ${Date.now() - startedAt}ms, ` +
-      `${text.length} chars, ${sources.length} pages, ${MODEL}`,
+      `${text.length} chars, ${sources.length} pages, ${model}`,
   );
 
   if (!text) {

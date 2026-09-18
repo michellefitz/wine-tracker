@@ -50,6 +50,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const body = (await request.json().catch(() => ({}))) as {
     refresh?: unknown;
     via?: unknown;
+    model?: unknown;
   };
   const refresh = body.refresh === true;
   /*
@@ -57,11 +58,19 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
    * the same bottle and compared. Absent, the environment decides.
    */
   const via = body.via === "gemini" || body.via === "anthropic" ? body.via : undefined;
+  /*
+   * TEMPORARY, and removed as soon as a model is chosen. Guessing model names
+   * one deploy at a time is how the last one went; this compares them in one.
+   */
+  const model =
+    typeof body.model === "string" && /^gemini-[\w.-]{1,50}$/.test(body.model)
+      ? body.model
+      : undefined;
 
   const wine = await getWine(id);
   if (!wine) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const lookup = await getWineFacts(wine, refresh, via);
+  const lookup = await getWineFacts(wine, refresh, via, model);
   if (lookup.status === "unavailable") {
     return NextResponse.json({ error: lookup.message }, { status: 502 });
   }
