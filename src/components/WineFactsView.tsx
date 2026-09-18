@@ -81,12 +81,21 @@ export default function WineFactsView({
           */}
           {/* The one sentence that summarises the wine, so it gets the plate. */}
           {/*
-            No heading over it. "In the glass" was a label on the one thing
-            that needs no label — it's the first thing in the section and it's
-            in a box of its own, which already says what it is.
+            Labelled again, and the reason it wasn't is worth keeping.
+            "In the glass" came off because it was a heading over a single
+            generic line — "Full-bodied and dry" — where the box already said
+            everything the label did.
+            
+            What sits here now is a real tasting note: colour, nose, palate,
+            finish, three or four sentences of it. Unlabelled, that reads as an
+            introductory paragraph to the section it opens, which is exactly
+            how it was read — "I'm not seeing any tasting notes on anything",
+            about a page that had one on every bottle. A heading is the
+            difference between prose being present and being found.
           */}
           {facts.style && (
             <div className="space-y-2 border border-rule bg-card px-4 py-4">
+              <h3 className="eyebrow">Tasting note</h3>
               <Paragraphs
                 text={facts.style}
                 className="essay text-[1.0625rem] leading-[1.55] text-ink"

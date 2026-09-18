@@ -177,11 +177,13 @@ in "note" and forbidding it in the write-up is the difference between a footnote
 A page of true, useful things about the range beats a paragraph explaining why nothing can be
 said.
 
-Write the summary as two short paragraphs with a blank line between them, and keep the whole
-thing under about ninety words: what the wine is, then anything notable about where it comes
-from. This is read on a phone, held in one hand, in a shop or at a table — and every word of it
-gets written twice, once by you and once by the step that files it, so length costs seconds as
-well as attention. What it tastes like goes in "style", not here.
+Write the summary as two or three paragraphs with a blank line between them, and about a hundred
+and fifty words in total: what the wine is, who makes it and how, then what is notable about
+where it comes from. This is read on a phone, held in one hand, in a shop or at a table, so it
+still has to be worth the scroll — but it was capped at ninety for a long time and came back at
+barely three hundred characters, which is a heading and a sentence. Ninety was set when the
+write-up was slower and dearer to produce; it isn't now. What it tastes like goes in "style", not
+here.
 
 Never write about the search. Not in the summary, not anywhere: this whole write-up is about
 the wine. The instruction above asked for the same thing and was ignored for a while because
