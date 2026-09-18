@@ -47,13 +47,21 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const { id } = await context.params;
   if (!UUID.test(id)) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const body = (await request.json().catch(() => ({}))) as { refresh?: unknown };
+  const body = (await request.json().catch(() => ({}))) as {
+    refresh?: unknown;
+    via?: unknown;
+  };
   const refresh = body.refresh === true;
+  /*
+   * Which search to use for this one request, so the two can be run against
+   * the same bottle and compared. Absent, the environment decides.
+   */
+  const via = body.via === "gemini" || body.via === "anthropic" ? body.via : undefined;
 
   const wine = await getWine(id);
   if (!wine) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const lookup = await getWineFacts(wine, refresh);
+  const lookup = await getWineFacts(wine, refresh, via);
   if (lookup.status === "unavailable") {
     return NextResponse.json({ error: lookup.message }, { status: 502 });
   }

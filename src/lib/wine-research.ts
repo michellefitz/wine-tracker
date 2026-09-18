@@ -1,6 +1,7 @@
 import Anthropic, { APIError } from "@anthropic-ai/sdk";
 import { clip } from "@/lib/prose";
 import { flatten } from "@/lib/text";
+import { searchWithGemini } from "@/lib/wine-search-gemini";
 import type { Wine, WineFacts } from "@/lib/types";
 
 /**
@@ -29,6 +30,20 @@ export type BottleLabel = Pick<
  * Bump FACTS_VERSION to have every stored record rewritten on next view.
  */
 export const FACTS_VERSION = 7;
+
+/**
+ * Which search the write-up comes from.
+ *
+ * Both file into the same schema through the same second step, so this changes
+ * where the prose is found and nothing else. Selectable per request as well as
+ * by environment, so the two can be run against the same bottle and compared
+ * rather than argued about.
+ */
+export type Searcher = "anthropic" | "gemini";
+
+export function defaultSearcher(): Searcher {
+  return process.env.WINE_SEARCH === "gemini" ? "gemini" : "anthropic";
+}
 
 /*
  * Sonnet, not Opus. This job is reading a handful of search results and
@@ -601,7 +616,11 @@ export async function research(
 }
 
 /** Looks one bottle up. Never throws — a failure comes back as a status. */
-export async function researchWine(wine: BottleLabel): Promise<Researched> {
+export async function researchWine(
+  wine: BottleLabel,
+  via: Searcher = defaultSearcher(),
+): Promise<Researched> {
+  // The filing step is Anthropic's either way, so its key is needed either way.
   if (!process.env.ANTHROPIC_API_KEY) {
     return { status: "unavailable", message: "ANTHROPIC_API_KEY isn't set, so wines can't be looked up." };
   }
@@ -610,7 +629,10 @@ export async function researchWine(wine: BottleLabel): Promise<Researched> {
   const bottle = describeBottle(wine);
   const startedAt = Date.now();
 
-  const found = await research(client, bottle, searchQuery(wine));
+  const found =
+    via === "gemini"
+      ? await searchWithGemini(bottle, searchQuery(wine), RESEARCH_SYSTEM)
+      : await research(client, bottle, searchQuery(wine));
   if ("status" in found) {
     console.log(`wine-research: gave up after ${Date.now() - startedAt}ms`);
     return found;

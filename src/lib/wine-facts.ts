@@ -1,7 +1,7 @@
 import { sql } from "@/lib/db";
 import { schemaTrouble } from "@/lib/schema-message";
 import { asServingNote, type ServingNote } from "@/lib/serving-note";
-import { FACTS_VERSION, researchWine, worthShowing } from "@/lib/wine-research";
+import { FACTS_VERSION, defaultSearcher, researchWine, worthShowing, type Searcher } from "@/lib/wine-research";
 import type { Wine, WineFacts, WineRating } from "@/lib/types";
 
 /**
@@ -258,7 +258,11 @@ export type FactsLookup =
  *
  * Nothing here throws: a broken store costs the caching, not the feature.
  */
-export async function getWineFacts(wine: Wine, refresh = false): Promise<FactsLookup> {
+export async function getWineFacts(
+  wine: Wine,
+  refresh = false,
+  via: Searcher = defaultSearcher(),
+): Promise<FactsLookup> {
   let cached: StoredFacts | null = null;
   let warning: string | null = null;
 
@@ -273,7 +277,7 @@ export async function getWineFacts(wine: Wine, refresh = false): Promise<FactsLo
     return { status: "ok", facts: cached, warning: null };
   }
 
-  const researched = await researchWine(wine);
+  const researched = await researchWine(wine, via);
 
   if (researched.status === "unavailable") {
     /*
