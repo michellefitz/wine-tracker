@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
+import { readPhoto } from "@/lib/photo-input";
 import { WINE_TYPES } from "@/lib/taxonomy";
 import type { LabelReading } from "@/lib/types";
 
@@ -7,8 +8,6 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5";
-const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
-const MAX_BASE64_LENGTH = 2_000_000;
 
 const SYSTEM_PROMPT = `You read wine bottle labels from photographs and return what is printed on them.
 
@@ -64,26 +63,32 @@ export async function POST(request: Request) {
     );
   }
 
-  let dataUrl = "";
+  /*
+   * A photo you have just taken, or one this bottle already has.
+   *
+   * It only ever accepted a fresh data URL, which meant a label could be read
+   * exactly once — at the moment of adding — and never again. When the reading
+   * failed, for a bad connection or an outage, the only way back was to type
+   * every field by hand; three bottles ended up in the log called "Rose",
+   * "White" and "Bubbles" for precisely that reason, and getting them back
+   * meant fetching their photos and posting them in from outside the app.
+   *
+   * readPhoto has understood stored photos all along — the studio shot has
+   * been using it for both — so this is a fourth copy of the same size and
+   * type checks going away rather than a new path arriving.
+   */
+  let body: { dataUrl?: unknown; photoId?: unknown };
   try {
-    const body = (await request.json()) as { dataUrl?: unknown };
-    dataUrl = typeof body.dataUrl === "string" ? body.dataUrl : "";
+    body = (await request.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "Expected a JSON body" }, { status: 400 });
   }
 
-  const match = dataUrl.match(/^data:([\w/+.-]+);base64,(.+)$/);
-  if (!match) {
-    return NextResponse.json({ error: "Expected a base64 data URL" }, { status: 400 });
+  const input = await readPhoto(body);
+  if (!input.ok) {
+    return NextResponse.json({ error: input.error }, { status: input.status });
   }
-
-  const [, mime, base64] = match;
-  if (!ALLOWED_MIME.has(mime)) {
-    return NextResponse.json({ error: `Unsupported image type: ${mime}` }, { status: 415 });
-  }
-  if (base64.length > MAX_BASE64_LENGTH) {
-    return NextResponse.json({ error: "That image is too large" }, { status: 413 });
-  }
+  const { mime, base64 } = input.photo;
 
   const client = new Anthropic();
 

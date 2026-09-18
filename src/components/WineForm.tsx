@@ -178,6 +178,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
   const [newPhoto, setNewPhoto] = useState<string | null>(null);
   const [photoNotice, setPhotoNotice] = useState<string | null>(null);
   const [staging, setStaging] = useState(false);
+  const [rereading, setRereading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [showDetails, setShowDetails] = useState(mode === "edit");
@@ -259,6 +260,70 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
    * costs a generation every time it's pressed. All three are reasons it only
    * happens when you ask.
    */
+  /**
+   * Read the label off the photo again, into the form.
+   *
+   * The reading only ever happened once, at the moment of adding, and if it
+   * failed there was no second chance: the bottle kept whatever you had typed
+   * to get past the required fields, and the photograph sitting right there on
+   * the page could not be consulted again. Three bottles in this log were
+   * called "Rose", "White" and "Bubbles" for exactly that reason.
+   *
+   * It fills the form rather than saving. That distinction is the whole
+   * safety of it — everything it finds lands in fields you are looking at,
+   * next to a Save button you have to press, so a confident misreading is a
+   * thing you correct before it is recorded rather than after. It is also why
+   * this belongs here and not beside Refresh on the bottle itself, where it
+   * would overwrite the facts you own without asking.
+   *
+   * Only fields the reading actually found are touched. A label that names no
+   * producer should leave yours alone, not blank it.
+   */
+  async function readLabelAgain() {
+    setRereading(true);
+    setPhotoNotice(null);
+    try {
+      const response = await fetch("/api/identify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPhoto ? { dataUrl: newPhoto } : { photoId: storedPhoto }),
+      });
+      const found = (await response.json()) as Partial<LabelReading> & { error?: string };
+
+      if (found.error) {
+        setPhotoNotice(found.error);
+      } else if (found.is_wine_label === false) {
+        setPhotoNotice("That photo doesn't look like a wine label, so nothing was changed.");
+      } else {
+        const filled: string[] = [];
+        const put = (label: string, value: unknown, set: (next: string) => void) => {
+          if (value === null || value === undefined || value === "") return;
+          set(String(value));
+          filled.push(label);
+        };
+        put("producer", found.producer, setProducer);
+        put("name", found.name, setName);
+        put("vintage", found.vintage, setVintage);
+        put("type", found.wine_type, setWineType);
+        put("region", found.region, setRegion);
+        put("country", found.country, setCountry);
+        if (found.grapes?.length) {
+          setGrapes(found.grapes.join(", "));
+          filled.push("grapes");
+        }
+
+        setPhotoNotice(
+          filled.length
+            ? `Read from the label: ${filled.join(", ")}. Check it, then save.`
+            : "Nothing legible came back from that photo. Fill it in by hand.",
+        );
+      }
+    } catch {
+      setPhotoNotice("Couldn't reach the server to read the label.");
+    }
+    setRereading(false);
+  }
+
   async function makeStudioShot() {
     setStaging(true);
     setPhotoNotice(null);
@@ -416,7 +481,7 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
     }
   }
 
-  const busyWithPhoto = staging;
+  const busyWithPhoto = staging || rereading;
 
   /* The place line under the name, from whatever the fields hold right now. */
   const place = placeLine(region.trim() || null, country.trim() || null);
@@ -505,6 +570,17 @@ export default function WineForm({ mode, wine, reading, photoDataUrl, found }: P
               >
                 {storedPhoto || newPhoto ? "Change photo" : "Add a photo"}
               </button>
+
+              {(storedPhoto || newPhoto) && (
+                <button
+                  type="button"
+                  onClick={readLabelAgain}
+                  disabled={busyWithPhoto}
+                  className="link-plain disabled:opacity-50"
+                >
+                  {rereading ? "Reading…" : "Read the label again"}
+                </button>
+              )}
 
               {(storedPhoto || newPhoto) && (
                 <button

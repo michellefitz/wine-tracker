@@ -5,9 +5,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import LabelPhoto from "@/components/LabelPhoto";
 import type { Wine } from "@/lib/types";
 
-type SimpleType = "Red" | "White" | "Sparkling" | "Other";
+type SimpleType = "Red" | "White" | "Rosé" | "Sparkling" | "Other";
 
-const GROUP_ORDER: SimpleType[] = ["Red", "White", "Sparkling", "Other"];
+/* The order a wine list is written in, which is also WINE_TYPES' own. */
+const GROUP_ORDER: SimpleType[] = ["Red", "White", "Rosé", "Sparkling", "Other"];
 
 /**
  * Between bottles, in pixels. Named because the widths have to subtract it.
@@ -35,12 +36,26 @@ const GAP = 3;
  */
 const ZOOM = 0.08;
 
+/**
+ * The shelf a bottle belongs on.
+ *
+ * Rosé has a shelf of its own. It is one of the types the app offers and one
+ * of the three or four kinds of wine anybody actually buys, and it was falling
+ * through to "Other" — filed with orange, dessert and fortified, under a
+ * heading that says the app has no word for what you are holding.
+ *
+ * The accent is folded before matching, because the acute is the first thing
+ * lost between a label, a phone keyboard and a model: "Rosé", "Rose" and
+ * "rosé" are one wine and have to land on one shelf. Anything genuinely
+ * outside the list still goes to Other, which is what Other is for.
+ */
 function simplifyType(wineType: string | null): SimpleType {
   if (!wineType) return "Other";
-  const lower = wineType.toLowerCase();
-  if (lower === "red") return "Red";
-  if (lower === "white") return "White";
-  if (lower === "sparkling") return "Sparkling";
+  const plain = wineType.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
+  if (plain === "red") return "Red";
+  if (plain === "white") return "White";
+  if (plain === "rose") return "Rosé";
+  if (plain === "sparkling") return "Sparkling";
   return "Other";
 }
 
