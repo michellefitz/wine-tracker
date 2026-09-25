@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import WineAisles from "@/components/WineAisles";
 import WineCard from "@/components/WineCard";
 import WineRolodex from "@/components/WineRolodex";
 import { ratingFor, tagLabel } from "@/lib/taxonomy";
@@ -96,6 +97,63 @@ function ShelfIcon({ active }: { active: boolean }) {
 }
 
 /**
+ * The shopping bag, for the shop filter.
+ *
+ * A bag rather than a shop front or a trolley: it is the one of the three that
+ * still reads at eighteen pixels, and it is what the two icons beside it are —
+ * a shape, not a picture.
+ */
+function BagIcon({ active }: { active: boolean }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 18 18"
+      fill="none"
+      className={active ? "text-ink" : "text-muted"}
+    >
+      <path
+        d="M2.5 5.5h13l-1 11h-11z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6 7V4.5a3 3 0 016 0V7"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * The shops you have actually bought wine from, most-visited first.
+ *
+ * Read off the log rather than taken from SOURCES, which is the whole point.
+ * The vocabulary has fifteen entries in it — every Irish supermarket, the
+ * merchants, and the catch-alls — and a row of fifteen pills on a phone is a
+ * wall to read rather than a filter to tap. Four is a filter.
+ *
+ * Ordered by how many bottles came from each because the shop you buy from
+ * most is the one you are most often standing in, and a pill that is always
+ * first is a pill you can hit without looking. Alphabetical breaks the ties so
+ * the row doesn't shuffle when two shops draw level.
+ */
+function shopsIn(wines: Wine[]): { name: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const wine of wines) {
+    const shop = wine.source?.trim();
+    if (!shop) continue;
+    counts.set(shop, (counts.get(shop) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+/**
  * Which view you last chose, kept between visits.
  *
  * Not the default — that stays the shelf — but a choice that survives nothing
@@ -112,6 +170,17 @@ export default function WineList({ wines }: { wines: Wine[] }) {
   const [view, setView] = useState<View>("gallery");
   const [query, setQuery] = useState("");
 
+  /*
+   * Which shop you're standing in, and whether the row of them is down.
+   *
+   * Neither is remembered between visits, unlike the view. A shop filter is
+   * about where you are right now — opening the app on the sofa to a page that
+   * only admits the existence of four wines from Ely, because that is where you
+   * were on Saturday, would be a fault rather than a courtesy.
+   */
+  const [shop, setShop] = useState<string | null>(null);
+  const [shopsOpen, setShopsOpen] = useState(false);
+
   useEffect(() => {
     try {
       const kept = window.localStorage.getItem(REMEMBERED);
@@ -120,6 +189,23 @@ export default function WineList({ wines }: { wines: Wine[] }) {
       // Private windows and blocked site data throw on access alone.
     }
   }, []);
+
+  /**
+   * Opening and closing the row of shops.
+   *
+   * Closing it clears the shop, which is the rule that keeps this honest: a
+   * filter still quietly hiding two thirds of the collection from behind a bar
+   * you have shut is state you can neither see nor undo, and the only symptom
+   * is a cellar that appears to have lost most of its wine.
+   */
+  function toggleShops() {
+    if (shopsOpen) {
+      setShopsOpen(false);
+      setShop(null);
+    } else {
+      setShopsOpen(true);
+    }
+  }
 
   function choose(next: View) {
     setView(next);
@@ -132,9 +218,14 @@ export default function WineList({ wines }: { wines: Wine[] }) {
 
   const visible = useMemo(() => {
     const needle = fold(query.trim());
-    if (!needle) return wines;
-    return wines.filter((wine) => haystack(wine).includes(needle));
-  }, [wines, query]);
+    return wines.filter(
+      (wine) =>
+        (!shop || wine.source?.trim() === shop) &&
+        (!needle || haystack(wine).includes(needle)),
+    );
+  }, [wines, query, shop]);
+
+  const shops = useMemo(() => shopsIn(wines), [wines]);
 
   if (wines.length === 0) {
     return (
@@ -182,41 +273,121 @@ export default function WineList({ wines }: { wines: Wine[] }) {
         )}
         <div className="flex gap-1 pb-2.5">
           {/*
+            Only when there is something to filter by. Until a bottle has been
+            logged with a shop against it this button can do nothing at all,
+            and a control that opens onto an empty row teaches you that it is
+            broken.
+          */}
+          {shops.length > 0 && (
+            <button
+              type="button"
+              onClick={toggleShops}
+              aria-label={shop ? `Shopping at ${shop}` : "Filter by shop"}
+              aria-expanded={shopsOpen}
+              className={`mr-1 rounded p-1.5 transition-colors ${
+                shopsOpen ? "bg-tint" : ""
+              }`}
+            >
+              <BagIcon active={shopsOpen} />
+            </button>
+          )}
+          {/*
+            The view toggles step aside while you are shopping. The shop has a
+            layout of its own — named cards, so the verdict is readable with
+            the bottle in your hand — and leaving two buttons there that no
+            longer change anything is worse than leaving the row a little
+            emptier for as long as a shop is chosen.
+
             The chosen one is on a tint, not merely a darker grey. The colour
             difference alone was invisible to both testers, so neither could
             tell which view they were in or that the first tap had done
             anything — one of them tapped the view he was already looking at
             and concluded the button was broken.
           */}
-          <button
-            type="button"
-            onClick={() => choose("grid")}
-            aria-label="List with names"
-            aria-pressed={view === "grid"}
-            className={`rounded p-1.5 transition-colors ${
-              view === "grid" ? "bg-tint" : ""
-            }`}
-          >
-            <GridIcon active={view === "grid"} />
-          </button>
-          <button
-            type="button"
-            onClick={() => choose("gallery")}
-            aria-label="Shelf of bottles"
-            aria-pressed={view === "gallery"}
-            className={`rounded p-1.5 transition-colors ${
-              view === "gallery" ? "bg-tint" : ""
-            }`}
-          >
-            <ShelfIcon active={view === "gallery"} />
-          </button>
+          {!shop && (
+            <>
+              <button
+                type="button"
+                onClick={() => choose("grid")}
+                aria-label="List with names"
+                aria-pressed={view === "grid"}
+                className={`rounded p-1.5 transition-colors ${
+                  view === "grid" ? "bg-tint" : ""
+                }`}
+              >
+                <GridIcon active={view === "grid"} />
+              </button>
+              <button
+                type="button"
+                onClick={() => choose("gallery")}
+                aria-label="Shelf of bottles"
+                aria-pressed={view === "gallery"}
+                className={`rounded p-1.5 transition-colors ${
+                  view === "gallery" ? "bg-tint" : ""
+                }`}
+              >
+                <ShelfIcon active={view === "gallery"} />
+              </button>
+            </>
+          )}
         </div>
       </div>
+
+      {/*
+        The row of shops, on a runner.
+
+        Animated from a zero-height grid row rather than a max-height, because
+        a max-height has to be a guess: too small and a fifth shop is clipped
+        off the end, too large and the open half of the movement is spent
+        travelling through empty space at the wrong speed. 0fr to 1fr is the
+        element's own height, whatever that turns out to be.
+
+        Hidden from the keyboard and from a screen reader while it is shut —
+        inert rather than display:none, which would take the height it is
+        animating with it.
+      */}
+      {shops.length > 0 && (
+        <div
+          inert={!shopsOpen}
+          className={`grid transition-[grid-template-rows] duration-[280ms]
+            ease-out-strong ${shopsOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+        >
+          <div className="overflow-hidden">
+            <div className="flex flex-wrap gap-2 pb-5">
+              {shops.map(({ name, count }) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => setShop(shop === name ? null : name)}
+                  aria-pressed={shop === name}
+                  /* "Ely 4" read aloud is a shop with a number after it; this
+                     says what the number counts. */
+                  aria-label={`${name}, ${count} ${count === 1 ? "wine" : "wines"}`}
+                  className={`chip ${shop === name ? "chip-on" : ""}`}
+                >
+                  {name}
+                  {/* How much you know about the shop, which is the other
+                      thing worth knowing before you walk into it. */}
+                  <span className="ml-1.5 opacity-55">{count}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {visible.length === 0 ? (
         <p className="border-t border-rule py-16 text-center text-[0.9375rem] text-muted">
           Nothing matches that.
         </p>
+      ) : shop ? (
+        /*
+          A shop is its own view, whichever of the two you were in. The shelf
+          is for recognising a bottle by its label at home; this is for reading
+          a verdict off a card with the bottle in your hand, and a search
+          running at the same time narrows the shop rather than leaving it.
+        */
+        <WineAisles wines={visible} />
       ) : view === "gallery" && !searching ? (
         <WineRolodex wines={visible} />
       ) : (

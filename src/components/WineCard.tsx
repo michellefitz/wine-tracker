@@ -4,7 +4,22 @@ import RatingMark from "@/components/RatingMark";
 import { countryFlag, placeLine } from "@/lib/places";
 import type { Wine } from "@/lib/types";
 
-export default function WineCard({ wine }: { wine: Wine }) {
+/**
+ * `heading` exists so a card can sit under a heading of its own.
+ *
+ * On the grid and the grape pages the wine's name is the first heading on that
+ * stretch of page, so h2 is right. In a shop it sits under "Red" or "White",
+ * and leaving it at h2 would put the section and the bottles inside it at the
+ * same level — a list of eight equal headings where there are really three
+ * sections with bottles in them. The class list doesn't change; only the tag.
+ */
+export default function WineCard({
+  wine,
+  heading: Title = "h2",
+}: {
+  wine: Wine;
+  heading?: "h2" | "h3";
+}) {
   const flag = countryFlag(wine.country);
   // Cards are half a phone wide, so "Marlborough, New Zealand" truncates badly.
   // When the flag is there to carry the country, the region alone is enough.
@@ -31,9 +46,9 @@ export default function WineCard({ wine }: { wine: Wine }) {
 
       <div className="pt-3">
         <RatingMark score={wine.score} />
-        <h2 className="essay mt-1.5 text-[1.0625rem] leading-snug text-ink">
+        <Title className="essay mt-1.5 text-[1.0625rem] leading-snug text-ink">
           {wine.name}
-        </h2>
+        </Title>
         {(wine.producer || wine.vintage) && (
           <p className="mt-1 truncate text-[0.8125rem] text-ink-soft">
             {[wine.producer, wine.vintage].filter(Boolean).join(", ")}
