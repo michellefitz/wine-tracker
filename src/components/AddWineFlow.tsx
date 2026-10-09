@@ -27,6 +27,28 @@ import type { StoredFacts } from "@/lib/wine-facts";
  * at a drawing of a label and then being handed a form that was already
  * complete. Nothing was ever seen happening.
  */
+/**
+ * The way back from a request that never arrived.
+ *
+ * Every lookup on this screen can die without a reply — a phone in a
+ * restaurant drops its uplink and two uploads go with it — and until now the
+ * only way back was to pick the photo again from a menu in the corner of the
+ * picture, or in the label reader's case not at all. The screen said "fill it
+ * in by hand" and meant it, for a lookup that would have worked on a second
+ * attempt a moment later.
+ *
+ * Shown only when the request got no response at all. A reader that answered
+ * and said the photo isn't a wine label has nothing to try again, and a button
+ * offering to re-ask a question already answered is worse than no button.
+ */
+function TryAgain({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="btn-quiet mt-3 bg-paper">
+      {label}
+    </button>
+  );
+}
+
 export default function AddWineFlow() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [started, setStarted] = useState(false);
@@ -34,6 +56,19 @@ export default function AddWineFlow() {
   const [reading, setReading] = useState<LabelReading | null>(null);
   const [readingLabel, setReadingLabel] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  /*
+   * Whether each of the three lookups failed for want of an answer, as opposed
+   * to answering with bad news.
+   *
+   * Kept apart from the messages because only one of the two is worth a retry.
+   * "That didn't look like a wine label" is a reply, and asking again gets the
+   * same reply; "couldn't reach the label reader" is silence, and silence from
+   * a phone on patchy mobile data usually isn't silence twice.
+   */
+  const [labelUnreached, setLabelUnreached] = useState(false);
+  const [studioUnreached, setStudioUnreached] = useState(false);
+  const [searchUnreached, setSearchUnreached] = useState(false);
 
   /*
    * What the web says about the bottle, found here rather than on the page
@@ -68,6 +103,7 @@ export default function AddWineFlow() {
   async function makeStudioShot(dataUrl: string) {
     setStaging(true);
     setStudioTrouble(null);
+    setStudioUnreached(false);
     try {
       const response = await fetch("/api/photos/studio", {
         method: "POST",
@@ -87,6 +123,7 @@ export default function AddWineFlow() {
       }
     } catch {
       setStudioTrouble("Couldn't reach the server to make a studio shot.");
+      setStudioUnreached(true);
     }
     setStaging(false);
   }
@@ -101,6 +138,7 @@ export default function AddWineFlow() {
   async function lookUp(label: LabelReading) {
     setSearching(true);
     setSearchTrouble(null);
+    setSearchUnreached(false);
     try {
       const response = await fetch("/api/research", {
         method: "POST",
@@ -129,12 +167,25 @@ export default function AddWineFlow() {
       }
     } catch {
       setSearchTrouble("Couldn't reach the server to look this bottle up.");
+      setSearchUnreached(true);
     }
     setSearching(false);
   }
 
   async function readLabel(dataUrl: string) {
     setReadingLabel(true);
+    setLabelUnreached(false);
+    /*
+     * And the last attempt's message with it.
+     *
+     * The success path only ever writes a notice when it has something to say,
+     * so nothing here clears one — which was fine while the only way in was
+     * choosing a photo, since that clears it on the way past. Retrying comes
+     * straight here, and without this a reading that worked on the second go
+     * left "Couldn't reach the label reader" sitting over a form it had just
+     * filled in correctly.
+     */
+    setNotice(null);
     try {
       const response = await fetch("/api/identify", {
         method: "POST",
@@ -145,6 +196,9 @@ export default function AddWineFlow() {
       if (!response.ok) {
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
         setNotice(payload.error ?? "Couldn't read the label. Fill it in by hand.");
+        // A server that fell over may well stand up again; one that says the
+        // request was wrong will say so just as firmly the second time.
+        if (response.status >= 500) setLabelUnreached(true);
       } else {
         const result = (await response.json()) as LabelReading;
         if (result.is_wine_label) {
@@ -159,7 +213,8 @@ export default function AddWineFlow() {
         }
       }
     } catch {
-      setNotice("Couldn't reach the label reader. Fill it in by hand.");
+      setNotice("Couldn't reach the label reader.");
+      setLabelUnreached(true);
     }
     setReadingLabel(false);
   }
@@ -270,10 +325,24 @@ export default function AddWineFlow() {
           )}
 
           {studioTrouble && (
-            <p className="mx-auto mt-3 max-w-sm bg-tint px-4 py-3 text-center text-[0.8125rem]
-              leading-relaxed text-ink-soft">
-              {studioTrouble} Your own photo will be used.
-            </p>
+            <div className="mx-auto mt-3 max-w-sm bg-tint px-4 py-3 text-center">
+              <p className="text-[0.8125rem] leading-relaxed text-ink-soft">
+                {studioTrouble} Your own photo will be used.
+              </p>
+              {/*
+                The retry has always existed, behind the three dots in the
+                corner of the picture. Behind a menu is where a control goes
+                when it is rarely the thing you want; this is the one moment
+                it is exactly the thing you want, so it comes out and stands
+                under the sentence explaining why you want it.
+              */}
+              {studioUnreached && (
+                <TryAgain
+                  label="Try again"
+                  onClick={() => photo && makeStudioShot(photo)}
+                />
+              )}
+            </div>
           )}
 
           {/*
@@ -384,9 +453,15 @@ export default function AddWineFlow() {
           {readingLabel ? (
             <ReadingLabel caption="Reading the label…" />
           ) : notice ? (
-            <p className="bg-tint px-4 py-3 text-[0.9375rem] leading-relaxed text-ink-soft">
-              {notice}
-            </p>
+            <div className="bg-tint px-4 py-3">
+              <p className="text-[0.9375rem] leading-relaxed text-ink-soft">{notice}</p>
+              {labelUnreached && (
+                <TryAgain
+                  label="Try reading the label again"
+                  onClick={() => photo && readLabel(photo)}
+                />
+              )}
+            </div>
           ) : null}
         </div>
       )}
@@ -423,9 +498,14 @@ export default function AddWineFlow() {
           ) : found?.facts ? (
             <WineFactsView facts={found.facts as StoredFacts} query={query} />
           ) : (
-            <p className="text-[0.9375rem] leading-relaxed text-muted">
-              {searchTrouble ?? "Nothing much is written about this one."}
-            </p>
+            <div>
+              <p className="text-[0.9375rem] leading-relaxed text-muted">
+                {searchTrouble ?? "Nothing much is written about this one."}
+              </p>
+              {searchUnreached && reading && (
+                <TryAgain label="Look it up again" onClick={() => void lookUp(reading)} />
+              )}
+            </div>
           )}
         </div>
       )}
